@@ -60,6 +60,38 @@ final class PropertyHistoryEntry {
         return getPriceDropAmount() > 0d;
     }
 
+    boolean hasPriceChange() {
+        return getLatestPriceChangeAmount() != 0d;
+    }
+
+    boolean hasPriceIncrease() {
+        return getLatestPriceChangeAmount() > 0d;
+    }
+
+    double getLatestPriceChangeAmount() {
+        if (isUnavailable() || isPendingValidation()) return 0d;
+        for (int index = points.size() - 1; index > 0; index--) {
+            double previousPrice = points.get(index - 1).getPrice();
+            double currentPrice = points.get(index).getPrice();
+            if (Double.compare(previousPrice, currentPrice) != 0) {
+                return currentPrice - previousPrice;
+            }
+        }
+        return 0d;
+    }
+
+    double getLatestPriceChangePercentage() {
+        if (isUnavailable() || isPendingValidation()) return 0d;
+        for (int index = points.size() - 1; index > 0; index--) {
+            double previousPrice = points.get(index - 1).getPrice();
+            double currentPrice = points.get(index).getPrice();
+            if (Double.compare(previousPrice, currentPrice) != 0) {
+                return previousPrice > 0d ? (currentPrice - previousPrice) * 100d / previousPrice : 0d;
+            }
+        }
+        return 0d;
+    }
+
     double getPriceDropAmount() {
         if (isUnavailable() || isPendingValidation()) return 0d;
         for (int index = points.size() - 1; index > 0; index--) {

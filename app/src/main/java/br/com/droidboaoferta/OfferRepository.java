@@ -72,6 +72,16 @@ final class OfferRepository {
         }
     }
 
+    synchronized boolean clearRecentOffer(String id) {
+        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+        boolean changed = recent.removeIf(offer -> offer.getId().equals(id));
+        if (changed) {
+            saveOffers(KEY_OFFERS, recent);
+            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+        }
+        return changed;
+    }
+
     synchronized void reconcileRecentWithInterests(List<Interest> interests) {
         List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
         List<ObservedOffer> reconciled = new ArrayList<>();

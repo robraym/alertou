@@ -112,6 +112,7 @@ final class PropertyPageMonitor {
         long observedAt = System.currentTimeMillis();
         PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(context);
         List<PropertyPageListing> matches = new ArrayList<>();
+        List<String> noLongerEligibleOfferIds = new ArrayList<>();
         Map<String, Integer> historyChanges = new HashMap<>();
         Map<String, PropertyPageListing> candidates = new java.util.LinkedHashMap<>();
         for (PropertyPageListing listing : historyRepository.getTrackedListings(interest.getId())) {
@@ -150,11 +151,25 @@ final class PropertyPageMonitor {
                 historyChanges.put(currentListing.getId(), historyRepository.recordObservation(
                         interest.getId(), currentListing, observedAt, metadata));
             }
+            if (previouslyObserved && !eligible) {
+                noLongerEligibleOfferIds.add("property|" + interest.getId() + "|" + currentListing.getId());
+            }
             if (eligible) {
                 matches.add(currentListing);
             }
         }
+        boolean removedStaleOffer = false;
+        if (!noLongerEligibleOfferIds.isEmpty()) {
+            OfferRepository repository = new OfferRepository(context);
+            for (String id : noLongerEligibleOfferIds) {
+                removedStaleOffer |= repository.clearRecentOffer(id);
+            }
+        }
         if (matches.isEmpty()) {
+            if (removedStaleOffer) {
+                context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                        .setPackage(context.getPackageName()));
+            }
             return;
         }
         matches.sort(Comparator.comparingDouble(PropertyPageListing::getSalePrice));
@@ -185,6 +200,10 @@ final class PropertyPageMonitor {
         }
         preferences.edit().putString(stateKey, notifiedPrices.toString()).apply();
         if (changed.isEmpty()) {
+            if (removedStaleOffer) {
+                context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                        .setPackage(context.getPackageName()));
+            }
             return;
         }
 

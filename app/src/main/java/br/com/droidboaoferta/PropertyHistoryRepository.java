@@ -75,6 +75,14 @@ final class PropertyHistoryRepository {
                 return UNCHANGED;
             }
             JSONArray entries = readEntries();
+            String identity = PropertyHistorySync.identity(listing.getUrl(), listing.getId());
+            if (!identity.isEmpty()) {
+                try {
+                    entries = mergeEntriesForIdentity(entries, identity, interestId);
+                } catch (org.json.JSONException ignored) {
+                    return UNCHANGED;
+                }
+            }
             JSONObject item = find(entries, interestId, listing.getId(), listing.getUrl());
             boolean created = item == null;
             if (created) {
@@ -152,8 +160,13 @@ final class PropertyHistoryRepository {
         }
         try {
             JSONArray entries = readEntries();
+            long interestId = Long.parseLong(parts[1]);
             String identity = PropertyHistorySync.identity(offer.getLink(), parts[2]);
-            JSONObject exact = find(entries, Long.parseLong(parts[1]), parts[2]);
+            if (!identity.isEmpty()) {
+                JSONObject merged = mergedEntryForIdentity(entries, identity, interestId);
+                if (merged != null) return toEntry(merged);
+            }
+            JSONObject exact = find(entries, interestId, parts[2]);
             if (exact != null && (identity.isEmpty() || identity.equals(PropertyHistorySync.identity(
                     exact.optString("url"), exact.optString("listing_id"))))) return toEntry(exact);
             for (int index = 0; !identity.isEmpty() && index < entries.length(); index++) {
@@ -378,6 +391,63 @@ final class PropertyHistoryRepository {
             }
         }
         return null;
+    }
+
+    private JSONArray mergeEntriesForIdentity(JSONArray entries, String identity, long preferredInterestId)
+            throws org.json.JSONException {
+        JSONArray matching = new JSONArray();
+        JSONArray result = new JSONArray();
+        boolean hasPreferred = false;
+        for (int index = 0; index < entries.length(); index++) {
+            JSONObject item = entries.optJSONObject(index);
+            if (item == null) continue;
+            if (identity.equals(PropertyHistorySync.identity(
+                    item.optString("url"), item.optString("listing_id")))) {
+                matching.put(item);
+                hasPreferred |= item.optLong("interest_id", 0L) == preferredInterestId;
+            } else {
+                result.put(item);
+            }
+        }
+        if (matching.length() == 0) {
+            return entries;
+        }
+        JSONArray merged = PropertyHistorySync.merge(matching, new JSONArray());
+        boolean preferredAdded = false;
+        for (int index = 0; index < merged.length(); index++) {
+            JSONObject item = merged.optJSONObject(index);
+            if (item == null) continue;
+            preferredAdded |= item.optLong("interest_id", 0L) == preferredInterestId;
+            result.put(item);
+        }
+        if (!preferredAdded && !hasPreferred) {
+            JSONObject base = merged.optJSONObject(0);
+            if (base != null) {
+                result.put(new JSONObject(base.toString()).put("interest_id", preferredInterestId));
+            }
+        }
+        return result;
+    }
+
+    private JSONObject mergedEntryForIdentity(JSONArray entries, String identity, long preferredInterestId) {
+        try {
+            JSONArray merged = mergeEntriesForIdentity(entries, identity, preferredInterestId);
+            JSONObject preferred = null;
+            JSONObject fallback = null;
+            for (int index = 0; index < merged.length(); index++) {
+                JSONObject item = merged.optJSONObject(index);
+                if (item == null || !identity.equals(PropertyHistorySync.identity(
+                        item.optString("url"), item.optString("listing_id")))) continue;
+                if (fallback == null) fallback = item;
+                if (item.optLong("interest_id", 0L) == preferredInterestId) {
+                    preferred = item;
+                    break;
+                }
+            }
+            return preferred == null ? fallback : preferred;
+        } catch (org.json.JSONException ignored) {
+            return null;
+        }
     }
 
     private PropertyHistoryEntry toEntry(JSONObject item) {

@@ -486,7 +486,9 @@
     <string name="property_history_unverified_notice">Parte do histórico anterior está preservada separadamente e fora do cálculo de quedas. Ela só volta ao gráfico quando houver uma leitura compatível do mesmo anúncio, sem registro de indisponibilidade durante a validação.</string>
     <string name="property_price_drop_badge_thousands">↓ R$ %1$s mil · %2$s%%</string>
     <string name="property_price_drop_badge_reais">↓ R$ %1$s · %2$s%%</string>
-    <string name="property_price_drop_badge_description">Ver histórico da queda de preço</string>
+    <string name="property_price_rise_badge_thousands">↑ R$ %1$s mil · %2$s%%</string>
+    <string name="property_price_rise_badge_reais">↑ R$ %1$s · %2$s%%</string>
+    <string name="property_price_change_badge_description">Ver histórico do preço</string>
     <string name="property_history_empty">Histórico ainda não disponível para este anúncio.</string>
     <string name="property_history_current_summary">%1$s • %2$s</string>
     <string name="property_history_listing_title">Anúncio: %1$s</string>

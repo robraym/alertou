@@ -651,8 +651,8 @@ public class MainActivity extends AlertouActivity {
                     expired,
                     propertyHistory != null && propertyHistory.isRecent(System.currentTimeMillis()),
                     propertyHistory == null ? 0L : propertyHistory.getFirstPublicationAt(),
-                    propertyHistory == null ? 0d : propertyHistory.getPriceDropAmount(),
-                    propertyHistory == null ? 0d : propertyHistory.getPriceDropPercentage(),
+                    propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangeAmount(),
+                    propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangePercentage(),
                     view -> showPropertyHistoryDialog(offer)
             );
             FrameLayout swipeContainer = createSwipeContainer(row);
@@ -757,8 +757,8 @@ public class MainActivity extends AlertouActivity {
                                         String contentDescription, String propertyListingCode,
                                         boolean expired,
                                         boolean newPropertyAd, long propertyPublishedAt,
-                                        double propertyPriceDrop,
-                                        double propertyPriceDropPercentage,
+                                        double propertyPriceChange,
+                                        double propertyPriceChangePercentage,
                                         View.OnClickListener propertyHistoryClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
@@ -820,9 +820,9 @@ public class MainActivity extends AlertouActivity {
         sourceView.setEllipsize(TextUtils.TruncateAt.END);
         sourceView.setPadding(dp(4), 0, 0, 0);
         metaLine.addView(sourceView, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        if (propertyPriceDrop > 0d) {
-            TextView badge = createPropertyPriceDropBadge(
-                    propertyPriceDrop, propertyPriceDropPercentage, propertyHistoryClick);
+        if (Double.compare(propertyPriceChange, 0d) != 0) {
+            TextView badge = createPropertyPriceChangeBadge(
+                    propertyPriceChange, propertyPriceChangePercentage, propertyHistoryClick);
             LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -879,16 +879,19 @@ public class MainActivity extends AlertouActivity {
         return badge;
     }
 
-    private TextView createPropertyPriceDropBadge(double priceDrop, double percentage,
-                                                   View.OnClickListener listener) {
+    private TextView createPropertyPriceChangeBadge(double priceChange, double percentage,
+                                                    View.OnClickListener listener) {
         TextView badge = new TextView(this);
-        badge.setText(formatPropertyPriceDrop(priceDrop, percentage));
-        badge.setContentDescription(getString(R.string.property_price_drop_badge_description));
-        badge.setTextColor(getColor(R.color.action_green));
+        boolean increase = priceChange > 0d;
+        badge.setText(formatPropertyPriceChange(priceChange, percentage));
+        badge.setContentDescription(getString(R.string.property_price_change_badge_description));
+        badge.setTextColor(getColor(increase ? R.color.danger : R.color.action_green));
         badge.setTextSize(10.5f);
         badge.setTypeface(null, android.graphics.Typeface.BOLD);
         badge.setSingleLine(true);
-        badge.setBackgroundResource(R.drawable.bg_property_new_badge);
+        badge.setBackgroundResource(increase
+                ? R.drawable.bg_property_price_rise_badge
+                : R.drawable.bg_property_new_badge);
         badge.setPadding(dp(6), dp(1), dp(6), dp(1));
         badge.setClickable(true);
         badge.setFocusable(true);
@@ -896,18 +899,27 @@ public class MainActivity extends AlertouActivity {
         return badge;
     }
 
-    private String formatPropertyPriceDrop(double priceDrop, double percentage) {
+    private String formatPropertyPriceChange(double priceChange, double percentage) {
+        double absoluteChange = Math.abs(priceChange);
+        double absolutePercentage = Math.abs(percentage);
         NumberFormat number = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         NumberFormat percentageNumber = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         percentageNumber.setMaximumFractionDigits(1);
-        if (priceDrop >= 1000d) {
-            number.setMaximumFractionDigits(priceDrop % 1000d == 0d ? 0 : 1);
-            return getString(R.string.property_price_drop_badge_thousands,
-                    number.format(priceDrop / 1000d), percentageNumber.format(percentage));
+        boolean increase = priceChange > 0d;
+        if (absoluteChange >= 1000d) {
+            number.setMaximumFractionDigits(absoluteChange % 1000d == 0d ? 0 : 1);
+            return getString(increase
+                            ? R.string.property_price_rise_badge_thousands
+                            : R.string.property_price_drop_badge_thousands,
+                    number.format(absoluteChange / 1000d),
+                    percentageNumber.format(absolutePercentage));
         }
         number.setMaximumFractionDigits(0);
-        return getString(R.string.property_price_drop_badge_reais,
-                number.format(priceDrop), percentageNumber.format(percentage));
+        return getString(increase
+                        ? R.string.property_price_rise_badge_reais
+                        : R.string.property_price_drop_badge_reais,
+                number.format(absoluteChange),
+                percentageNumber.format(absolutePercentage));
     }
 
     private View createOfferDivider() {

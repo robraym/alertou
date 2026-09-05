@@ -58,6 +58,31 @@ public class PropertyHistoryRepositoryTest {
     }
 
     @Test
+    public void keepsHistoryWhenSamePropertyMovesToAnotherAlert() throws Exception {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        stored.put("entries", new org.json.JSONArray().put(workingLegacyEntry()).toString());
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        String url = goPortugalOffer().getLink();
+        PropertyPageListing increased = new PropertyPageListing("895590942", 27, 450000,
+                "Go Portugal", url);
+        PropertyListingMetadata metadata = PropertyListingMetadata.verified(
+                "895590942", 450000, 27, 0, 0);
+
+        repository.recordObservation(2, increased, 3, metadata);
+        ObservedOffer newAlertOffer = new ObservedOffer("property|2|895590942", 2,
+                "Go Portugal", "QuintoAndar", 450000, 450000, 3, url, "");
+        PropertyHistoryEntry history = repository.getForOffer(newAlertOffer);
+
+        assertEquals(3, history.getPoints().size());
+        assertEquals(414000d, history.getPoints().get(0).getPrice(), 0d);
+        assertEquals(399000d, history.getPoints().get(1).getPrice(), 0d);
+        assertEquals(450000d, history.getPoints().get(2).getPrice(), 0d);
+        assertEquals(51000d, history.getLatestPriceChangeAmount(), 0d);
+        assertEquals(12.781d, history.getLatestPriceChangePercentage(), 0.001d);
+        assertEquals(0d, history.getPriceDropAmount(), 0d);
+    }
+
+    @Test
     public void doesNotRestoreMismatchedOrKnownUnavailableLegacyHistory() throws Exception {
         JSONObject migrated = broadlyMigratedEntry();
         assertFalse(PropertyHistoryRepository.restoreCompatibleLegacyHistory(migrated,
@@ -206,6 +231,8 @@ public class PropertyHistoryRepositoryTest {
                             new PropertyHistoryPoint(2, 320000, 40)), status, true);
             assertFalse(entry.hasPriceDrop());
             assertEquals(0d, entry.getPriceDropPercentage(), 0d);
+            assertFalse(entry.hasPriceChange());
+            assertEquals(0d, entry.getLatestPriceChangeAmount(), 0d);
             assertFalse(entry.isRecent(3));
         }
     }
@@ -246,5 +273,23 @@ public class PropertyHistoryRepositoryTest {
         assertTrue(entry.hasPriceDrop());
         assertEquals(15000d, entry.getPriceDropAmount(), 0.001d);
         assertEquals(3.623d, entry.getPriceDropPercentage(), 0.001d);
+    }
+
+    @Test
+    public void identifiesPriceIncreaseForDashboardBadge() {
+        PropertyHistoryEntry entry = new PropertyHistoryEntry(
+                1L, "895590942", "Studio", "", 1L, 3L, 0L, false,
+                Arrays.asList(
+                        new PropertyHistoryPoint(1L, 414000d, 27d),
+                        new PropertyHistoryPoint(2L, 399000d, 27d),
+                        new PropertyHistoryPoint(3L, 450000d, 27d)
+                )
+        );
+
+        assertFalse(entry.hasPriceDrop());
+        assertTrue(entry.hasPriceChange());
+        assertTrue(entry.hasPriceIncrease());
+        assertEquals(51000d, entry.getLatestPriceChangeAmount(), 0.001d);
+        assertEquals(12.781d, entry.getLatestPriceChangePercentage(), 0.001d);
     }
 }
