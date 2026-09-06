@@ -18,6 +18,7 @@ final class PropertyMarketReferenceSettings {
 
     static void setEnabled(Context context, boolean enabled) {
         preferences(context).edit().putBoolean(KEY_ENABLED, enabled).apply();
+        SettingsBackup.changed(context);
     }
 
     static int getSummaryResource(Context context) {
@@ -39,6 +40,7 @@ final class PropertyMarketReferenceSettings {
             throw new IllegalArgumentException("Unsupported property check interval");
         }
         preferences(context).edit().putInt(KEY_CHECK_INTERVAL_MINUTES, minutes).apply();
+        SettingsBackup.changed(context);
     }
 
     static boolean isReference(ObservedOffer offer) {
@@ -49,7 +51,7 @@ final class PropertyMarketReferenceSettings {
         return "property_market|" + interestId + "|" + listingId;
     }
 
-    private static boolean isSupportedCheckInterval(int minutes) {
+    static boolean isSupportedCheckInterval(int minutes) {
         return minutes == 5 || minutes == 15 || minutes == 30 || minutes == 60;
     }
 

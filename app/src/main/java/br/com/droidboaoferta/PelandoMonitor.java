@@ -12,8 +12,6 @@ import androidx.core.app.NotificationCompat;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 final class PelandoMonitor {
@@ -21,11 +19,10 @@ final class PelandoMonitor {
             "br.com.droidboaoferta.PELANDO_STATUS_CHANGED";
     private static final String PREFS = "pelando_monitor";
     private static final String LAST_PRICE_PREFIX = "last_price_";
-    private static final String KEY_LAST_FEED_SIGNATURE = "last_feed_signature";
     private static final PelandoMonitor INSTANCE = new PelandoMonitor();
 
     private Context appContext;
-    private ScheduledExecutorService executor;
+    private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
 
     private PelandoMonitor() {
     }
@@ -36,31 +33,17 @@ final class PelandoMonitor {
 
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
-        if (executor != null && !executor.isShutdown()) {
-            return;
-        }
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleWithFixedDelay(
-                () -> checkAllSafely(false),
-                0L,
-                PelandoSource.getCheckIntervalSeconds(appContext),
-                TimeUnit.SECONDS
-        );
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                PelandoSource.getCheckIntervalSeconds(appContext)));
     }
 
-    synchronized void stop() {
-        if (executor != null) {
-            executor.shutdownNow();
-            executor = null;
-        }
-    }
+    synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean alreadyRunning = executor != null && !executor.isShutdown();
+        boolean started = scheduler.isStarted();
         start(context);
-        if (alreadyRunning) {
-            executor.execute(() -> checkAllSafely(true));
-        }
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, () -> checkAllSafely(true));
     }
 
     void clearState(Context context, long interestId) {
@@ -77,7 +60,7 @@ final class PelandoMonitor {
     }
 
     synchronized void rescheduleIfRunning(Context context) {
-        if (executor == null || executor.isShutdown()) {
+        if (!scheduler.isStarted()) {
             return;
         }
         stop();
@@ -86,31 +69,37 @@ final class PelandoMonitor {
 
     private void checkAllSafely(boolean force) {
         Context context = appContext;
-        if (context == null || !PelandoSource.isConfigured(context)) {
+        if (!MonitorRunPolicy.canRun(context) || !PelandoSource.isConfigured(context)) {
             return;
         }
+        SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        FeedRetryState retry = new FeedRetryState(preferences);
+        boolean retryDetails = retry.needsRetry();
         try {
             PelandoRecentClient.RecentResult result = PelandoRecentClient.fetchRecent(
                     PelandoSource.getUrl(context),
                     PelandoSource.getLastModified(context),
-                    force
+                    force || retryDetails
             );
-            PelandoSource.markSuccessfulCheck(context, result.getLastModified());
+            if (!MonitorRunPolicy.canRun(context)) return;
             if (!result.isChanged()) {
+                PelandoSource.markSuccessfulCheck(context, result.getLastModified());
                 return;
             }
             String feedSignature = createFeedSignature(result.getDeals());
-            SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-            if (!force && feedSignature.equals(preferences.getString(KEY_LAST_FEED_SIGNATURE, ""))) {
+            if (!retry.shouldProcess(feedSignature, force)) {
+                PelandoSource.markSuccessfulCheck(context, result.getLastModified());
                 return;
             }
-            preferences.edit().putString(KEY_LAST_FEED_SIGNATURE, feedSignature).apply();
+            retry.begin();
+            boolean allDetailsSucceeded = true;
             List<Interest> interests = new InterestRepository(context).getAll();
             OfferRepository repository = new OfferRepository(context);
             long observedAt = System.currentTimeMillis();
             boolean found = false;
             for (PelandoDeal feedDeal : result.getDeals()) {
                 for (Interest interest : interests) {
+                    if (!MonitorRunPolicy.isCurrent(context, interest)) return;
                     if (!interest.isPrice()
                             || !OfferTextParser.matchesInterest(feedDeal.getTitle(), interest.getTerm())) {
                         continue;
@@ -122,8 +111,10 @@ final class PelandoMonitor {
                                 feedDeal.getLink()
                         );
                     } catch (Exception ignored) {
+                        allDetailsSucceeded = false;
                         continue;
                     }
+                    if (!MonitorRunPolicy.isCurrent(context, interest)) return;
                     String key = LAST_PRICE_PREFIX + interest.getId() + "_" + deal.getId();
                     boolean known = preferences.contains(key);
                     double lastPrice = Double.longBitsToDouble(preferences.getLong(
@@ -152,6 +143,12 @@ final class PelandoMonitor {
                     found = true;
                 }
             }
+            if (allDetailsSucceeded) {
+                retry.complete(feedSignature, true);
+                PelandoSource.markSuccessfulCheck(context, result.getLastModified());
+            } else {
+                PelandoSource.markFailedCheck(context);
+            }
             if (found) {
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
@@ -177,6 +174,7 @@ final class PelandoMonitor {
     }
 
     private void showNotification(Context context, ObservedOffer offer) {
+        if (!MonitorRunPolicy.canRun(context)) return;
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink()));
         int notificationId = offer.getId().hashCode();
         PendingIntent pendingIntent = PendingIntent.getActivity(

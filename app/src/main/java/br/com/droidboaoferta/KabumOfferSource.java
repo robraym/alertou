@@ -32,6 +32,7 @@ final class KabumOfferSource {
             throw new IllegalArgumentException("Unsupported KaBuM URL");
         }
         preferences(context).edit().putString(KEY_URL, normalized).apply();
+        SettingsBackup.changed(context);
     }
 
     static String normalizeUrl(String rawUrl) {
@@ -91,9 +92,10 @@ final class KabumOfferSource {
             throw new IllegalArgumentException("Unsupported KaBuM check interval");
         }
         preferences(context).edit().putInt(KEY_CHECK_INTERVAL_SECONDS, seconds).apply();
+        SettingsBackup.changed(context);
     }
 
-    private static boolean isSupportedCheckInterval(int seconds) {
+    static boolean isSupportedCheckInterval(int seconds) {
         return seconds == 60 || seconds == 120 || seconds == 300 || seconds == 900;
     }
 

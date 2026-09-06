@@ -21,6 +21,7 @@ final class MonitorServiceController {
         Context appContext = context.getApplicationContext();
         Intent serviceIntent = new Intent(appContext, OfferMonitorService.class);
         if (!shouldRun(appContext)) {
+            OfferMonitor.getInstance().stop();
             appContext.stopService(serviceIntent);
             return;
         }

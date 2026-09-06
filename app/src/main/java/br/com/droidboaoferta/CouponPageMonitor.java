@@ -12,8 +12,6 @@ import androidx.core.app.NotificationCompat;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 final class CouponPageMonitor {
@@ -24,7 +22,7 @@ final class CouponPageMonitor {
     private static final CouponPageMonitor INSTANCE = new CouponPageMonitor();
 
     private Context appContext;
-    private ScheduledExecutorService executor;
+    private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
 
     private CouponPageMonitor() {
     }
@@ -35,31 +33,28 @@ final class CouponPageMonitor {
 
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
-        if (executor != null && !executor.isShutdown()) {
-            return;
-        }
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleWithFixedDelay(
-                this::checkAllSafely,
-                0L,
-                CHECK_INTERVAL_MINUTES,
-                TimeUnit.MINUTES
-        );
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(CHECK_INTERVAL_MINUTES));
     }
 
-    synchronized void stop() {
-        if (executor != null) {
-            executor.shutdownNow();
-            executor = null;
-        }
-    }
+    synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean alreadyRunning = executor != null && !executor.isShutdown();
+        boolean started = scheduler.isStarted();
         start(context);
-        if (alreadyRunning) {
-            executor.execute(this::checkAllSafely);
-        }
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0);
+    }
+
+    synchronized void checkIfStale(Context context) {
+        boolean started = scheduler.isStarted();
+        start(context);
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(TimeUnit.MINUTES.toMillis(2));
+    }
+
+    synchronized void rescheduleIfRunning(Context context) {
+        if (!scheduler.isStarted()) return;
+        stop();
+        start(context);
     }
 
     void clearState(Context context, long interestId) {
@@ -72,7 +67,7 @@ final class CouponPageMonitor {
 
     private void checkAllSafely() {
         Context context = appContext;
-        if (context == null) {
+        if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
         List<Interest> interests = new InterestRepository(context).getAll();
@@ -80,17 +75,22 @@ final class CouponPageMonitor {
             if (!interest.isCoupon()) {
                 continue;
             }
+            if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
+            SourceCheckStatus.begin(context, interest.getId());
             try {
                 checkInterest(context, interest);
-            } catch (Exception ignored) {
-                // Uma falha temporária da página não altera o último cupom conhecido.
+            } catch (Exception error) {
+                if (MonitorRunPolicy.canRun(context)) SourceCheckStatus.failed(context, interest.getId(), error);
+            } finally {
+                if (MonitorRunPolicy.isCurrent(context, interest)) SourceCheckStatus.finish(context, interest.getId(),
+                        TimeUnit.MINUTES.toMillis(CHECK_INTERVAL_MINUTES));
             }
         }
     }
 
     private void checkInterest(Context context, Interest interest) throws Exception {
         CouponPageCoupon highest = CouponPageClient.fetchHighest(interest.getTerm());
-        if (highest == null) {
+        if (!MonitorRunPolicy.isCurrent(context, interest) || highest == null) {
             return;
         }
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -138,6 +138,7 @@ final class CouponPageMonitor {
 
     private void showNotification(Context context, Interest interest, CouponPageCoupon coupon,
                                   String pageUrl) {
+        if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(pageUrl));
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context,

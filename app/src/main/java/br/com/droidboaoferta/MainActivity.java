@@ -32,6 +32,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -47,6 +48,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AlertouActivity {
+    private final OfferSectionCache offerSectionCache = new OfferSectionCache();
+    private String renderingSectionKey;
+    private String renderingSectionFingerprint;
     private static final String OFFER_PREFS = "offer_preferences";
     private static final String MONITOR_ENABLED = "monitor_enabled";
     private static final String SECTION_COUPONS_EXPANDED = "home_section_coupons_expanded";
@@ -79,7 +83,6 @@ public class MainActivity extends AlertouActivity {
     private TextView groupsSummary;
     private TextView alertsSummary;
     private LinearLayout offersContainer;
-    private ImageButton trashAllOffersButton;
     private EditText offersSearchInput;
     private FloatingSearchController floatingSearchController;
     private InterestRepository interestRepository;
@@ -109,8 +112,6 @@ public class MainActivity extends AlertouActivity {
         findViewById(R.id.button_profile).setOnClickListener(view -> startActivity(
                 new Intent(this, ProfileActivity.class)
         ));
-        trashAllOffersButton = findViewById(R.id.button_trash_all_offers);
-        trashAllOffersButton.setOnClickListener(view -> trashAllOffers());
         offersSearchInput.addTextChangedListener(new SimpleTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
@@ -142,19 +143,6 @@ public class MainActivity extends AlertouActivity {
         super.onResume();
         BottomNavigationController.resetInitialFocus(this);
         refreshDashboard();
-        refreshPropertyPricesIfNeeded();
-    }
-
-    private void refreshPropertyPricesIfNeeded() {
-        if (!isMonitorEnabled()) {
-            return;
-        }
-        for (Interest interest : interestRepository.getAll()) {
-            if (interest.isProperty()) {
-                PropertyPageMonitor.getInstance().checkNow(this);
-                return;
-            }
-        }
     }
 
     @Override
@@ -503,11 +491,12 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void renderOffers(List<ObservedOffer> offers) {
-        offersContainer.removeAllViews();
+        offerSectionCache.begin();
         displayedOffers = offers;
         List<ObservedOffer> visibleOffers = filterOffers(offers, offersSearchInput.getText().toString());
-        trashAllOffersButton.setVisibility(View.GONE);
         if (visibleOffers.isEmpty()) {
+            offerSectionCache.clear();
+            offersContainer.removeAllViews();
             boolean awaitingLinks = offersSearchInput.getText().toString().trim().isEmpty()
                     && !offerRepository.getRecentForValidation().isEmpty();
             offersContainer.addView(createEmptyText(awaitingLinks
@@ -541,6 +530,7 @@ public class MainActivity extends AlertouActivity {
                 propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED, "");
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
                 propertyHistoryRepository, SECTION_PRODUCTS_EXPANDED, "");
+        offerSectionCache.end(offersContainer);
     }
 
     private void addOfferSection(int titleResource, List<ObservedOffer> offers,
@@ -552,6 +542,14 @@ public class MainActivity extends AlertouActivity {
             return;
         }
         boolean expanded = isOfferSectionExpanded(preferenceKey);
+        renderingSectionKey = preferenceKey;
+        renderingSectionFingerprint = OfferSectionCache.fingerprint(this, offers,
+                propertyHistoryRepository, expanded, sectionSummary);
+        View cached = offerSectionCache.find(preferenceKey, renderingSectionFingerprint);
+        if (cached != null) {
+            offerSectionCache.attach(offersContainer, preferenceKey, renderingSectionFingerprint, cached);
+            return;
+        }
 
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
@@ -581,13 +579,32 @@ public class MainActivity extends AlertouActivity {
         ));
 
         if (!sectionSummary.isEmpty()) {
+            boolean propertyMarketUpdating = titleResource == R.string.property_market_alerts_list_title
+                    && isPropertyMarketUpdating();
+            LinearLayout summaryLine = new LinearLayout(this);
+            summaryLine.setGravity(Gravity.CENTER_VERTICAL);
+            summaryLine.setOrientation(LinearLayout.HORIZONTAL);
+            if (propertyMarketUpdating) {
+                ProgressBar progress = new ProgressBar(this, null,
+                        android.R.attr.progressBarStyleSmall);
+                progress.setContentDescription(sectionSummary);
+                LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(16), dp(16));
+                progressParams.rightMargin = dp(5);
+                summaryLine.addView(progress, progressParams);
+            }
+
             TextView summary = new TextView(this);
             summary.setText(sectionSummary);
             summary.setTextColor(getColor(R.color.text_secondary));
             summary.setTextSize(11.5f);
             summary.setSingleLine(true);
             summary.setEllipsize(TextUtils.TruncateAt.END);
-            headerText.addView(summary, new LinearLayout.LayoutParams(
+            summaryLine.addView(summary, new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1
+            ));
+            headerText.addView(summaryLine, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             ));
@@ -626,6 +643,19 @@ public class MainActivity extends AlertouActivity {
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(dp(32), dp(32));
         toggleParams.rightMargin = dp(6);
         header.addView(toggle, toggleParams);
+
+        if (titleResource == R.string.property_market_alerts_list_title) {
+            ImageButton refresh = new ImageButton(this);
+            refresh.setImageResource(R.drawable.ic_sync);
+            refresh.setBackgroundResource(R.drawable.bg_icon_circle);
+            refresh.setContentDescription(getString(R.string.action_refresh_property_market_prices));
+            refresh.setPadding(dp(7), dp(7), dp(7), dp(7));
+            refresh.setScaleType(ImageView.ScaleType.CENTER);
+            refresh.setOnClickListener(view -> refreshPropertyMarketPrices());
+            LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(32), dp(32));
+            refreshParams.rightMargin = dp(6);
+            header.addView(refresh, refreshParams);
+        }
 
         ImageButton trash = new ImageButton(this);
         trash.setImageResource(R.drawable.ic_trash_outline);
@@ -709,7 +739,8 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
         cardParams.bottomMargin = dp(12);
-        offersContainer.addView(card, cardParams);
+        card.setLayoutParams(cardParams);
+        offerSectionCache.attach(offersContainer, renderingSectionKey, renderingSectionFingerprint, card);
     }
 
     private boolean isOfferSectionExpanded(String preferenceKey) {
@@ -734,6 +765,9 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getPropertyMarketLastCheckSummary(List<ObservedOffer> offers) {
+        if (isPropertyMarketUpdating()) {
+            return getString(R.string.property_market_reference_section_updating);
+        }
         long lastCheck = 0L;
         for (ObservedOffer offer : offers) {
             lastCheck = Math.max(lastCheck, offer.getObservedAt());
@@ -743,6 +777,21 @@ public class MainActivity extends AlertouActivity {
                         OfferDateFormatter.formatGroupLabel(this, lastCheck),
                         OfferDateFormatter.formatTime(lastCheck))
                 : "";
+    }
+
+    private boolean isPropertyMarketUpdating() {
+        for (Interest interest : interestRepository.getAll()) {
+            if (interest.isProperty() && SourceCheckStatus.isRunning(this, interest.getId())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void refreshPropertyMarketPrices() {
+        if (!isPropertyMarketUpdating()) {
+            PropertyPageMonitor.getInstance().checkNow(this);
+        }
     }
 
     private List<ObservedOffer> filterOffers(List<ObservedOffer> offers, String query) {

@@ -22,6 +22,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
     }
 
     private Context appContext;
+    private final MonitorSession session = new MonitorSession();
     private InterestRepository interestRepository;
     private OfferRepository offerRepository;
     private final Set<String> pendingPublications = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -75,9 +76,16 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                 interest.getId(), interest.getTerm());
     }
 
+    void stop() {
+        session.invalidate();
+        TelegramClientManager.getInstance().setMessageListener(null);
+        pendingPublications.clear();
+    }
+
     @Override
     public void onNewMessage(long chatId, long messageId, long messageDate, String sourceTitle,
                              TelegramMessagePayload payload) {
+        if (!MonitorRunPolicy.canRun(appContext)) return;
         String text = payload.getText();
         Set<String> selectedGroups = appContext
                 .getSharedPreferences("telegram_preferences", Context.MODE_PRIVATE)
@@ -118,6 +126,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
     public void onHistoricalMessage(long interestId, long chatId, long messageId,
                                     long messageDate, String sourceTitle,
                                     TelegramMessagePayload payload) {
+        if (!MonitorRunPolicy.canRun(appContext)) return;
         String text = payload.getText();
         if (text.trim().isEmpty()) {
             return;
@@ -156,6 +165,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
     @Override
     public void onQualityHistoryMessage(long chatId, long messageId, long messageDate,
                                         String sourceTitle, TelegramMessagePayload payload) {
+        if (!MonitorRunPolicy.canRun(appContext)) return;
         String text = payload.getText();
         if (text.trim().isEmpty()) {
             return;
@@ -185,17 +195,22 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                 || !OfferEligibility.hasUsableLink(offerLink)) {
             return;
         }
-        String pendingKey = chatId + ":" + messageId + ":" + interest.getId();
+        final long token = session.token();
+        String pendingKey = token + ":" + chatId + ":" + messageId + ":" + interest.getId();
         if (!pendingPublications.add(pendingKey)) return;
         TelegramClientManager client = TelegramClientManager.getInstance();
         client.resolveMessageLink(chatId, messageId, telegramPostLink -> {
-            if (telegramPostLink.isEmpty()) {
+            if (token != session.token() || !MonitorRunPolicy.canRun(appContext)
+                    || telegramPostLink.isEmpty()) {
                 pendingPublications.remove(pendingKey);
                 return;
             }
             client.validateMessageLink(telegramPostLink, chatId, messageId, message -> {
                 pendingPublications.remove(pendingKey);
-                if (message == null) return;
+                if (message == null || !session.accepts(token, MonitorRunPolicy.canRun(appContext),
+                        appContext.getSharedPreferences("telegram_preferences", Context.MODE_PRIVATE)
+                        .getStringSet("selected_groups", java.util.Collections.emptySet())
+                        .contains(Long.toString(chatId)))) return;
                 Interest current = null;
                 for (Interest candidate : interestRepository.getAll()) {
                     if (candidate.getId() == interest.getId() && candidate.isPrice()) {
@@ -245,6 +260,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
     }
 
     private void showOfferNotification(ObservedOffer offer, long chatId, long messageId) {
+        if (!MonitorRunPolicy.canRun(appContext)) return;
         Intent openApp = offer.getTelegramPostLink().isEmpty()
                 ? new Intent(appContext, MainActivity.class)
                         .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP)

@@ -208,6 +208,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             clientManager.cancelCloudBackup();
             refreshSyncSummary();
         });
+        findViewById(R.id.row_source_diagnostics).setOnClickListener(view -> SourceDiagnosticsDialog.show(this));
         findViewById(R.id.row_ranking_rules).setOnClickListener(view -> showRankingRulesDialog());
         findViewById(R.id.row_terms).setOnClickListener(view -> showTermsDialog());
     }

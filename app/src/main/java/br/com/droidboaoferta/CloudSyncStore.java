@@ -102,6 +102,14 @@ final class CloudSyncStore {
     // Format 3 removes repeated field names, links and raw Telegram messages from ranking sync.
     private static final int RANKING_SYNC_FORMAT = 4;
 
+    private static void dispatchOfferChange(Runnable action) {
+        if (Thread.holdsLock(OfferStorage.LOCK)) {
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(action);
+        } else {
+            action.run();
+        }
+    }
+
     private CloudSyncStore() {
     }
 
@@ -123,7 +131,7 @@ final class CloudSyncStore {
                         ? preferences.getLong(PENDING_STARTED_AT, changedAt)
                         : changedAt)
                 .apply();
-        TelegramClientManager.getInstance().syncCloudBackupSoon();
+        dispatchOfferChange(() -> TelegramClientManager.getInstance().syncCloudBackupSoon());
     }
 
     static void ensureCouponSyncGuarantee(Context context) {
@@ -219,7 +227,7 @@ final class CloudSyncStore {
                 .putLong(PENDING_STARTED_AT, wasPending
                         ? preferences.getLong(PENDING_STARTED_AT, changedAt) : changedAt)
                 .apply();
-        TelegramClientManager.getInstance().syncCloudBackupSoon();
+        dispatchOfferChange(() -> TelegramClientManager.getInstance().syncCloudBackupSoon());
     }
 
 
@@ -576,9 +584,12 @@ final class CloudSyncStore {
     }
 
     static void rememberArchivedChanged(Context context, long changedAt) {
+        if (context == null) return;
         rememberCollectionChanged(context, KEY_ARCHIVED_UPDATED_AT, changedAt);
-        TelegramClientManager.getInstance().sendConfigurationDelta(
-                exportConfigurationDelta(context, "saved", changedAt));
+        String delta = exportConfigurationDelta(context, "saved", changedAt);
+        if (delta.length() <= 3500) {
+            dispatchOfferChange(() -> TelegramClientManager.getInstance().sendConfigurationDelta(delta));
+        } // Larger saved collections travel in the chunked backup already requested by the caller.
     }
 
     static void rememberMonitorChanged(Context context, long changedAt) {
@@ -782,10 +793,13 @@ final class CloudSyncStore {
                                 payload.optInt(ALERTS_SORT_ORDER, 0)))
                         .apply();
             } else if ("saved".equals(type)) {
+                synchronized (OfferStorage.LOCK) {
+                if (changedAt <= 0 || changedAt < syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, 0)) return false;
                 appContext.getSharedPreferences(OFFER_PREFS, Context.MODE_PRIVATE).edit()
                         .putString(KEY_ARCHIVED_OFFERS,
                                 payload.optString(KEY_ARCHIVED_OFFERS, "[]")).apply();
                 syncPrefs(appContext).edit().putLong(KEY_ARCHIVED_UPDATED_AT, changedAt).apply();
+                }
             } else if ("expiry".equals(type)) {
                 appContext.getSharedPreferences(GROUP_EXPIRY_PREFS, Context.MODE_PRIVATE).edit()
                         .putString("rules", payload.optString(KEY_RANKING_EXPIRY_RULES, "{}"))
@@ -1216,15 +1230,18 @@ final class CloudSyncStore {
                     SELECTED_GROUPS,
                     Collections.emptySet()
             )));
+            data.put(SettingsBackup.KEY, SettingsBackup.export(appContext));
             data.put(KEY_INTERESTS, offers.getString(KEY_INTERESTS, "[]"));
             data.put(KEY_PROPERTY_HISTORY, PropertyHistorySync.pack(
                     new PropertyHistoryRepository(appContext).exportForSync()));
+            synchronized (OfferStorage.LOCK) {
             data.put(KEY_ARCHIVED_OFFERS, offers.getString(KEY_ARCHIVED_OFFERS, "[]"));
             data.put(KEY_ARCHIVED_UPDATED_AT, ensureCollectionUpdatedAt(
                     appContext,
                     KEY_ARCHIVED_UPDATED_AT,
                     updatedAt
             ));
+            }
             data.put(KEY_INTEREST_UPDATED_AT, ensureInterestUpdatedAt(appContext, updatedAt));
             data.put(KEY_DELETED_INTERESTS, syncPrefs(appContext).getString(KEY_DELETED_INTERESTS, "{}"));
             data.put(KEY_GROUP_SELECTED_AT, ensureGroupSelectedAt(appContext, updatedAt));
@@ -1507,6 +1524,7 @@ final class CloudSyncStore {
             return historyChanged;
         }
 
+        boolean settingsChanged = SettingsBackup.restore(appContext, data.optJSONObject(SettingsBackup.KEY), force);
         importRankingHistory(appContext, data, remoteUpdatedAt, localUpdatedAt);
 
         SharedPreferences.Editor telegram = appContext
@@ -1551,8 +1569,13 @@ final class CloudSyncStore {
         offers.putString(KEY_INTERESTS, mergedInterests.toString());
         long localArchivedUpdatedAt = syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt);
         long remoteArchivedUpdatedAt = data.optLong(KEY_ARCHIVED_UPDATED_AT, remoteUpdatedAt);
-        if (data.has(KEY_ARCHIVED_OFFERS) && remoteArchivedUpdatedAt >= localArchivedUpdatedAt) {
-            offers.putString(KEY_ARCHIVED_OFFERS, data.optString(KEY_ARCHIVED_OFFERS, "[]"));
+        synchronized (OfferStorage.LOCK) {
+            if (data.has(KEY_ARCHIVED_OFFERS) && remoteArchivedUpdatedAt >=
+                    syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt)) {
+                offersPreferences.edit().putString(KEY_ARCHIVED_OFFERS,
+                        data.optString(KEY_ARCHIVED_OFFERS, "[]")).apply();
+                syncPrefs(appContext).edit().putLong(KEY_ARCHIVED_UPDATED_AT, remoteArchivedUpdatedAt).apply();
+            }
         }
         long localMonitorUpdatedAt = syncPrefs(appContext).getLong(KEY_MONITOR_UPDATED_AT, localUpdatedAt);
         long remoteMonitorUpdatedAt = data.optLong(KEY_MONITOR_UPDATED_AT, remoteUpdatedAt);
@@ -1608,14 +1631,21 @@ final class CloudSyncStore {
                         localAlertSoundUpdatedAt,
                         remoteAlertSoundUpdatedAt
                 ))
-                .putLong(KEY_ARCHIVED_UPDATED_AT, Math.max(
-                        localArchivedUpdatedAt,
-                        remoteArchivedUpdatedAt
-                ))
                 .putBoolean(KEY_RANKING_SYNC_MIGRATED, true)
                 .putInt(KEY_RANKING_SYNC_FORMAT, RANKING_SYNC_FORMAT)
                 .putLong(KEY_MONITOR_UPDATED_AT, Math.max(localMonitorUpdatedAt, remoteMonitorUpdatedAt))
                 .apply();
+        if (settingsChanged) {
+            // Apply scheduling changes on the main thread, outside Telegram/data locks.
+            new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
+                PropertyPageMonitor.getInstance().rescheduleIfRunning(appContext);
+                VivoOutletMonitor.getInstance().rescheduleIfRunning(appContext);
+                PelandoMonitor.getInstance().rescheduleIfRunning(appContext);
+                PromobitMonitor.getInstance().rescheduleIfRunning(appContext);
+                KabumOfferMonitor.getInstance().rescheduleIfRunning(appContext);
+                MonitorServiceController.update(appContext);
+            });
+        }
         return true;
     }
 

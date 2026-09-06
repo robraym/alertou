@@ -12,8 +12,6 @@ import androidx.core.app.NotificationCompat;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 final class VivoOutletMonitor {
@@ -24,7 +22,7 @@ final class VivoOutletMonitor {
     private static final VivoOutletMonitor INSTANCE = new VivoOutletMonitor();
 
     private Context appContext;
-    private ScheduledExecutorService executor;
+    private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
 
     private VivoOutletMonitor() {
     }
@@ -35,28 +33,17 @@ final class VivoOutletMonitor {
 
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
-        if (executor != null && !executor.isShutdown()) {
-            return;
-        }
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleWithFixedDelay(this::checkAllSafely, 0L,
-                VivoOutletSource.getCheckIntervalMinutes(appContext),
-                TimeUnit.MINUTES);
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(
+                VivoOutletSource.getCheckIntervalMinutes(appContext)));
     }
 
-    synchronized void stop() {
-        if (executor != null) {
-            executor.shutdownNow();
-            executor = null;
-        }
-    }
+    synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean alreadyRunning = executor != null && !executor.isShutdown();
+        boolean started = scheduler.isStarted();
         start(context);
-        if (alreadyRunning) {
-            executor.execute(this::checkAllSafely);
-        }
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, this::checkAllSafely);
     }
 
     void clearState(Context context, long interestId) {
@@ -73,7 +60,7 @@ final class VivoOutletMonitor {
     }
 
     synchronized void rescheduleIfRunning(Context context) {
-        if (executor == null || executor.isShutdown()) {
+        if (!scheduler.isStarted()) {
             return;
         }
         stop();
@@ -82,7 +69,7 @@ final class VivoOutletMonitor {
 
     private void checkAllSafely() {
         Context context = appContext;
-        if (context == null || !VivoOutletSource.isConfigured(context)) {
+        if (!MonitorRunPolicy.canRun(context) || !VivoOutletSource.isConfigured(context)) {
             return;
         }
         try {
@@ -98,6 +85,7 @@ final class VivoOutletMonitor {
             long observedAt = System.currentTimeMillis();
             boolean found = false;
             for (Interest interest : interests) {
+                if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
                 if (!interest.isPrice()) {
                     continue;
                 }
@@ -145,6 +133,7 @@ final class VivoOutletMonitor {
     }
 
     private void showNotification(Context context, ObservedOffer offer) {
+        if (!MonitorRunPolicy.canRun(context)) return;
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink()));
         int notificationId = offer.getId().hashCode();
         PendingIntent pendingIntent = PendingIntent.getActivity(

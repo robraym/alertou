@@ -12,8 +12,6 @@ import androidx.core.app.NotificationCompat;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 final class KabumOfferMonitor {
@@ -25,7 +23,7 @@ final class KabumOfferMonitor {
     private static final KabumOfferMonitor INSTANCE = new KabumOfferMonitor();
 
     private Context appContext;
-    private ScheduledExecutorService executor;
+    private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
 
     private KabumOfferMonitor() {
     }
@@ -36,31 +34,17 @@ final class KabumOfferMonitor {
 
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
-        if (executor != null && !executor.isShutdown()) {
-            return;
-        }
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleWithFixedDelay(
-                () -> checkAllSafely(false),
-                0L,
-                KabumOfferSource.getCheckIntervalSeconds(appContext),
-                TimeUnit.SECONDS
-        );
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                KabumOfferSource.getCheckIntervalSeconds(appContext)));
     }
 
-    synchronized void stop() {
-        if (executor != null) {
-            executor.shutdownNow();
-            executor = null;
-        }
-    }
+    synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean alreadyRunning = executor != null && !executor.isShutdown();
+        boolean started = scheduler.isStarted();
         start(context);
-        if (alreadyRunning) {
-            executor.execute(() -> checkAllSafely(true));
-        }
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, () -> checkAllSafely(true));
     }
 
     void clearState(Context context, long interestId) {
@@ -77,7 +61,7 @@ final class KabumOfferMonitor {
     }
 
     synchronized void rescheduleIfRunning(Context context) {
-        if (executor == null || executor.isShutdown()) {
+        if (!scheduler.isStarted()) {
             return;
         }
         stop();
@@ -86,7 +70,7 @@ final class KabumOfferMonitor {
 
     private void checkAllSafely(boolean force) {
         Context context = appContext;
-        if (context == null || !KabumOfferSource.isConfigured(context)) {
+        if (!MonitorRunPolicy.canRun(context) || !KabumOfferSource.isConfigured(context)) {
             return;
         }
         try {
@@ -109,6 +93,7 @@ final class KabumOfferMonitor {
             boolean found = false;
             for (ExternalProductDeal deal : deals) {
                 for (Interest interest : interests) {
+                    if (!MonitorRunPolicy.isCurrent(context, interest)) return;
                     if (!interest.isPrice()
                             || !OfferTextParser.matchesInterest(deal.getTitle(), interest.getTerm())
                             || deal.getPrice() > interest.getMaximumPrice()) {
@@ -166,6 +151,7 @@ final class KabumOfferMonitor {
     }
 
     private void showNotification(Context context, ObservedOffer offer) {
+        if (!MonitorRunPolicy.canRun(context)) return;
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink()));
         int notificationId = offer.getId().hashCode();
         PendingIntent pendingIntent = PendingIntent.getActivity(

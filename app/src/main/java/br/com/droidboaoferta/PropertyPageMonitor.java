@@ -18,8 +18,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 final class PropertyPageMonitor {
@@ -29,7 +27,7 @@ final class PropertyPageMonitor {
     private static final PropertyPageMonitor INSTANCE = new PropertyPageMonitor();
 
     private Context appContext;
-    private ScheduledExecutorService executor;
+    private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
 
     private PropertyPageMonitor() {
     }
@@ -40,37 +38,26 @@ final class PropertyPageMonitor {
 
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
-        if (executor != null && !executor.isShutdown()) {
-            return;
-        }
-        executor = Executors.newSingleThreadScheduledExecutor();
-        executor.scheduleWithFixedDelay(
-                this::checkAllSafely,
-                0L,
-                PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext),
-                TimeUnit.MINUTES
-        );
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)));
     }
 
-    synchronized void stop() {
-        if (executor != null) {
-            executor.shutdownNow();
-            executor = null;
-        }
-    }
+    synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean alreadyRunning = executor != null && !executor.isShutdown();
+        boolean started = scheduler.isStarted();
         start(context);
-        if (alreadyRunning) {
-            executor.execute(this::checkAllSafely);
-        }
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0);
+    }
+
+    synchronized void checkIfStale(Context context) {
+        boolean started = scheduler.isStarted();
+        start(context);
+        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(TimeUnit.MINUTES.toMillis(2));
     }
 
     synchronized void rescheduleIfRunning(Context context) {
-        if (executor == null || executor.isShutdown()) {
-            return;
-        }
+        if (!scheduler.isStarted()) return;
         stop();
         start(context);
     }
@@ -85,17 +72,28 @@ final class PropertyPageMonitor {
 
     private void checkAllSafely() {
         Context context = appContext;
-        if (context == null) {
+        if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
         for (Interest interest : new InterestRepository(context).getAll()) {
             if (!interest.isProperty()) {
                 continue;
             }
+            if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
+            SourceCheckStatus.begin(context, interest.getId());
+            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                    .setPackage(context.getPackageName()));
             try {
                 checkInterest(context, interest);
-            } catch (Exception ignored) {
-                // Uma falha temporária não altera os imóveis já avisados.
+            } catch (Exception error) {
+                if (MonitorRunPolicy.canRun(context)) SourceCheckStatus.failed(context, interest.getId(), error);
+            } finally {
+                if (MonitorRunPolicy.isCurrent(context, interest)) {
+                    SourceCheckStatus.finish(context, interest.getId(),
+                            TimeUnit.MINUTES.toMillis(PropertyMarketReferenceSettings.getCheckIntervalMinutes(context)));
+                } else {
+                    SourceCheckStatus.cancel(context, interest.getId());
+                }
             }
         }
         PropertyHistoryRepository.publishPendingChanges(context);
@@ -106,6 +104,7 @@ final class PropertyPageMonitor {
 
     private void checkInterest(Context context, Interest interest) throws Exception {
         PropertyPageResult result = PropertyPageClient.fetch(interest.getTerm());
+        if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         String propertyName = PropertyPageResult.normalizeCondominiumName(
                 interest.getPropertyName());
         if (propertyName.isEmpty() && result.hasCondominiumName()) {
@@ -131,6 +130,7 @@ final class PropertyPageMonitor {
             candidates.put(listing.getId(), listing);
         }
         for (PropertyPageListing listing : candidates.values()) {
+            if (!MonitorRunPolicy.isCurrent(context, interest)) return;
             boolean previouslyObserved = historyRepository.contains(
                     interest.getId(), listing);
             boolean matchesArea = listing.matchesArea(
@@ -145,10 +145,12 @@ final class PropertyPageMonitor {
                     marketReferenceEnabled && matchesArea)) {
                 try {
                     metadata = PropertyPageClient.fetchListingMetadata(listing.getUrl());
-                } catch (Exception ignored) {
+                } catch (Exception error) {
+                    SourceCheckStatus.failed(context, interest.getId(), error);
                     metadata = PropertyListingMetadata.empty();
                 }
             }
+            if (!MonitorRunPolicy.isCurrent(context, interest)) return;
             if (requiresIdentity && metadata != null && metadata.isUnavailableFor(listing.getId())) {
                 historyRepository.markUnavailable(interest.getId(), listing, observedAt);
                 forgetUnavailableNotification(context, interest.getId(), listing.getId());
@@ -176,6 +178,7 @@ final class PropertyPageMonitor {
                 matches.add(currentListing);
             }
         }
+        if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         boolean removedStaleOffer = false;
         if (!noLongerEligibleOfferIds.isEmpty()) {
             OfferRepository repository = new OfferRepository(context);
@@ -332,6 +335,7 @@ final class PropertyPageMonitor {
 
     private void showNotification(Context context, Interest interest, PropertyPageResult result,
                                   List<PropertyPageListing> listings) {
+        if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         PropertyPageListing first = listings.get(0);
         String targetUrl = listings.size() == 1 ? first.getUrl() : interest.getTerm();
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(targetUrl));

@@ -36,6 +36,7 @@ final class VivoOutletSource {
                 .edit()
                 .putString(KEY_URL, normalized)
                 .apply();
+        SettingsBackup.changed(context);
     }
 
     static String normalizeUrl(String rawUrl) {
@@ -114,9 +115,10 @@ final class VivoOutletSource {
                 .edit()
                 .putInt(KEY_CHECK_INTERVAL_MINUTES, minutes)
                 .apply();
+        SettingsBackup.changed(context);
     }
 
-    private static boolean isSupportedCheckInterval(int minutes) {
+    static boolean isSupportedCheckInterval(int minutes) {
         return minutes == 5 || minutes == 15 || minutes == 30 || minutes == 60;
     }
 }

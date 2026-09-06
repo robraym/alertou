@@ -300,6 +300,8 @@
             android:orientation="vertical"
             android:padding="6dp">
 
+            <include layout="@layout/row_profile_source_diagnostics" />
+
             <include layout="@layout/row_profile_ranking_rules" />
 
             <View

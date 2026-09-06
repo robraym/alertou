@@ -26,119 +26,140 @@ final class OfferRepository {
     private final Context context;
     private final SharedPreferences preferences;
 
+    OfferRepository(SharedPreferences preferences) {
+        this.context = null;
+        this.preferences = preferences;
+    }
+
     OfferRepository(Context context) {
         this.context = context.getApplicationContext();
         preferences = this.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    synchronized boolean markOfferProcessed(long chatId, long messageId, long interestId) {
-        String key = chatId + ":" + messageId + ":" + interestId;
-        List<String> processed = readProcessedMessages();
-        if (processed.contains(key)) {
-            return false;
+    boolean markOfferProcessed(long chatId, long messageId, long interestId) {
+        synchronized (OfferStorage.LOCK) {
+            String key = chatId + ":" + messageId + ":" + interestId;
+            List<String> processed = readProcessedMessages();
+            if (processed.contains(key)) {
+                return false;
+            }
+            processed.add(0, key);
+            if (processed.size() > MAX_PROCESSED_MESSAGES) {
+                processed = new ArrayList<>(processed.subList(0, MAX_PROCESSED_MESSAGES));
+            }
+            preferences.edit().putString(KEY_PROCESSED_MESSAGES, new JSONArray(processed).toString()).apply();
+            return true;
         }
-        processed.add(0, key);
-        if (processed.size() > MAX_PROCESSED_MESSAGES) {
-            processed = new ArrayList<>(processed.subList(0, MAX_PROCESSED_MESSAGES));
-        }
-        preferences.edit().putString(KEY_PROCESSED_MESSAGES, new JSONArray(processed).toString()).apply();
-        return true;
     }
 
-    synchronized void add(ObservedOffer offer) {
-        List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
-        offers.removeIf(item -> item.getId().equals(offer.getId())
-                || isSameObservedOffer(item, offer));
-        offers.add(0, offer);
-        saveOffers(KEY_OFFERS, trimOffers(sortByObservedAt(offers)));
-        long changedAt = System.currentTimeMillis();
-        CloudSyncStore.rememberRecentChanged(context, changedAt);
-    }
-
-    synchronized void clearProcessedForInterest(long interestId) {
-        List<String> processed = new ArrayList<>(readProcessedMessages());
-        String suffix = ":" + interestId;
-        processed.removeIf(item -> item.endsWith(suffix));
-        preferences.edit().putString(KEY_PROCESSED_MESSAGES, new JSONArray(processed).toString()).apply();
-    }
-
-    synchronized void clearRecentForInterest(long interestId) {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        boolean changed = recent.removeIf(offer -> offer.getInterestId() == interestId);
-        if (changed) {
-            saveOffers(KEY_OFFERS, recent);
+    void add(ObservedOffer offer) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
+            offers.removeIf(item -> item.getId().equals(offer.getId())
+                    || isSameObservedOffer(item, offer));
+            offers.add(0, offer);
+            saveOffers(KEY_OFFERS, trimOffers(sortByObservedAt(offers)));
             long changedAt = System.currentTimeMillis();
             CloudSyncStore.rememberRecentChanged(context, changedAt);
         }
     }
 
-    synchronized boolean clearRecentOffer(String id) {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        boolean changed = recent.removeIf(offer -> offer.getId().equals(id));
-        if (changed) {
-            saveOffers(KEY_OFFERS, recent);
-            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+    void clearProcessedForInterest(long interestId) {
+        synchronized (OfferStorage.LOCK) {
+            List<String> processed = new ArrayList<>(readProcessedMessages());
+            String suffix = ":" + interestId;
+            processed.removeIf(item -> item.endsWith(suffix));
+            preferences.edit().putString(KEY_PROCESSED_MESSAGES, new JSONArray(processed).toString()).apply();
         }
-        return changed;
     }
 
-    synchronized boolean clearPropertyMarketReferences() {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        boolean changed = recent.removeIf(PropertyMarketReferenceSettings::isReference);
-        if (changed) {
-            saveOffers(KEY_OFFERS, recent);
-            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
-        }
-        return changed;
-    }
-
-    synchronized boolean clearPropertyMarketReferences(long interestId) {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        boolean changed = recent.removeIf(offer ->
-                PropertyMarketReferenceSettings.isReference(offer)
-                        && offer.getInterestId() == interestId);
-        if (changed) {
-            saveOffers(KEY_OFFERS, recent);
-            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
-        }
-        return changed;
-    }
-
-    synchronized void reconcileRecentWithInterests(List<Interest> interests) {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        List<ObservedOffer> reconciled = new ArrayList<>();
-        long now = System.currentTimeMillis();
-        for (ObservedOffer offer : recent) {
-            Interest matchingInterest = findMatchingInterest(offer, interests);
-            boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
-            if (matchingInterest == null
-                    || (propertyMarketReference && !PropertyMarketReferenceSettings.isEnabled(context))
-                    || (!propertyMarketReference && !matchingInterest.isCoupon()
-                    && offer.getPrice() > matchingInterest.getMaximumPrice())
-                    || (matchingInterest.isCoupon()
-                    && offer.getPrice() < matchingInterest.getMaximumPrice())
-                    || !OfferEligibility.canDisplay(offer, now)) {
-                continue;
+    void clearRecentForInterest(long interestId) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            boolean changed = recent.removeIf(offer -> offer.getInterestId() == interestId);
+            if (changed) {
+                saveOffers(KEY_OFFERS, recent);
+                long changedAt = System.currentTimeMillis();
+                CloudSyncStore.rememberRecentChanged(context, changedAt);
             }
-            reconciled.add(new ObservedOffer(
-                    offer.getId(),
-                    matchingInterest.getId(),
-                    getReconciledInterestName(offer, matchingInterest),
-                    offer.getSource(),
-                    offer.getPrice(),
-                    matchingInterest.getMaximumPrice(),
-                    offer.getObservedAt(),
-                    getReconciledOfferLink(offer, matchingInterest),
-                    offer.getTelegramPostLink()
-            ));
         }
-        reconciled = trimOffers(sortByObservedAt(reconciled));
-        if (areSameOfferLists(recent, reconciled)) {
-            return;
+    }
+
+    boolean clearRecentOffer(String id) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            boolean changed = recent.removeIf(offer -> offer.getId().equals(id));
+            if (changed) {
+                saveOffers(KEY_OFFERS, recent);
+                CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+            }
+            return changed;
         }
-        saveOffers(KEY_OFFERS, reconciled);
-        long changedAt = System.currentTimeMillis();
-        CloudSyncStore.rememberRecentChanged(context, changedAt);
+    }
+
+    boolean clearPropertyMarketReferences() {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            boolean changed = recent.removeIf(PropertyMarketReferenceSettings::isReference);
+            if (changed) {
+                saveOffers(KEY_OFFERS, recent);
+                CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+            }
+            return changed;
+        }
+    }
+
+    boolean clearPropertyMarketReferences(long interestId) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            boolean changed = recent.removeIf(offer ->
+                    PropertyMarketReferenceSettings.isReference(offer)
+                            && offer.getInterestId() == interestId);
+            if (changed) {
+                saveOffers(KEY_OFFERS, recent);
+                CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+            }
+            return changed;
+        }
+    }
+
+    void reconcileRecentWithInterests(List<Interest> interests) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            List<ObservedOffer> reconciled = new ArrayList<>();
+            long now = System.currentTimeMillis();
+            for (ObservedOffer offer : recent) {
+                Interest matchingInterest = findMatchingInterest(offer, interests);
+                boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
+                if (matchingInterest == null
+                        || (propertyMarketReference && !PropertyMarketReferenceSettings.isEnabled(context))
+                        || (!propertyMarketReference && !matchingInterest.isCoupon()
+                        && offer.getPrice() > matchingInterest.getMaximumPrice())
+                        || (matchingInterest.isCoupon()
+                        && offer.getPrice() < matchingInterest.getMaximumPrice())
+                        || !OfferEligibility.canDisplay(offer, now)) {
+                    continue;
+                }
+                reconciled.add(new ObservedOffer(
+                        offer.getId(),
+                        matchingInterest.getId(),
+                        getReconciledInterestName(offer, matchingInterest),
+                        offer.getSource(),
+                        offer.getPrice(),
+                        matchingInterest.getMaximumPrice(),
+                        offer.getObservedAt(),
+                        getReconciledOfferLink(offer, matchingInterest),
+                        offer.getTelegramPostLink()
+                ));
+            }
+            reconciled = trimOffers(sortByObservedAt(reconciled));
+            if (areSameOfferLists(recent, reconciled)) {
+                return;
+            }
+            saveOffers(KEY_OFFERS, reconciled);
+            long changedAt = System.currentTimeMillis();
+            CloudSyncStore.rememberRecentChanged(context, changedAt);
+        }
     }
 
     private String getReconciledInterestName(ObservedOffer offer, Interest matchingInterest) {
@@ -193,129 +214,151 @@ final class OfferRepository {
                 && first.getTelegramPostLink().equals(second.getTelegramPostLink());
     }
 
-    synchronized void archive(String id) {
-        if (moveOffer(id, KEY_OFFERS, KEY_ARCHIVED_OFFERS)) {
-            long changedAt = System.currentTimeMillis();
-            CloudSyncStore.rememberRecentChanged(context, changedAt);
-            CloudSyncStore.rememberArchivedChanged(context, changedAt);
-            CloudSyncStore.markLocalChanged(context);
-        }
-    }
-
-    synchronized void unarchive(String id) {
-        if (moveOffer(id, KEY_ARCHIVED_OFFERS, KEY_OFFERS)) {
-            long changedAt = System.currentTimeMillis();
-            CloudSyncStore.rememberRecentChanged(context, changedAt);
-            CloudSyncStore.rememberArchivedChanged(context, changedAt);
-            CloudSyncStore.markLocalChanged(context);
-        }
-    }
-
-    synchronized void trash(String id) {
-        if (moveOffer(id, KEY_OFFERS, KEY_TRASHED_OFFERS)) {
-            long changedAt = System.currentTimeMillis();
-            CloudSyncStore.rememberRecentChanged(context, changedAt);
-            CloudSyncStore.rememberTrashChanged(context, changedAt);
-        }
-    }
-
-    synchronized boolean trashAllRecent() {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        if (recent.isEmpty()) {
-            return false;
-        }
-        List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
-        for (ObservedOffer offer : recent) {
-            trashed.removeIf(item -> item.getId().equals(offer.getId()));
-            trashed.add(0, offer);
-        }
-        saveOffers(KEY_OFFERS, new ArrayList<>());
-        saveOffers(KEY_TRASHED_OFFERS, trimOffers(sortByObservedAt(trashed)));
-        long changedAt = System.currentTimeMillis();
-        CloudSyncStore.rememberRecentChanged(context, changedAt);
-        CloudSyncStore.rememberTrashChanged(context, changedAt);
-        return true;
-    }
-
-    synchronized boolean trashRecent(List<String> ids) {
-        if (ids == null || ids.isEmpty()) {
-            return false;
-        }
-        Set<String> targetIds = new HashSet<>(ids);
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        List<ObservedOffer> remaining = new ArrayList<>();
-        List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
-        boolean changed = false;
-        for (ObservedOffer offer : recent) {
-            if (targetIds.contains(offer.getId())) {
-                trashed.removeIf(item -> item.getId().equals(offer.getId()));
-                trashed.add(0, offer);
-                changed = true;
-            } else {
-                remaining.add(offer);
+    void archive(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (moveOffer(id, KEY_OFFERS, KEY_ARCHIVED_OFFERS)) {
+                long changedAt = System.currentTimeMillis();
+                CloudSyncStore.rememberRecentChanged(context, changedAt);
+                CloudSyncStore.rememberArchivedChanged(context, changedAt);
+                CloudSyncStore.markLocalChanged(context);
             }
         }
-        if (!changed) {
-            return false;
-        }
-        saveOffers(KEY_OFFERS, remaining);
-        saveOffers(KEY_TRASHED_OFFERS, trimOffers(sortByObservedAt(trashed)));
-        long changedAt = System.currentTimeMillis();
-        CloudSyncStore.rememberRecentChanged(context, changedAt);
-        CloudSyncStore.rememberTrashChanged(context, changedAt);
-        return true;
     }
 
-    synchronized void trashArchived(String id) {
-        if (moveOffer(id, KEY_ARCHIVED_OFFERS, KEY_TRASHED_OFFERS)) {
+    void unarchive(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (moveOffer(id, KEY_ARCHIVED_OFFERS, KEY_OFFERS)) {
+                long changedAt = System.currentTimeMillis();
+                CloudSyncStore.rememberRecentChanged(context, changedAt);
+                CloudSyncStore.rememberArchivedChanged(context, changedAt);
+                CloudSyncStore.markLocalChanged(context);
+            }
+        }
+    }
+
+    void trash(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (moveOffer(id, KEY_OFFERS, KEY_TRASHED_OFFERS)) {
+                long changedAt = System.currentTimeMillis();
+                CloudSyncStore.rememberRecentChanged(context, changedAt);
+                CloudSyncStore.rememberTrashChanged(context, changedAt);
+            }
+        }
+    }
+
+    boolean trashAllRecent() {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            if (recent.isEmpty()) {
+                return false;
+            }
+            List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
+            for (ObservedOffer offer : recent) {
+                trashed.removeIf(item -> item.getId().equals(offer.getId()));
+                trashed.add(0, offer);
+            }
+            preferences.edit().putString(KEY_OFFERS, "[]")
+                    .putString(KEY_TRASHED_OFFERS, OfferStorage.encode(sortByObservedAt(trashed))).apply();
             long changedAt = System.currentTimeMillis();
-            CloudSyncStore.rememberArchivedChanged(context, changedAt);
+            CloudSyncStore.rememberRecentChanged(context, changedAt);
             CloudSyncStore.rememberTrashChanged(context, changedAt);
-            CloudSyncStore.markLocalChanged(context);
+            return true;
         }
     }
 
-    synchronized void restoreTrashed(String id) {
-        if (moveOffer(id, KEY_TRASHED_OFFERS, KEY_OFFERS)) {
+    boolean trashRecent(List<String> ids) {
+        synchronized (OfferStorage.LOCK) {
+            if (ids == null || ids.isEmpty()) {
+                return false;
+            }
+            Set<String> targetIds = new HashSet<>(ids);
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            List<ObservedOffer> remaining = new ArrayList<>();
+            List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
+            boolean changed = false;
+            for (ObservedOffer offer : recent) {
+                if (targetIds.contains(offer.getId())) {
+                    trashed.removeIf(item -> item.getId().equals(offer.getId()));
+                    trashed.add(0, offer);
+                    changed = true;
+                } else {
+                    remaining.add(offer);
+                }
+            }
+            if (!changed) {
+                return false;
+            }
+            preferences.edit().putString(KEY_OFFERS, OfferStorage.encode(remaining))
+                    .putString(KEY_TRASHED_OFFERS, OfferStorage.encode(sortByObservedAt(trashed))).apply();
+            long changedAt = System.currentTimeMillis();
+            CloudSyncStore.rememberRecentChanged(context, changedAt);
+            CloudSyncStore.rememberTrashChanged(context, changedAt);
+            return true;
+        }
+    }
+
+    void trashArchived(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (moveOffer(id, KEY_ARCHIVED_OFFERS, KEY_TRASHED_OFFERS)) {
+                long changedAt = System.currentTimeMillis();
+                CloudSyncStore.rememberArchivedChanged(context, changedAt);
+                CloudSyncStore.rememberTrashChanged(context, changedAt);
+                CloudSyncStore.markLocalChanged(context);
+            }
+        }
+    }
+
+    void restoreTrashed(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (moveOffer(id, KEY_TRASHED_OFFERS, KEY_OFFERS)) {
+                long changedAt = System.currentTimeMillis();
+                CloudSyncStore.rememberRecentChanged(context, changedAt);
+                CloudSyncStore.rememberTrashChanged(context, changedAt);
+            }
+        }
+    }
+
+    void restoreAllTrashed() {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
+            if (trashed.isEmpty()) {
+                return;
+            }
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            for (ObservedOffer offer : trashed) {
+                recent.removeIf(item -> item.getId().equals(offer.getId()));
+                recent.add(0, offer);
+            }
+            preferences.edit().putString(KEY_OFFERS, OfferStorage.encode(sortByObservedAt(recent)))
+                    .putString(KEY_TRASHED_OFFERS, "[]").apply();
             long changedAt = System.currentTimeMillis();
             CloudSyncStore.rememberRecentChanged(context, changedAt);
             CloudSyncStore.rememberTrashChanged(context, changedAt);
         }
     }
 
-    synchronized void restoreAllTrashed() {
-        List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
-        if (trashed.isEmpty()) {
-            return;
-        }
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
-        for (ObservedOffer offer : trashed) {
-            recent.removeIf(item -> item.getId().equals(offer.getId()));
-            recent.add(0, offer);
-        }
-        saveOffers(KEY_OFFERS, trimOffers(sortByObservedAt(recent)));
-        saveOffers(KEY_TRASHED_OFFERS, new ArrayList<>());
-        long changedAt = System.currentTimeMillis();
-        CloudSyncStore.rememberRecentChanged(context, changedAt);
-        CloudSyncStore.rememberTrashChanged(context, changedAt);
-    }
-
-    synchronized void deleteArchived(String id) {
-        if (removeOffer(id, KEY_ARCHIVED_OFFERS)) {
-            CloudSyncStore.rememberArchivedChanged(context, System.currentTimeMillis());
-            CloudSyncStore.markLocalChanged(context);
+    void deleteArchived(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (removeOffer(id, KEY_ARCHIVED_OFFERS)) {
+                CloudSyncStore.rememberArchivedChanged(context, System.currentTimeMillis());
+                CloudSyncStore.markLocalChanged(context);
+            }
         }
     }
 
-    synchronized void deleteTrashed(String id) {
-        if (removeOffer(id, KEY_TRASHED_OFFERS)) {
+    void deleteTrashed(String id) {
+        synchronized (OfferStorage.LOCK) {
+            if (removeOffer(id, KEY_TRASHED_OFFERS)) {
+                CloudSyncStore.rememberTrashChanged(context, System.currentTimeMillis());
+            }
+        }
+    }
+
+    void clearTrashed() {
+        synchronized (OfferStorage.LOCK) {
+            saveOffers(KEY_TRASHED_OFFERS, new ArrayList<>());
             CloudSyncStore.rememberTrashChanged(context, System.currentTimeMillis());
         }
-    }
-
-    synchronized void clearTrashed() {
-        saveOffers(KEY_TRASHED_OFFERS, new ArrayList<>());
-        CloudSyncStore.rememberTrashChanged(context, System.currentTimeMillis());
     }
 
     List<ObservedOffer> getRecent() {
@@ -356,8 +399,8 @@ final class OfferRepository {
         List<ObservedOffer> to = new ArrayList<>(readOffers(toKey));
         to.removeIf(offer -> offer.getId().equals(id));
         to.add(0, target);
-        saveOffers(fromKey, from);
-        saveOffers(toKey, trimOffers(to));
+        preferences.edit().putString(fromKey, OfferStorage.encode(from))
+                .putString(toKey, OfferStorage.encode(sortByObservedAt(to))).apply();
         return true;
     }
 
@@ -384,47 +427,11 @@ final class OfferRepository {
     }
 
     private void saveOffers(String key, List<ObservedOffer> offers) {
-        JSONArray array = new JSONArray();
-        try {
-            for (ObservedOffer item : offers) {
-                array.put(new JSONObject()
-                        .put("id", item.getId())
-                        .put("interest_id", item.getInterestId())
-                        .put("interest", item.getInterest())
-                        .put("source", item.getSource())
-                        .put("price", item.getPrice())
-                        .put("maximum_price", item.getMaximumPrice())
-                        .put("observed_at", item.getObservedAt())
-                        .put("link", item.getLink())
-                        .put("telegram_post_link", item.getTelegramPostLink()));
-            }
-            preferences.edit().putString(key, array.toString()).apply();
-        } catch (Exception ignored) {
-        }
+        preferences.edit().putString(key, OfferStorage.encode(offers)).apply();
     }
 
     private List<ObservedOffer> readOffers(String key) {
-        List<ObservedOffer> offers = new ArrayList<>();
-        try {
-            JSONArray array = new JSONArray(preferences.getString(key, "[]"));
-            for (int index = 0; index < array.length(); index++) {
-                JSONObject item = array.getJSONObject(index);
-                offers.add(new ObservedOffer(
-                        item.optString("id", ""),
-                        item.optLong("interest_id", 0L),
-                        item.getString("interest"),
-                        item.getString("source"),
-                        item.getDouble("price"),
-                        item.getDouble("maximum_price"),
-                        item.getLong("observed_at"),
-                        item.optString("link"),
-                        item.optString("telegram_post_link", "")
-                ));
-            }
-        } catch (Exception ignored) {
-            return Collections.emptyList();
-        }
-        return offers;
+        return OfferStorage.read(preferences, key);
     }
 
     private Interest findMatchingInterest(ObservedOffer offer, List<Interest> interests) {
