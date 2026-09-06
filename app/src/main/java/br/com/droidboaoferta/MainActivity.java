@@ -1,6 +1,8 @@
 package br.com.droidboaoferta;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
@@ -27,12 +29,12 @@ import android.view.View;
 import android.view.ViewParent;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -584,13 +586,20 @@ public class MainActivity extends AlertouActivity {
             LinearLayout summaryLine = new LinearLayout(this);
             summaryLine.setGravity(Gravity.CENTER_VERTICAL);
             summaryLine.setOrientation(LinearLayout.HORIZONTAL);
-            if (propertyMarketUpdating) {
-                ProgressBar progress = new ProgressBar(this, null,
-                        android.R.attr.progressBarStyleSmall);
-                progress.setContentDescription(sectionSummary);
-                LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(16), dp(16));
-                progressParams.rightMargin = dp(5);
-                summaryLine.addView(progress, progressParams);
+            if (titleResource == R.string.property_market_alerts_list_title) {
+                ImageButton refresh = new ImageButton(this);
+                refresh.setImageResource(R.drawable.ic_sync);
+                refresh.setBackgroundResource(R.drawable.bg_icon_circle);
+                refresh.setContentDescription(getString(R.string.action_refresh_property_market_prices));
+                refresh.setPadding(dp(3), dp(3), dp(3), dp(3));
+                refresh.setScaleType(ImageView.ScaleType.CENTER);
+                refresh.setOnClickListener(view -> refreshPropertyMarketPrices());
+                if (propertyMarketUpdating) {
+                    animatePropertyMarketRefreshButton(refresh);
+                }
+                LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(18), dp(18));
+                refreshParams.rightMargin = dp(5);
+                summaryLine.addView(refresh, refreshParams);
             }
 
             TextView summary = new TextView(this);
@@ -644,27 +653,16 @@ public class MainActivity extends AlertouActivity {
         toggleParams.rightMargin = dp(6);
         header.addView(toggle, toggleParams);
 
-        if (titleResource == R.string.property_market_alerts_list_title) {
-            ImageButton refresh = new ImageButton(this);
-            refresh.setImageResource(R.drawable.ic_sync);
-            refresh.setBackgroundResource(R.drawable.bg_icon_circle);
-            refresh.setContentDescription(getString(R.string.action_refresh_property_market_prices));
-            refresh.setPadding(dp(7), dp(7), dp(7), dp(7));
-            refresh.setScaleType(ImageView.ScaleType.CENTER);
-            refresh.setOnClickListener(view -> refreshPropertyMarketPrices());
-            LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(32), dp(32));
-            refreshParams.rightMargin = dp(6);
-            header.addView(refresh, refreshParams);
+        if (titleResource != R.string.property_market_alerts_list_title) {
+            ImageButton trash = new ImageButton(this);
+            trash.setImageResource(R.drawable.ic_trash_outline);
+            trash.setBackgroundResource(R.drawable.bg_icon_danger);
+            trash.setContentDescription(getString(R.string.action_trash_offer_section));
+            trash.setPadding(dp(8), dp(8), dp(8), dp(8));
+            trash.setScaleType(ImageView.ScaleType.CENTER);
+            trash.setOnClickListener(view -> trashOfferSection(offers));
+            header.addView(trash, new LinearLayout.LayoutParams(dp(36), dp(36)));
         }
-
-        ImageButton trash = new ImageButton(this);
-        trash.setImageResource(R.drawable.ic_trash_outline);
-        trash.setBackgroundResource(R.drawable.bg_icon_danger);
-        trash.setContentDescription(getString(R.string.action_trash_offer_section));
-        trash.setPadding(dp(8), dp(8), dp(8), dp(8));
-        trash.setScaleType(ImageView.ScaleType.CENTER);
-        trash.setOnClickListener(view -> trashOfferSection(offers));
-        header.addView(trash, new LinearLayout.LayoutParams(dp(36), dp(36)));
         card.addView(header);
         header.setOnClickListener(view -> toggleOfferSection(preferenceKey));
         toggle.setOnClickListener(view -> toggleOfferSection(preferenceKey));
@@ -792,6 +790,24 @@ public class MainActivity extends AlertouActivity {
         if (!isPropertyMarketUpdating()) {
             PropertyPageMonitor.getInstance().checkNow(this);
         }
+    }
+
+    private void animatePropertyMarketRefreshButton(ImageButton refresh) {
+        ObjectAnimator spin = ObjectAnimator.ofFloat(refresh, View.ROTATION, 0f, 360f);
+        spin.setDuration(900L);
+        spin.setInterpolator(new LinearInterpolator());
+        spin.setRepeatCount(ValueAnimator.INFINITE);
+        refresh.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View view) {
+                spin.start();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View view) {
+                spin.cancel();
+            }
+        });
     }
 
     private List<ObservedOffer> filterOffers(List<ObservedOffer> offers, String query) {

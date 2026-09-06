@@ -184,7 +184,7 @@
     <string name="coupon_alerts_list_title">Cupons</string>
     <string name="product_alerts_list_title">Produtos</string>
     <string name="property_alerts_list_title">Imóveis</string>
-    <string name="property_market_alerts_list_title">Imóveis menor valor </string>
+    <string name="property_market_alerts_list_title">Imóveis de menor valor </string>
     <string name="coupon_alerts_registered_count_empty">• nenhum cadastrado</string>
     <string name="price_alerts_registered_count_empty">• nenhum cadastrado</string>
     <string name="property_alerts_registered_count_empty">• nenhum cadastrado</string>
@@ -248,7 +248,7 @@
     <string name="property_market_reference_content_description">Menor valor atual, não é alerta</string>
     <string name="property_market_reference_last_check">Última consulta: %1$s às %2$s</string>
     <string name="property_market_reference_section_summary">Atualizado %1$s, %2$s</string>
-    <string name="property_market_reference_section_updating">Atualizando imóveis …</string>
+    <string name="property_market_reference_section_updating">Atualizando imóveis agora…</string>
     <string name="action_refresh_property_market_prices">Atualizar preços dos imóveis</string>
     <string name="alert_sound_dialog_title">Som dos alertas</string>
     <string name="alert_sound_custom_section">Seus sons</string>
