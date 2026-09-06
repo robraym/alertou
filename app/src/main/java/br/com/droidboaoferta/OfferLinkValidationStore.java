@@ -16,6 +16,7 @@ final class OfferLinkValidationStore {
 
     static boolean requiresValidation(ObservedOffer offer) {
         return offer != null && !offer.getId().startsWith("property|")
+                && !PropertyMarketReferenceSettings.isReference(offer)
                 && !offer.getId().startsWith("coupon|")
                 && !offer.getId().startsWith("vivo|")
                 && !offer.getId().startsWith("pelando|")

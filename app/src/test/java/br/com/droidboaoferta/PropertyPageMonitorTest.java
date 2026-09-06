@@ -53,4 +53,10 @@ public class PropertyPageMonitorTest {
         assertFalse(PropertyPageMonitor.shouldVerifyIndividualPrice(
                 false, 600000d, 400000d));
     }
+
+    @Test
+    public void verifiesMarketReferenceEvenWhenAboveAlertLimit() {
+        assertTrue(PropertyPageMonitor.shouldVerifyIndividualPrice(
+                false, 600000d, 400000d, true));
+    }
 }

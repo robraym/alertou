@@ -50,6 +50,7 @@ public class MainActivity extends AlertouActivity {
     private static final String OFFER_PREFS = "offer_preferences";
     private static final String MONITOR_ENABLED = "monitor_enabled";
     private static final String SECTION_COUPONS_EXPANDED = "home_section_coupons_expanded";
+    private static final String SECTION_PROPERTY_MARKET_EXPANDED = "home_section_property_market_expanded";
     private static final String SECTION_PROPERTIES_EXPANDED = "home_section_properties_expanded";
     private static final String SECTION_PRODUCTS_EXPANDED = "home_section_products_expanded";
     private static final String STARTUP_PREFS = "startup_preferences";
@@ -517,10 +518,13 @@ public class MainActivity extends AlertouActivity {
         NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         PropertyHistoryRepository propertyHistoryRepository = new PropertyHistoryRepository(this);
         List<ObservedOffer> couponOffers = new java.util.ArrayList<>();
+        List<ObservedOffer> propertyMarketOffers = new java.util.ArrayList<>();
         List<ObservedOffer> propertyOffers = new java.util.ArrayList<>();
         List<ObservedOffer> productOffers = new java.util.ArrayList<>();
         for (ObservedOffer offer : visibleOffers) {
-            if (isPropertyOffer(offer)) {
+            if (PropertyMarketReferenceSettings.isReference(offer)) {
+                propertyMarketOffers.add(offer);
+            } else if (isPropertyOffer(offer)) {
                 propertyOffers.add(offer);
             } else if (isCouponOffer(offer)) {
                 couponOffers.add(offer);
@@ -529,17 +533,21 @@ public class MainActivity extends AlertouActivity {
             }
         }
         addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
-                propertyHistoryRepository, SECTION_COUPONS_EXPANDED);
+                propertyHistoryRepository, SECTION_COUPONS_EXPANDED, "");
+        addOfferSection(R.string.property_market_alerts_list_title, propertyMarketOffers, currency,
+                propertyHistoryRepository, SECTION_PROPERTY_MARKET_EXPANDED,
+                getPropertyMarketLastCheckSummary(propertyMarketOffers));
         addOfferSection(R.string.property_alerts_list_title, propertyOffers, currency,
-                propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED);
+                propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED, "");
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
-                propertyHistoryRepository, SECTION_PRODUCTS_EXPANDED);
+                propertyHistoryRepository, SECTION_PRODUCTS_EXPANDED, "");
     }
 
     private void addOfferSection(int titleResource, List<ObservedOffer> offers,
                                  NumberFormat currency,
                                  PropertyHistoryRepository propertyHistoryRepository,
-                                 String preferenceKey) {
+                                 String preferenceKey,
+                                 String sectionSummary) {
         if (offers.isEmpty()) {
             return;
         }
@@ -558,13 +566,37 @@ public class MainActivity extends AlertouActivity {
         header.setFocusable(true);
         header.setPadding(dp(6), dp(2), 0, dp(3));
 
+        LinearLayout headerText = new LinearLayout(this);
+        headerText.setOrientation(LinearLayout.VERTICAL);
+
         TextView title = new TextView(this);
         title.setText(titleResource);
         title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(18);
-        header.addView(title, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+        title.setTextSize(16);
+        title.setSingleLine(true);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        headerText.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        if (!sectionSummary.isEmpty()) {
+            TextView summary = new TextView(this);
+            summary.setText(sectionSummary);
+            summary.setTextColor(getColor(R.color.text_secondary));
+            summary.setTextSize(11.5f);
+            summary.setSingleLine(true);
+            summary.setEllipsize(TextUtils.TruncateAt.END);
+            headerText.addView(summary, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+        }
+
+        header.addView(headerText, new LinearLayout.LayoutParams(
+                0,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                1
         ));
 
         TextView count = new TextView(this);
@@ -576,9 +608,8 @@ public class MainActivity extends AlertouActivity {
         count.setTextColor(getColor(R.color.text_secondary));
         count.setTextSize(14);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
-                0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                1
+                LinearLayout.LayoutParams.WRAP_CONTENT
         );
         countParams.leftMargin = dp(6);
         header.addView(count, countParams);
@@ -633,10 +664,13 @@ public class MainActivity extends AlertouActivity {
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
             PropertyHistoryEntry propertyHistory = propertyHistoryRepository.getForOffer(offer);
             String displayedPrice = PropertyOfferDisplay.formatPrice(this, offer, propertyHistory, currency);
+            boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
             String contentDescription = getString(
                     R.string.dashboard_offer_summary,
                     displayedPrice,
-                    offer.getSource(),
+                    propertyMarketReference
+                            ? getString(R.string.property_market_reference_content_description)
+                            : offer.getSource(),
                     groupLabel + " " + displayedTime
             );
             GroupSpeedRepository speed = new GroupSpeedRepository(this);
@@ -653,6 +687,7 @@ public class MainActivity extends AlertouActivity {
                     propertyHistory == null ? 0L : propertyHistory.getFirstPublicationAt(),
                     propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangeAmount(),
                     propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangePercentage(),
+                    propertyMarketReference,
                     view -> showPropertyHistoryDialog(offer)
             );
             FrameLayout swipeContainer = createSwipeContainer(row);
@@ -696,6 +731,18 @@ public class MainActivity extends AlertouActivity {
         header.setTextSize(13);
         header.setPadding(dp(6), dp(hasPreviousGroup ? 10 : 8), dp(8), dp(5));
         return header;
+    }
+
+    private String getPropertyMarketLastCheckSummary(List<ObservedOffer> offers) {
+        long lastCheck = 0L;
+        for (ObservedOffer offer : offers) {
+            lastCheck = Math.max(lastCheck, offer.getObservedAt());
+        }
+        return lastCheck > 0L
+                ? getString(R.string.property_market_reference_section_summary,
+                        OfferDateFormatter.formatGroupLabel(this, lastCheck),
+                        OfferDateFormatter.formatTime(lastCheck))
+                : "";
     }
 
     private List<ObservedOffer> filterOffers(List<ObservedOffer> offers, String query) {
@@ -759,6 +806,7 @@ public class MainActivity extends AlertouActivity {
                                         boolean newPropertyAd, long propertyPublishedAt,
                                         double propertyPriceChange,
                                         double propertyPriceChangePercentage,
+                                        boolean propertyMarketReference,
                                         View.OnClickListener propertyHistoryClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
@@ -1033,7 +1081,8 @@ public class MainActivity extends AlertouActivity {
     }
 
     private boolean isPropertyOffer(ObservedOffer offer) {
-        return offer != null && offer.getId().startsWith("property|");
+        return offer != null && (offer.getId().startsWith("property|")
+                || PropertyMarketReferenceSettings.isReference(offer));
     }
 
     private boolean isUnavailablePropertyOffer(ObservedOffer offer) {

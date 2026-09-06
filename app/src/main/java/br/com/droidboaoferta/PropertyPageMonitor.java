@@ -25,7 +25,6 @@ import java.util.concurrent.TimeUnit;
 final class PropertyPageMonitor {
     private static final String PREFS = "property_page_monitor";
     private static final String NOTIFIED_PRICES_PREFIX = "notified_prices_";
-    private static final long CHECK_INTERVAL_MINUTES = 15L;
     private static final double PRICE_VERIFICATION_MARGIN = 1.10d;
     private static final PropertyPageMonitor INSTANCE = new PropertyPageMonitor();
 
@@ -48,7 +47,7 @@ final class PropertyPageMonitor {
         executor.scheduleWithFixedDelay(
                 this::checkAllSafely,
                 0L,
-                CHECK_INTERVAL_MINUTES,
+                PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext),
                 TimeUnit.MINUTES
         );
     }
@@ -66,6 +65,14 @@ final class PropertyPageMonitor {
         if (alreadyRunning) {
             executor.execute(this::checkAllSafely);
         }
+    }
+
+    synchronized void rescheduleIfRunning(Context context) {
+        if (executor == null || executor.isShutdown()) {
+            return;
+        }
+        stop();
+        start(context);
     }
 
     void clearState(Context context, long interestId) {
@@ -115,6 +122,8 @@ final class PropertyPageMonitor {
         List<String> noLongerEligibleOfferIds = new ArrayList<>();
         Map<String, Integer> historyChanges = new HashMap<>();
         Map<String, PropertyPageListing> candidates = new java.util.LinkedHashMap<>();
+        boolean marketReferenceEnabled = PropertyMarketReferenceSettings.isEnabled(context);
+        PropertyPageListing lowestMarketListing = null;
         for (PropertyPageListing listing : historyRepository.getTrackedListings(interest.getId())) {
             candidates.put(listing.getId(), listing);
         }
@@ -124,14 +133,16 @@ final class PropertyPageMonitor {
         for (PropertyPageListing listing : candidates.values()) {
             boolean previouslyObserved = historyRepository.contains(
                     interest.getId(), listing);
-            if (!previouslyObserved && !listing.matchesArea(
-                    interest.getMinimumArea(), interest.getMaximumArea())) continue;
+            boolean matchesArea = listing.matchesArea(
+                    interest.getMinimumArea(), interest.getMaximumArea());
+            if (!previouslyObserved && !matchesArea) continue;
             PropertyListingMetadata metadata = null;
             boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
             if (requiresIdentity && shouldVerifyIndividualPrice(
                     previouslyObserved,
                     listing.getSalePrice(),
-                    interest.getMaximumPrice())) {
+                    interest.getMaximumPrice(),
+                    marketReferenceEnabled && matchesArea)) {
                 try {
                     metadata = PropertyPageClient.fetchListingMetadata(listing.getUrl());
                 } catch (Exception ignored) {
@@ -145,9 +156,16 @@ final class PropertyPageMonitor {
             }
             PropertyPageListing currentListing = resolveCurrentListing(listing, metadata);
             if (currentListing == null) continue;
+            matchesArea = currentListing.matchesArea(
+                    interest.getMinimumArea(), interest.getMaximumArea());
             boolean eligible = currentListing.matches(interest.getMinimumArea(),
                     interest.getMaximumArea(), interest.getMaximumPrice());
-            if (previouslyObserved || eligible) {
+            if (marketReferenceEnabled && matchesArea
+                    && (lowestMarketListing == null
+                    || currentListing.getSalePrice() < lowestMarketListing.getSalePrice())) {
+                lowestMarketListing = currentListing;
+            }
+            if (previouslyObserved || eligible || (marketReferenceEnabled && matchesArea)) {
                 historyChanges.put(currentListing.getId(), historyRepository.recordObservation(
                         interest.getId(), currentListing, observedAt, metadata));
             }
@@ -165,8 +183,17 @@ final class PropertyPageMonitor {
                 removedStaleOffer |= repository.clearRecentOffer(id);
             }
         }
+        OfferRepository repository = new OfferRepository(context);
+        boolean changedMarketReference = upsertMarketReferenceIfNeeded(
+                context,
+                repository,
+                interest,
+                propertyName,
+                lowestMarketListing,
+                observedAt
+        );
         if (matches.isEmpty()) {
-            if (removedStaleOffer) {
+            if (removedStaleOffer || changedMarketReference) {
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
             }
@@ -200,14 +227,13 @@ final class PropertyPageMonitor {
         }
         preferences.edit().putString(stateKey, notifiedPrices.toString()).apply();
         if (changed.isEmpty()) {
-            if (removedStaleOffer) {
+            if (removedStaleOffer || changedMarketReference) {
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
             }
             return;
         }
 
-        OfferRepository repository = new OfferRepository(context);
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
@@ -236,8 +262,49 @@ final class PropertyPageMonitor {
     static boolean shouldVerifyIndividualPrice(boolean previouslyObserved,
                                                double summaryPrice,
                                                double maximumPrice) {
+        return shouldVerifyIndividualPrice(previouslyObserved, summaryPrice, maximumPrice, false);
+    }
+
+    static boolean shouldVerifyIndividualPrice(boolean previouslyObserved,
+                                               double summaryPrice,
+                                               double maximumPrice,
+                                               boolean marketReferenceCandidate) {
         return previouslyObserved
+                || marketReferenceCandidate
                 || summaryPrice <= maximumPrice * PRICE_VERIFICATION_MARGIN;
+    }
+
+    private boolean upsertMarketReferenceIfNeeded(Context context,
+                                                  OfferRepository repository,
+                                                  Interest interest,
+                                                  String propertyName,
+                                                  PropertyPageListing listing,
+                                                  long observedAt) {
+        if (!PropertyMarketReferenceSettings.isEnabled(context)) {
+            return repository.clearPropertyMarketReferences();
+        }
+        if (listing == null) {
+            return repository.clearPropertyMarketReferences(interest.getId());
+        }
+        NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        areaFormat.setMaximumFractionDigits(1);
+        String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
+        repository.add(new ObservedOffer(
+                PropertyMarketReferenceSettings.createOfferId(interest.getId(), listing.getId()),
+                interest.getId(),
+                propertyName,
+                context.getString(
+                        R.string.property_market_reference_source,
+                        sourceName,
+                        areaFormat.format(listing.getArea())
+                ),
+                listing.getSalePrice(),
+                interest.getMaximumPrice(),
+                observedAt,
+                listing.getUrl(),
+                ""
+        ));
+        return true;
     }
 
     static PropertyPageListing resolveCurrentListing(PropertyPageListing listing,

@@ -11,7 +11,7 @@ final class CurrencyTextFormatter {
     }
 
     static String formatWholeReais(CharSequence input) {
-        String digits = digitsOnly(input);
+        String digits = wholeReaisDigitsOnly(input);
         if (digits.isEmpty()) {
             return "";
         }

@@ -151,7 +151,8 @@ final class PropertyHistoryRepository {
     }
 
     synchronized PropertyHistoryEntry getForOffer(ObservedOffer offer) {
-        if (offer == null || !offer.getId().startsWith("property|")) {
+        if (offer == null || (!offer.getId().startsWith("property|")
+                && !PropertyMarketReferenceSettings.isReference(offer))) {
             return null;
         }
         String[] parts = offer.getId().split("\\|", 4);

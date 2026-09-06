@@ -84,6 +84,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView accentColorSummary;
     private TextView alertSoundSummary;
     private TextView navigationAnimationSummary;
+    private TextView propertyMarketReferenceSummary;
+    private TextView propertyIntervalSummary;
     private TextView vivoOutletIntervalSummary;
     private TextView pelandoIntervalSummary;
     private TextView promobitIntervalSummary;
@@ -119,6 +121,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         accentColorSummary = findViewById(R.id.text_accent_color_summary);
         alertSoundSummary = findViewById(R.id.text_alert_sound_summary);
         navigationAnimationSummary = findViewById(R.id.text_navigation_animation_summary);
+        propertyMarketReferenceSummary = findViewById(R.id.text_property_market_reference_summary);
+        propertyIntervalSummary = findViewById(R.id.text_property_interval_summary);
         vivoOutletIntervalSummary = findViewById(R.id.text_vivo_outlet_interval_summary);
         pelandoIntervalSummary = findViewById(R.id.text_pelando_interval_summary);
         promobitIntervalSummary = findViewById(R.id.text_promobit_interval_summary);
@@ -175,6 +179,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         findViewById(R.id.row_alert_sound).setOnClickListener(view -> showAlertSoundDialog());
         findViewById(R.id.row_navigation_animation).setOnClickListener(
                 view -> showNavigationAnimationDialog()
+        );
+        findViewById(R.id.row_property_market_reference).setOnClickListener(
+                view -> showPropertyMarketReferenceDialog()
+        );
+        findViewById(R.id.row_property_interval).setOnClickListener(
+                view -> showPropertyIntervalDialog()
         );
         findViewById(R.id.row_vivo_outlet_interval).setOnClickListener(
                 view -> showVivoOutletIntervalDialog()
@@ -297,6 +307,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         navigationAnimationSummary.setText(NavigationAnimationController.getSummaryResource(
                 NavigationAnimationController.getSavedMode(this)
         ));
+        propertyMarketReferenceSummary.setText(
+                PropertyMarketReferenceSettings.getSummaryResource(this)
+        );
+        propertyIntervalSummary.setText(getString(R.string.property_interval_summary,
+                PropertyMarketReferenceSettings.getCheckIntervalMinutes(this)));
         vivoOutletIntervalSummary.setText(getString(R.string.vivo_outlet_interval_summary,
                 VivoOutletSource.getCheckIntervalMinutes(this)));
         pelandoIntervalSummary.setText(formatPelandoInterval(
@@ -308,6 +323,107 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         kabumOfferIntervalSummary.setText(formatShortInterval(
                 KabumOfferSource.getCheckIntervalSeconds(this)
         ));
+    }
+
+    private void showPropertyMarketReferenceDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.property_market_reference_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        boolean enabled = PropertyMarketReferenceSettings.isEnabled(this);
+        int[] labels = {
+                R.string.property_market_reference_enable,
+                R.string.property_market_reference_disable
+        };
+        boolean[] values = {true, false};
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int index = 0; index < labels.length; index++) {
+            boolean value = values[index];
+            TextView option = createThemeOption(labels[index], value == enabled);
+            option.setOnClickListener(view -> {
+                PropertyMarketReferenceSettings.setEnabled(this, value);
+                propertyMarketReferenceSummary.setText(
+                        PropertyMarketReferenceSettings.getSummaryResource(this)
+                );
+                if (!value) {
+                    new OfferRepository(this).clearPropertyMarketReferences();
+                }
+                if (value && getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                        .getBoolean(MONITOR_ENABLED, false)) {
+                    PropertyPageMonitor.getInstance().checkNow(this);
+                }
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+
+        showCompactDialog(dialog, content);
+    }
+
+    private void showPropertyIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.property_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = PropertyMarketReferenceSettings.getCheckIntervalMinutes(this);
+        int[] intervals = {5, 15, 30, 60};
+        int[] labels = {
+                R.string.vivo_outlet_interval_five,
+                R.string.vivo_outlet_interval_fifteen,
+                R.string.vivo_outlet_interval_thirty,
+                R.string.vivo_outlet_interval_sixty
+        };
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int index = 0; index < intervals.length; index++) {
+            int interval = intervals[index];
+            TextView option = createThemeOption(labels[index], interval == savedInterval);
+            option.setOnClickListener(view -> {
+                PropertyMarketReferenceSettings.saveCheckIntervalMinutes(this, interval);
+                propertyIntervalSummary.setText(getString(R.string.property_interval_summary,
+                        interval));
+                PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+
+        showCompactDialog(dialog, content);
     }
 
     private void showVivoOutletIntervalDialog() {
@@ -572,6 +688,26 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             return getString(R.string.pelando_interval_summary_seconds, seconds);
         }
         return getString(R.string.pelando_interval_summary_minutes, seconds / 60);
+    }
+
+    private void showCompactDialog(Dialog dialog, View content) {
+        dialog.setContentView(content);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(shownWindow.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            params.dimAmount = 0.65f;
+            shownWindow.setAttributes(params);
+            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
     }
 
     private void showThemeDialog() {

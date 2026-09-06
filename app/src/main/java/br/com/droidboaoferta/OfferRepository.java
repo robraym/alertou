@@ -82,14 +82,38 @@ final class OfferRepository {
         return changed;
     }
 
+    synchronized boolean clearPropertyMarketReferences() {
+        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+        boolean changed = recent.removeIf(PropertyMarketReferenceSettings::isReference);
+        if (changed) {
+            saveOffers(KEY_OFFERS, recent);
+            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+        }
+        return changed;
+    }
+
+    synchronized boolean clearPropertyMarketReferences(long interestId) {
+        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+        boolean changed = recent.removeIf(offer ->
+                PropertyMarketReferenceSettings.isReference(offer)
+                        && offer.getInterestId() == interestId);
+        if (changed) {
+            saveOffers(KEY_OFFERS, recent);
+            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+        }
+        return changed;
+    }
+
     synchronized void reconcileRecentWithInterests(List<Interest> interests) {
         List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
         List<ObservedOffer> reconciled = new ArrayList<>();
         long now = System.currentTimeMillis();
         for (ObservedOffer offer : recent) {
             Interest matchingInterest = findMatchingInterest(offer, interests);
+            boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
             if (matchingInterest == null
-                    || (!matchingInterest.isCoupon()
+                    || (propertyMarketReference && !PropertyMarketReferenceSettings.isEnabled(context))
+                    || (!propertyMarketReference && !matchingInterest.isCoupon()
                     && offer.getPrice() > matchingInterest.getMaximumPrice())
                     || (matchingInterest.isCoupon()
                     && offer.getPrice() < matchingInterest.getMaximumPrice())

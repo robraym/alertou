@@ -17,6 +17,15 @@ public class CurrencyTextFormatterTest {
     }
 
     @Test
+    public void formatsWholeReaisIgnoringDisplayedCents() {
+        String formatted = CurrencyTextFormatter.formatWholeReais("R$ 325.000,00");
+
+        assertTrue(formatted.startsWith("R$"));
+        assertTrue(formatted.contains("325.000"));
+        assertFalse(formatted.contains("32.500.000"));
+    }
+
+    @Test
     public void formatsWholeReaisWithCentsWhileTyping() {
         String formatted = CurrencyTextFormatter.formatWholeReaisWithCents("900000");
 

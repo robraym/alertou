@@ -41,6 +41,7 @@ public class OfferLinkValidationStoreTest {
     public void leavesPropertyAndCouponValidationWithTheirOwnProviders() {
         OfferLinkValidationStore store = new OfferLinkValidationStore(preferences());
         assertTrue(store.canDisplay(offer("property|1|123")));
+        assertTrue(store.canDisplay(offer("property_market|1|123")));
         assertTrue(store.canDisplay(offer("coupon|1|123")));
     }
 
