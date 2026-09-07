@@ -1041,6 +1041,20 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void applySourceSectionState(ImageButton toggle, LinearLayout container,
                                          boolean expanded, boolean animate) {
+        container.animate().cancel();
+        toggle.animate().cancel();
+        if (container == groupsContainer) {
+            android.view.ViewGroup.LayoutParams params = groupsScroll.getLayoutParams();
+            params.height = expanded ? android.view.ViewGroup.LayoutParams.MATCH_PARENT
+                    : android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
+            groupsScroll.setLayoutParams(params);
+            groupsScroll.setPadding(groupsScroll.getPaddingLeft(), groupsScroll.getPaddingTop(),
+                    groupsScroll.getPaddingRight(), dp(expanded ? 58 : 4));
+            if (!expanded) {
+                groupsScroll.scrollTo(0, 0);
+                animate = false;
+            }
+        }
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse
                 : R.string.alerts_section_expand));

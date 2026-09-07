@@ -19,13 +19,17 @@
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:baselineAligned="true"
+            android:paddingTop="4dp"
+            android:gravity="top"
+            android:orientation="horizontal">
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="0dp"
+            android:gravity="top"
             android:maxLines="1"
             android:ellipsize="end"
             android:text="@string/app_name"
@@ -37,23 +41,23 @@
 
         <ImageButton
             android:id="@+id/button_sort_offers"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_marginEnd="6dp"
             android:background="@drawable/bg_button_inline"
             android:contentDescription="@string/dashboard_sort_title"
-            android:padding="9dp"
-            android:scaleType="center"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_sort" />
 
         <ImageButton
             android:id="@+id/button_profile"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/bg_button_inline"
             android:contentDescription="@string/profile_screen_title"
-            android:padding="9dp"
-            android:scaleType="center"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_profile" />
     </LinearLayout>
 

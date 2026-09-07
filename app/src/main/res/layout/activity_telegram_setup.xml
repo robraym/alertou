@@ -18,13 +18,17 @@
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:baselineAligned="true"
+            android:paddingTop="4dp"
+            android:gravity="top"
+            android:orientation="horizontal">
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="0dp"
+            android:gravity="top"
             android:maxLines="1"
             android:ellipsize="end"
             android:text="@string/telegram_setup_screen_title"
@@ -36,23 +40,23 @@
 
         <ImageButton
             android:id="@+id/button_sort_sources"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_marginEnd="6dp"
             android:background="@drawable/bg_button_inline"
             android:contentDescription="@string/sources_sort_title"
-            android:padding="9dp"
-            android:scaleType="center"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_sort" />
 
         <ImageButton
             android:id="@+id/button_profile"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/bg_button_inline"
             android:contentDescription="@string/profile_screen_title"
-            android:padding="9dp"
-            android:scaleType="center"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_profile" />
     </LinearLayout>
 
@@ -198,7 +202,7 @@
             android:orientation="horizontal"
             android:paddingStart="8dp"
             android:paddingTop="6dp"
-            android:paddingEnd="4dp"
+            android:paddingEnd="8dp"
             android:paddingBottom="6dp">
 
             <TextView
@@ -252,7 +256,7 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/vivo_outlet_edit_link"
                 android:padding="7dp"
-                android:scaleType="center"
+                android:scaleType="fitCenter"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 
@@ -325,7 +329,7 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/pelando_edit_link"
                 android:padding="7dp"
-                android:scaleType="center"
+                android:scaleType="fitCenter"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 
@@ -398,7 +402,7 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/promobit_edit_link"
                 android:padding="7dp"
-                android:scaleType="center"
+                android:scaleType="fitCenter"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 
@@ -471,7 +475,7 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/kabum_offer_edit_link"
                 android:padding="7dp"
-                android:scaleType="center"
+                android:scaleType="fitCenter"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 

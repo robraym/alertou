@@ -18,13 +18,17 @@
 
         <LinearLayout
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="40dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:baselineAligned="true"
+            android:paddingTop="4dp"
+            android:gravity="top"
+            android:orientation="horizontal">
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="0dp"
+            android:gravity="top"
             android:maxLines="1"
             android:ellipsize="end"
             android:text="@string/alerts_screen_title"
@@ -36,23 +40,23 @@
 
         <ImageButton
             android:id="@+id/button_sort_alerts"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_marginEnd="6dp"
             android:background="@drawable/bg_button_inline"
             android:contentDescription="@string/alerts_sort_title"
-            android:padding="9dp"
-            android:scaleType="center"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_sort" />
 
         <ImageButton
             android:id="@+id/button_profile"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:background="@drawable/bg_button_inline"
             android:contentDescription="@string/profile_screen_title"
-            android:padding="9dp"
-            android:scaleType="center"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
             android:src="@drawable/ic_profile" />
     </LinearLayout>
 
@@ -99,6 +103,17 @@
                 android:paddingEnd="4dp"
                 android:paddingBottom="6dp">
 
+                <ImageButton
+                    android:id="@+id/button_add_coupon_interest"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_button_circle_action"
+                    android:contentDescription="@string/action_add_coupon_alert"
+                    android:padding="5dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_add_coupon_alert" />
+
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -137,16 +152,6 @@
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right" />
 
-                <ImageButton
-                    android:id="@+id/button_add_coupon_interest"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_button_circle_action"
-                    android:contentDescription="@string/action_add_coupon_alert"
-                    android:padding="5dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_add_coupon_alert" />
-
             </LinearLayout>
 
             <LinearLayout
@@ -178,6 +183,17 @@
                 android:paddingTop="6dp"
                 android:paddingEnd="4dp"
                 android:paddingBottom="6dp">
+
+                <ImageButton
+                    android:id="@+id/button_add_property_interest"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_button_circle_action"
+                    android:contentDescription="@string/action_add_property_alert"
+                    android:padding="5dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_add_property_alert" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -217,15 +233,6 @@
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right" />
 
-                <ImageButton
-                    android:id="@+id/button_add_property_interest"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_button_circle_action"
-                    android:contentDescription="@string/action_add_property_alert"
-                    android:padding="5dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_add_property_alert" />
             </LinearLayout>
 
             <LinearLayout
@@ -257,6 +264,17 @@
                 android:paddingTop="6dp"
                 android:paddingEnd="4dp"
                 android:paddingBottom="6dp">
+
+                <ImageButton
+                    android:id="@+id/button_add_price_interest"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_button_circle_action"
+                    android:contentDescription="@string/action_add_price_alert"
+                    android:padding="5dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_add_price_alert" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -296,15 +314,6 @@
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right" />
 
-                <ImageButton
-                    android:id="@+id/button_add_price_interest"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="@drawable/bg_button_circle_action"
-                    android:contentDescription="@string/action_add_price_alert"
-                    android:padding="5dp"
-                    android:scaleType="center"
-                    android:src="@drawable/ic_add_price_alert" />
             </LinearLayout>
 
             <LinearLayout
