@@ -50,7 +50,7 @@
         android:id="@+id/button_monitor_toggle"
         android:layout_width="40dp"
         android:layout_height="40dp"
-        android:background="@drawable/bg_button_inline"
+        android:background="@drawable/bg_icon_circle"
         android:contentDescription="@string/action_pause"
         android:padding="9dp"
         android:scaleType="center"

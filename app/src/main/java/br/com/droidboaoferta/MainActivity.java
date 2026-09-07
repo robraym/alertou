@@ -666,7 +666,7 @@ public class MainActivity extends AlertouActivity {
         if (titleResource != R.string.property_market_alerts_list_title) {
             ImageButton trash = new ImageButton(this);
             trash.setImageResource(R.drawable.ic_trash_outline);
-            trash.setBackgroundResource(R.drawable.bg_icon_danger);
+            trash.setBackgroundResource(R.drawable.bg_icon_circle);
             trash.setContentDescription(getString(R.string.action_trash_offer_section));
             trash.setPadding(dp(8), dp(8), dp(8), dp(8));
             trash.setScaleType(ImageView.ScaleType.CENTER);
@@ -887,13 +887,13 @@ public class MainActivity extends AlertouActivity {
         background.setOrientation(LinearLayout.HORIZONTAL);
         background.setPadding(dp(12), 0, dp(12), 0);
 
-        ImageView trashIcon = createSwipeActionIcon(R.drawable.ic_trash_outline, R.drawable.bg_icon_danger);
+        ImageView trashIcon = createSwipeActionIcon(R.drawable.ic_trash_outline, R.drawable.bg_icon_circle);
         background.addView(trashIcon, new LinearLayout.LayoutParams(dp(40), dp(40)));
 
         View spacer = new View(this);
         background.addView(spacer, new LinearLayout.LayoutParams(0, 1, 1));
 
-        ImageView archiveIcon = createSwipeActionIcon(R.drawable.ic_archive, R.drawable.bg_button_inline);
+        ImageView archiveIcon = createSwipeActionIcon(R.drawable.ic_archive, R.drawable.bg_icon_circle);
         background.addView(archiveIcon, new LinearLayout.LayoutParams(dp(40), dp(40)));
 
         container.addView(background, new FrameLayout.LayoutParams(
@@ -1703,7 +1703,7 @@ public class MainActivity extends AlertouActivity {
         ImageButton button = new ImageButton(this);
         button.setImageResource(R.drawable.ic_delete);
         button.setColorFilter(getColor(R.color.danger));
-        button.setBackgroundResource(R.drawable.bg_icon_danger);
+        button.setBackgroundResource(R.drawable.bg_icon_circle);
         button.setContentDescription(getString(R.string.action_remove_interest));
         button.setScaleType(ImageView.ScaleType.CENTER);
         button.setPadding(dp(7), dp(7), dp(7), dp(7));

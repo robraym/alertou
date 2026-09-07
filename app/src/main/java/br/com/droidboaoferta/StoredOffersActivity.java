@@ -70,7 +70,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     int getLeadingActionBackground() {
-        return R.drawable.bg_button_inline;
+        return R.drawable.bg_icon_circle;
     }
 
     void runLeadingAction(OfferRepository repository, String id) {
@@ -89,7 +89,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     int getSecondaryActionBackground() {
-        return R.drawable.bg_button_inline;
+        return R.drawable.bg_icon_circle;
     }
 
     void runSecondaryAction(OfferRepository repository, String id) {
@@ -120,7 +120,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     int getHeaderActionBackground() {
-        return R.drawable.bg_button_inline;
+        return R.drawable.bg_icon_circle;
     }
 
     int getCardTitleResource() {
@@ -413,7 +413,8 @@ abstract class StoredOffersActivity extends AlertouActivity {
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setBackgroundColor(getColor(R.color.card));
         row.setMinimumHeight(dp(52));
-        row.setPadding(dp(6), dp(7), dp(6), dp(7));
+        boolean secondaryAtEnd = hasSecondaryAction() && !hasDeleteAction();
+        row.setPadding(dp(6), dp(7), secondaryAtEnd ? 0 : dp(6), dp(7));
 
         if (hasLeadingAction()) {
             ImageButton leading = createActionButton(
@@ -493,14 +494,14 @@ abstract class StoredOffersActivity extends AlertouActivity {
             });
             LinearLayout.LayoutParams secondaryParams = new LinearLayout.LayoutParams(dp(32), dp(32));
             secondaryParams.leftMargin = dp(8);
-            secondaryParams.rightMargin = dp(4);
+            secondaryParams.rightMargin = secondaryAtEnd ? 0 : dp(4);
             row.addView(secondary, secondaryParams);
         }
 
         if (hasDeleteAction()) {
             ImageButton delete = createActionButton(
                     R.drawable.ic_delete,
-                    R.drawable.bg_icon_danger,
+                    R.drawable.bg_icon_circle,
                     R.color.danger,
                     R.string.action_delete_offer
             );

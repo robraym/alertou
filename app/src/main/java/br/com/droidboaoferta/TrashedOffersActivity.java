@@ -50,7 +50,7 @@ public class TrashedOffersActivity extends StoredOffersActivity {
 
     @Override
     int getSecondaryActionBackground() {
-        return android.R.color.transparent;
+        return R.drawable.bg_icon_circle;
     }
 
     @Override
@@ -75,7 +75,7 @@ public class TrashedOffersActivity extends StoredOffersActivity {
 
     @Override
     int getHeaderActionBackground() {
-        return R.drawable.bg_icon_danger;
+        return R.drawable.bg_icon_circle;
     }
 
     @Override
