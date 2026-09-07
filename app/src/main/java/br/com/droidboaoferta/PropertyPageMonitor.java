@@ -28,6 +28,7 @@ final class PropertyPageMonitor {
 
     private Context appContext;
     private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
+    private volatile boolean marketReferencesRunning;
 
     private PropertyPageMonitor() {
     }
@@ -43,6 +44,10 @@ final class PropertyPageMonitor {
     }
 
     synchronized void stop() { scheduler.stop(); }
+
+    boolean isCheckingMarketReferences() {
+        return marketReferencesRunning;
+    }
 
     synchronized void checkNow(Context context) {
         boolean started = scheduler.isStarted();
@@ -86,6 +91,12 @@ final class PropertyPageMonitor {
         if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
+        if (includeMarketReferences) {
+            marketReferencesRunning = true;
+            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                    .setPackage(context.getPackageName()));
+        }
+        try {
         for (Interest interest : new InterestRepository(context).getAll()) {
             if (!interest.isProperty()) {
                 continue;
@@ -111,6 +122,13 @@ final class PropertyPageMonitor {
         // Also refresh status when all results are unavailable or no new offer was emitted.
         context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                 .setPackage(context.getPackageName()));
+        } finally {
+            if (includeMarketReferences) {
+                marketReferencesRunning = false;
+                context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                        .setPackage(context.getPackageName()));
+            }
+        }
     }
 
     private void checkInterest(Context context, Interest interest,

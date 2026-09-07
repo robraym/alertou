@@ -510,12 +510,13 @@ public class AlertsActivity extends AlertouActivity {
         ImageButton button = new ImageButton(this);
         button.setImageResource(R.drawable.ic_edit);
         button.setColorFilter(getColor(R.color.action));
-        button.setBackgroundResource(R.drawable.bg_icon_circle);
+        button.setBackgroundResource(android.R.color.transparent);
         button.setContentDescription(getString(R.string.action_edit_interest));
         button.setScaleType(ImageView.ScaleType.CENTER);
-        button.setPadding(dp(7), dp(7), dp(7), dp(7));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(32), dp(32));
-        params.rightMargin = dp(6);
+        button.setPadding(dp(6), dp(6), dp(6), dp(6));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(28), dp(28));
+        params.leftMargin = dp(2);
+        params.rightMargin = dp(8);
         button.setLayoutParams(params);
         return button;
     }

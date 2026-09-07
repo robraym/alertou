@@ -815,12 +815,7 @@ public class MainActivity extends AlertouActivity {
     }
 
     private boolean isPropertyMarketUpdating() {
-        for (Interest interest : interestRepository.getAll()) {
-            if (interest.isProperty() && SourceCheckStatus.isRunning(this, interest.getId())) {
-                return true;
-            }
-        }
-        return false;
+        return PropertyPageMonitor.getInstance().isCheckingMarketReferences();
     }
 
     private void refreshPropertyMarketPrices() {
