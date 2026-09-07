@@ -89,6 +89,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private static final String PREF_SEARCH_POSITION_Y = "groups_search_position_y";
     private static final String PREF_STORE_SOURCES_EXPANDED = "store_sources_expanded";
     private static final String PREF_TELEGRAM_GROUPS_EXPANDED = "telegram_groups_expanded";
+    private static final String PREF_GROUPS_SORT_ORDER = "groups_sort_order";
+    private static final int GROUPS_SORT_RELEVANCE = 0;
+    private static final int GROUPS_SORT_RECENT = 1;
+    private static final int GROUPS_SORT_NAME = 2;
 
     private TelegramClientManager clientManager;
     private TextView statusText;
@@ -239,6 +243,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         findViewById(R.id.button_profile).setOnClickListener(view -> startActivity(
                 new Intent(this, ProfileActivity.class)
         ));
+        findViewById(R.id.button_sort_sources).setOnClickListener(view -> showSourcesSortDialog());
         configureSourceSection(
                 R.id.header_store_sources,
                 storeSourcesToggle,
@@ -796,9 +801,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         for (GroupSpeedRepository.Ranking item : ranking) {
             rankingByGroupId.put(item.getChatId(), item);
         }
-        Map<Long, GroupQualityRepository.Stats> qualityByGroupId =
-                new GroupQualityRepository(this).getStats(displayGroups, selectedGroupIds,
-                weekStartedAt, now);
+        GroupQualityRepository qualityRepository = new GroupQualityRepository(this);
+        Map<Long, GroupQualityRepository.Stats> qualityByGroupId = qualityRepository.getStats(
+                displayGroups, selectedGroupIds, weekStartedAt, now);
         Map<Long, Integer> approvedCounts = speedRepository.getApprovedOfferCounts(displayGroups,
                 selectedGroupIds, weekStartedAt, now);
         for (Map.Entry<Long, Integer> count : approvedCounts.entrySet()) {
@@ -809,7 +814,24 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         updateGroupsEvaluationSummary(qualityByGroupId);
         displayGroups = new ArrayList<>(displayGroups);
-        displayGroups.sort((first, second) -> {
+        int sortOrder = getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getInt(PREF_GROUPS_SORT_ORDER, GROUPS_SORT_RELEVANCE);
+        Map<Long, Long> registrationTimes = new HashMap<>();
+        for (TelegramGroup group : displayGroups) {
+            registrationTimes.put(group.getId(), CloudSyncStore.getGroupSelectedAt(this, group.getId()));
+        }
+        if (sortOrder == GROUPS_SORT_NAME) {
+            displayGroups.sort((first, second) -> first.getTitle().compareToIgnoreCase(second.getTitle()));
+        } else if (sortOrder == GROUPS_SORT_RECENT) {
+            displayGroups.sort((first, second) -> {
+                int byRegistration = Long.compare(
+                        registrationTimes.getOrDefault(second.getId(), 0L),
+                        registrationTimes.getOrDefault(first.getId(), 0L)
+                );
+                return byRegistration != 0 ? byRegistration
+                        : first.getTitle().compareToIgnoreCase(second.getTitle());
+            });
+        } else displayGroups.sort((first, second) -> {
             GroupWeeklyHistoryRepository.Awards firstAwards = awardsByGroupId.get(first.getId());
             GroupWeeklyHistoryRepository.Awards secondAwards = awardsByGroupId.get(second.getId());
             int firstStars = firstAwards == null ? 0 : firstAwards.getChampionships();
@@ -964,6 +986,21 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 groupsContainer.addView(createDivider());
             }
         }
+    }
+
+    private void showSourcesSortDialog() {
+        int selected = getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getInt(PREF_GROUPS_SORT_ORDER, GROUPS_SORT_RELEVANCE);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.sources_sort_title)
+                .setSingleChoiceItems(R.array.sources_sort_options, selected, (dialog, which) -> {
+                    getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+                            .putInt(PREF_GROUPS_SORT_ORDER, which)
+                            .apply();
+                    dialog.dismiss();
+                    renderGroups(availableGroups, showingCachedGroups);
+                })
+                .show();
     }
 
     private void configureSourceSection(int headerId, ImageButton toggle,

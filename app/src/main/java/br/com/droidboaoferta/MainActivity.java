@@ -46,6 +46,7 @@ import androidx.core.content.ContextCompat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -54,6 +55,7 @@ public class MainActivity extends AlertouActivity {
     private String renderingSectionKey;
     private String renderingSectionFingerprint;
     private static final String OFFER_PREFS = "offer_preferences";
+    private static final String HOME_SORT_ORDER = "home_sort_order";
     private static final String MONITOR_ENABLED = "monitor_enabled";
     private static final String SECTION_COUPONS_EXPANDED = "home_section_coupons_expanded";
     private static final String SECTION_PROPERTY_MARKET_EXPANDED = "home_section_property_market_expanded";
@@ -62,6 +64,10 @@ public class MainActivity extends AlertouActivity {
     private static final String STARTUP_PREFS = "startup_preferences";
     private static final String BATTERY_NOTICE_SHOWN = "battery_notice_shown";
     private static final int REQUEST_NOTIFICATIONS = 1201;
+    private static final int SORT_RECENT = 0;
+    private static final int SORT_NAME = 1;
+    private static final int SORT_PRICE_ASCENDING = 2;
+    private static final int SORT_PRICE_DESCENDING = 3;
     private final android.os.Handler dashboardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private boolean dashboardUpdatePending;
     private final Runnable dashboardUpdate = () -> {
@@ -114,6 +120,7 @@ public class MainActivity extends AlertouActivity {
         findViewById(R.id.button_profile).setOnClickListener(view -> startActivity(
                 new Intent(this, ProfileActivity.class)
         ));
+        findViewById(R.id.button_sort_offers).setOnClickListener(view -> showOffersSortDialog());
         offersSearchInput.addTextChangedListener(new SimpleTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
@@ -495,7 +502,10 @@ public class MainActivity extends AlertouActivity {
     private void renderOffers(List<ObservedOffer> offers) {
         offerSectionCache.begin();
         displayedOffers = offers;
-        List<ObservedOffer> visibleOffers = filterOffers(offers, offersSearchInput.getText().toString());
+        List<ObservedOffer> visibleOffers = new java.util.ArrayList<>(
+                filterOffers(offers, offersSearchInput.getText().toString())
+        );
+        sortOffers(visibleOffers);
         if (visibleOffers.isEmpty()) {
             offerSectionCache.clear();
             offersContainer.removeAllViews();
@@ -825,6 +835,47 @@ public class MainActivity extends AlertouActivity {
             }
         }
         return filtered;
+    }
+
+    private void sortOffers(List<ObservedOffer> offers) {
+        int sortOrder = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                .getInt(HOME_SORT_ORDER, SORT_RECENT);
+        Comparator<ObservedOffer> comparator;
+        if (sortOrder == SORT_NAME) {
+            comparator = (first, second) -> {
+                int byName = OfferTextParser.normalize(first.getInterest())
+                        .compareTo(OfferTextParser.normalize(second.getInterest()));
+                return byName != 0 ? byName : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
+        } else if (sortOrder == SORT_PRICE_ASCENDING) {
+            comparator = (first, second) -> {
+                int byPrice = Double.compare(first.getPrice(), second.getPrice());
+                return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
+        } else if (sortOrder == SORT_PRICE_DESCENDING) {
+            comparator = (first, second) -> {
+                int byPrice = Double.compare(second.getPrice(), first.getPrice());
+                return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
+        } else {
+            comparator = (first, second) -> Long.compare(second.getObservedAt(), first.getObservedAt());
+        }
+        offers.sort(comparator);
+    }
+
+    private void showOffersSortDialog() {
+        int selected = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                .getInt(HOME_SORT_ORDER, SORT_RECENT);
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.dashboard_sort_title)
+                .setSingleChoiceItems(R.array.offers_sort_options, selected, (dialog, which) -> {
+                    getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
+                            .putInt(HOME_SORT_ORDER, which)
+                            .apply();
+                    dialog.dismiss();
+                    renderOffers(displayedOffers);
+                })
+                .show();
     }
 
     private FrameLayout createSwipeContainer(View foreground) {

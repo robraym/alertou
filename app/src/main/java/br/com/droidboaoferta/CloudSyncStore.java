@@ -959,6 +959,14 @@ final class CloudSyncStore {
         syncPrefs(context).edit().putLong(key, changedAt).apply();
     }
 
+    static long getGroupSelectedAt(Context context, long groupId) {
+        if (context == null || groupId <= 0L) {
+            return 0L;
+        }
+        JSONObject selectedAt = readObject(syncPrefs(context).getString(KEY_GROUP_SELECTED_AT, "{}"));
+        return selectedAt.optLong(Long.toString(groupId), 0L);
+    }
+
     static void rememberSelectedGroupsChanged(Context context, Set<String> previousGroups,
                                               Set<String> selectedGroups) {
         if (context == null) {

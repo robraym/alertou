@@ -171,6 +171,21 @@
     </plurals>
     <string name="dashboard_create_alert_title">Novo alerta</string>
     <string name="dashboard_create_alert_summary">Produto e preço máximo.</string>
+    <string name="dashboard_sort_title">Ordenar Alertou</string>
+    <string name="sources_sort_title">Ordenar fontes</string>
+    <string name="saved_sort_title">Ordenar salvas</string>
+    <string name="trash_sort_title">Ordenar lixeira</string>
+    <string-array name="offers_sort_options">
+        <item>Mais recentes</item>
+        <item>Nome (A–Z)</item>
+        <item>Preço: crescente</item>
+        <item>Preço: decrescente</item>
+    </string-array>
+    <string-array name="sources_sort_options">
+        <item>Ranking</item>
+        <item>Mais recentes</item>
+        <item>Nome (A–Z)</item>
+    </string-array>
     <string name="alerts_screen_title">Alertas</string>
     <string name="alerts_sort_title">Ordenar alertas</string>
     <string-array name="alerts_sort_options">

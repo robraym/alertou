@@ -26,10 +26,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
 import java.text.NumberFormat;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
 abstract class StoredOffersActivity extends AlertouActivity {
+    private static final String OFFER_PREFS = "offer_preferences";
+    private static final String SAVED_SORT_ORDER = "saved_sort_order";
+    private static final String TRASH_SORT_ORDER = "trash_sort_order";
+    private static final int SORT_RECENT = 0;
+    private static final int SORT_NAME = 1;
+    private static final int SORT_PRICE_ASCENDING = 2;
+    private static final int SORT_PRICE_DESCENDING = 3;
     private OfferRepository offerRepository;
     private LinearLayout offersContainer;
     private EditText searchInput;
@@ -158,6 +166,9 @@ abstract class StoredOffersActivity extends AlertouActivity {
         findViewById(R.id.button_profile).setOnClickListener(view -> startActivity(
                 new Intent(this, ProfileActivity.class)
         ));
+        ImageButton sortButton = findViewById(R.id.button_sort_offers);
+        sortButton.setContentDescription(getString(getSortTitleResource()));
+        sortButton.setOnClickListener(view -> showSortDialog());
         searchInput.addTextChangedListener(new SimpleTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
@@ -216,7 +227,10 @@ abstract class StoredOffersActivity extends AlertouActivity {
     private void renderOffers() {
         offersContainer.removeAllViews();
         List<ObservedOffer> offers = getOffers(offerRepository);
-        List<ObservedOffer> visibleOffers = filterOffers(offers, searchInput.getText().toString());
+        List<ObservedOffer> visibleOffers = new java.util.ArrayList<>(
+                filterOffers(offers, searchInput.getText().toString())
+        );
+        sortOffers(visibleOffers);
         if (headerAction != null) {
             cardHeader.setVisibility(View.VISIBLE);
             headerAction.setVisibility(hasHeaderAction() && !offers.isEmpty() ? View.VISIBLE : View.GONE);
@@ -282,6 +296,57 @@ abstract class StoredOffersActivity extends AlertouActivity {
             }
         }
         return filtered;
+    }
+
+    private void sortOffers(List<ObservedOffer> offers) {
+        int sortOrder = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                .getInt(getSortPreferenceKey(), SORT_RECENT);
+        Comparator<ObservedOffer> comparator;
+        if (sortOrder == SORT_NAME) {
+            comparator = (first, second) -> {
+                int byName = OfferTextParser.normalize(first.getInterest())
+                        .compareTo(OfferTextParser.normalize(second.getInterest()));
+                return byName != 0 ? byName : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
+        } else if (sortOrder == SORT_PRICE_ASCENDING) {
+            comparator = (first, second) -> {
+                int byPrice = Double.compare(first.getPrice(), second.getPrice());
+                return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
+        } else if (sortOrder == SORT_PRICE_DESCENDING) {
+            comparator = (first, second) -> {
+                int byPrice = Double.compare(second.getPrice(), first.getPrice());
+                return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
+        } else {
+            comparator = (first, second) -> Long.compare(second.getObservedAt(), first.getObservedAt());
+        }
+        offers.sort(comparator);
+    }
+
+    private String getSortPreferenceKey() {
+        return getBottomNavigationItem() == BottomNavigationController.ITEM_TRASH
+                ? TRASH_SORT_ORDER : SAVED_SORT_ORDER;
+    }
+
+    private int getSortTitleResource() {
+        return getBottomNavigationItem() == BottomNavigationController.ITEM_TRASH
+                ? R.string.trash_sort_title : R.string.saved_sort_title;
+    }
+
+    private void showSortDialog() {
+        int selected = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                .getInt(getSortPreferenceKey(), SORT_RECENT);
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle(getSortTitleResource())
+                .setSingleChoiceItems(R.array.offers_sort_options, selected, (dialog, which) -> {
+                    getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
+                            .putInt(getSortPreferenceKey(), which)
+                            .apply();
+                    dialog.dismiss();
+                    renderOffers();
+                })
+                .show();
     }
 
     private void showHeaderConfirmationDialog() {
