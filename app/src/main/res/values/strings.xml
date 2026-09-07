@@ -229,7 +229,7 @@
     <string name="coupon_alerts_list_title">Cupons</string>
     <string name="product_alerts_list_title">Produtos</string>
     <string name="property_alerts_list_title">Imóveis</string>
-    <string name="property_market_alerts_list_title">Imóveis ↓ valor</string>
+    <string name="property_market_alerts_list_title">Imóveis menor valor</string>
     <string name="coupon_alerts_registered_count_empty">• nenhum cadastrado</string>
     <string name="price_alerts_registered_count_empty">• nenhum cadastrado</string>
     <string name="property_alerts_registered_count_empty">• nenhum cadastrado</string>
