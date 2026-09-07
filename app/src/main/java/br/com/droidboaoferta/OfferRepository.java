@@ -85,6 +85,18 @@ final class OfferRepository {
         }
     }
 
+    void clearRecentForPropertyAlert(long interestId) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            boolean changed = recent.removeIf(offer -> offer.getInterestId() == interestId
+                    && !PropertyMarketReferenceSettings.isReference(offer));
+            if (changed) {
+                saveOffers(KEY_OFFERS, recent);
+                CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+            }
+        }
+    }
+
     boolean clearRecentOffer(String id) {
         synchronized (OfferStorage.LOCK) {
             List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));

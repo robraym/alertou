@@ -50,10 +50,17 @@ final class PropertyPageMonitor {
         if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0);
     }
 
-    synchronized void checkIfStale(Context context) {
-        boolean started = scheduler.isStarted();
-        start(context);
-        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(TimeUnit.MINUTES.toMillis(2));
+    synchronized void checkAlertsNow(Context context) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely,
+                    TimeUnit.MINUTES.toMillis(
+                            PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)),
+                    () -> checkAllSafely(false));
+            return;
+        }
+        scheduler.request(0, () -> checkAllSafely(false));
     }
 
     synchronized void rescheduleIfRunning(Context context) {
@@ -71,6 +78,10 @@ final class PropertyPageMonitor {
     }
 
     private void checkAllSafely() {
+        checkAllSafely(true);
+    }
+
+    private void checkAllSafely(boolean includeMarketReferences) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context)) {
             return;
@@ -84,7 +95,7 @@ final class PropertyPageMonitor {
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                     .setPackage(context.getPackageName()));
             try {
-                checkInterest(context, interest);
+                checkInterest(context, interest, includeMarketReferences);
             } catch (Exception error) {
                 if (MonitorRunPolicy.canRun(context)) SourceCheckStatus.failed(context, interest.getId(), error);
             } finally {
@@ -102,7 +113,8 @@ final class PropertyPageMonitor {
                 .setPackage(context.getPackageName()));
     }
 
-    private void checkInterest(Context context, Interest interest) throws Exception {
+    private void checkInterest(Context context, Interest interest,
+                               boolean includeMarketReferences) throws Exception {
         PropertyPageResult result = PropertyPageClient.fetch(interest.getTerm());
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         String propertyName = PropertyPageResult.normalizeCondominiumName(
@@ -121,7 +133,8 @@ final class PropertyPageMonitor {
         List<String> noLongerEligibleOfferIds = new ArrayList<>();
         Map<String, Integer> historyChanges = new HashMap<>();
         Map<String, PropertyPageListing> candidates = new java.util.LinkedHashMap<>();
-        boolean marketReferenceEnabled = PropertyMarketReferenceSettings.isEnabled(context);
+        boolean marketReferenceEnabled = includeMarketReferences
+                && PropertyMarketReferenceSettings.isEnabled(context);
         PropertyPageListing lowestMarketListing = null;
         for (PropertyPageListing listing : historyRepository.getTrackedListings(interest.getId())) {
             candidates.put(listing.getId(), listing);
@@ -187,14 +200,15 @@ final class PropertyPageMonitor {
             }
         }
         OfferRepository repository = new OfferRepository(context);
-        boolean changedMarketReference = upsertMarketReferenceIfNeeded(
-                context,
-                repository,
-                interest,
-                propertyName,
-                lowestMarketListing,
-                observedAt
-        );
+        boolean changedMarketReference = includeMarketReferences
+                && upsertMarketReferenceIfNeeded(
+                        context,
+                        repository,
+                        interest,
+                        propertyName,
+                        lowestMarketListing,
+                        observedAt
+                );
         if (matches.isEmpty()) {
             if (removedStaleOffer || changedMarketReference) {
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)

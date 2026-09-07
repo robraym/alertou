@@ -35,7 +35,6 @@
             android:textColor="@color/text_primary"
             android:textSize="27sp"
             android:textStyle="bold" />
-            <include layout="@layout/view_app_status" />
         </LinearLayout>
 
         <ImageButton
@@ -98,19 +97,19 @@
                 android:minHeight="48dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="8dp"
+                android:paddingStart="6dp"
                 android:paddingTop="6dp"
-                android:paddingEnd="4dp"
+                android:paddingEnd="0dp"
                 android:paddingBottom="6dp">
 
                 <ImageButton
                     android:id="@+id/button_add_coupon_interest"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="8dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/action_add_coupon_alert"
-                    android:padding="5dp"
+                    android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_add_coupon_alert" />
 
@@ -144,7 +143,7 @@
                     android:id="@+id/button_toggle_coupon_alerts"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/alerts_section_collapse"
                     android:padding="7dp"
@@ -179,19 +178,19 @@
                 android:gravity="center_vertical"
                 android:minHeight="48dp"
                 android:orientation="horizontal"
-                android:paddingStart="8dp"
+                android:paddingStart="6dp"
                 android:paddingTop="6dp"
-                android:paddingEnd="4dp"
+                android:paddingEnd="0dp"
                 android:paddingBottom="6dp">
 
                 <ImageButton
                     android:id="@+id/button_add_property_interest"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="8dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/action_add_property_alert"
-                    android:padding="5dp"
+                    android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_add_property_alert" />
 
@@ -225,7 +224,7 @@
                     android:id="@+id/button_toggle_property_alerts"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/alerts_section_collapse"
                     android:padding="7dp"
@@ -260,19 +259,19 @@
                 android:gravity="center_vertical"
                 android:minHeight="48dp"
                 android:orientation="horizontal"
-                android:paddingStart="8dp"
+                android:paddingStart="6dp"
                 android:paddingTop="6dp"
-                android:paddingEnd="4dp"
+                android:paddingEnd="0dp"
                 android:paddingBottom="6dp">
 
                 <ImageButton
                     android:id="@+id/button_add_price_interest"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_marginEnd="8dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/action_add_price_alert"
-                    android:padding="5dp"
+                    android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_add_price_alert" />
 
@@ -306,7 +305,7 @@
                     android:id="@+id/button_toggle_price_alerts"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/alerts_section_collapse"
                     android:padding="7dp"

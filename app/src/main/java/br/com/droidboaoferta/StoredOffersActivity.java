@@ -127,6 +127,10 @@ abstract class StoredOffersActivity extends AlertouActivity {
         return getTitleResource();
     }
 
+    int getCardTitleIcon() {
+        return R.drawable.ic_offer_tag;
+    }
+
     int getHeaderConfirmationTitle() {
         return 0;
     }
@@ -177,6 +181,9 @@ abstract class StoredOffersActivity extends AlertouActivity {
         });
         cardHeader = findViewById(R.id.container_card_header);
         ((TextView) findViewById(R.id.text_card_title)).setText(getCardTitleResource());
+        ImageView cardTitleIcon = findViewById(R.id.image_card_title_icon);
+        cardTitleIcon.setImageResource(getCardTitleIcon());
+        cardTitleIcon.setContentDescription(getString(getCardTitleResource()));
         headerAction = findViewById(R.id.button_header_action);
         if (hasHeaderAction()) {
             headerAction.setImageResource(getHeaderActionIcon());
@@ -523,7 +530,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         if (hasDeleteAction()) {
             ImageButton delete = createActionButton(
                     R.drawable.ic_delete,
-                    R.drawable.bg_icon_circle,
+                    R.drawable.bg_icon_danger,
                     R.color.danger,
                     R.string.action_delete_offer
             );

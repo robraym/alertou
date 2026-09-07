@@ -117,6 +117,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView vivoOutletSourceRow;
     private TextView vivoOutletSourceState;
     private ImageButton vivoOutletEditButton;
+    private TextView vivoMadrugadaSourceRow;
+    private TextView vivoMadrugadaSourceState;
     private TextView pelandoSourceRow;
     private TextView pelandoSourceState;
     private ImageButton pelandoEditButton;
@@ -162,6 +164,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         public void onReceive(Context context, Intent intent) {
             renderGroups(availableGroups, showingCachedGroups);
             renderVivoOutletSource();
+            renderVivoMadrugadaSource();
             renderPelandoSource();
             renderPromobitSource();
             renderKabumOfferSource();
@@ -227,6 +230,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         vivoOutletSourceRow = findViewById(R.id.text_vivo_outlet_source_row);
         vivoOutletSourceState = findViewById(R.id.text_vivo_outlet_source_state);
         vivoOutletEditButton = findViewById(R.id.button_vivo_outlet_edit);
+        vivoMadrugadaSourceRow = findViewById(R.id.text_vivo_madrugada_source_row);
+        vivoMadrugadaSourceState = findViewById(R.id.text_vivo_madrugada_source_state);
         pelandoSourceRow = findViewById(R.id.text_pelando_source_row);
         pelandoSourceState = findViewById(R.id.text_pelando_source_state);
         pelandoEditButton = findViewById(R.id.button_pelando_edit);
@@ -244,8 +249,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 new Intent(this, ProfileActivity.class)
         ));
         findViewById(R.id.button_sort_sources).setOnClickListener(view -> showSourcesSortDialog());
-        findViewById(R.id.button_add_store_source).setOnClickListener(
-                view -> showStoreSourcePickerDialog());
         configureSourceSection(
                 R.id.header_store_sources,
                 storeSourcesToggle,
@@ -266,6 +269,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         promobitEditButton.setOnClickListener(view -> showPromobitSourceDialog());
         kabumOfferEditButton.setOnClickListener(view -> showKabumOfferSourceDialog());
         renderVivoOutletSource();
+        renderVivoMadrugadaSource();
         renderPelandoSource();
         renderPromobitSource();
         renderKabumOfferSource();
@@ -1892,15 +1896,25 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.vivo_outlet_source_check_pending)));
         vivoOutletSourceRow.setText(sourceStatus);
-        vivoOutletSourceState.setText(getString(offline
-                ? R.string.vivo_outlet_source_offline
-                : R.string.vivo_outlet_source_online));
-        vivoOutletSourceState.setTextColor(getColor(offline
-                ? R.color.danger
-                : R.color.action));
+        renderSourceState(vivoOutletSourceState, configured,
+                VivoOutletSource.hasSuccessfulCheck(this), offline);
         vivoOutletEditButton.setContentDescription(getString(configured
                 ? R.string.vivo_outlet_edit_link
                 : R.string.vivo_outlet_add_link));
+    }
+
+    private void renderVivoMadrugadaSource() {
+        boolean offline = VivoMadrugadaSource.hasLastCheckFailed(this);
+        long lastSuccessfulCheck = VivoMadrugadaSource.getLastSuccessfulCheckAt(this);
+        vivoMadrugadaSourceRow.setText(offline
+                ? getString(R.string.vivo_madrugada_source_check_failed,
+                formatSourceCheckTime(lastSuccessfulCheck))
+                : (VivoMadrugadaSource.hasSuccessfulCheck(this)
+                ? getString(R.string.vivo_madrugada_source_check_succeeded,
+                formatSourceCheckTime(lastSuccessfulCheck))
+                : getString(R.string.vivo_madrugada_source_check_pending)));
+        renderSourceState(vivoMadrugadaSourceState, true,
+                VivoMadrugadaSource.hasSuccessfulCheck(this), offline);
     }
 
     private void renderPelandoSource() {
@@ -1918,12 +1932,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.pelando_source_check_pending)));
         pelandoSourceRow.setText(sourceStatus);
-        pelandoSourceState.setText(getString(offline
-                ? R.string.vivo_outlet_source_offline
-                : R.string.vivo_outlet_source_online));
-        pelandoSourceState.setTextColor(getColor(offline
-                ? R.color.danger
-                : R.color.action));
+        renderSourceState(pelandoSourceState, configured,
+                PelandoSource.hasSuccessfulCheck(this), offline);
         pelandoEditButton.setContentDescription(getString(configured
                 ? R.string.pelando_edit_link
                 : R.string.pelando_add_link));
@@ -1944,12 +1954,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.promobit_source_check_pending)));
         promobitSourceRow.setText(sourceStatus);
-        promobitSourceState.setText(getString(offline
-                ? R.string.vivo_outlet_source_offline
-                : R.string.vivo_outlet_source_online));
-        promobitSourceState.setTextColor(getColor(offline
-                ? R.color.danger
-                : R.color.action));
+        renderSourceState(promobitSourceState, configured,
+                PromobitSource.hasSuccessfulCheck(this), offline);
         promobitEditButton.setContentDescription(getString(configured
                 ? R.string.promobit_edit_link
                 : R.string.promobit_add_link));
@@ -1970,33 +1976,22 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.kabum_offer_source_check_pending)));
         kabumOfferSourceRow.setText(sourceStatus);
-        kabumOfferSourceState.setText(getString(offline
-                ? R.string.vivo_outlet_source_offline
-                : R.string.vivo_outlet_source_online));
-        kabumOfferSourceState.setTextColor(getColor(offline
-                ? R.color.danger
-                : R.color.action));
+        renderSourceState(kabumOfferSourceState, configured,
+                KabumOfferSource.hasSuccessfulCheck(this), offline);
         kabumOfferEditButton.setContentDescription(getString(configured
                 ? R.string.kabum_offer_edit_link
                 : R.string.kabum_offer_add_link));
     }
 
-    private void showStoreSourcePickerDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.store_sources_add_title)
-                .setItems(R.array.store_sources_add_options, (dialog, which) -> {
-                    dialog.dismiss();
-                    if (which == 0) {
-                        showVivoOutletSourceDialog();
-                    } else if (which == 1) {
-                        showPelandoSourceDialog();
-                    } else if (which == 2) {
-                        showPromobitSourceDialog();
-                    } else if (which == 3) {
-                        showKabumOfferSourceDialog();
-                    }
-                })
-                .show();
+    private void renderSourceState(TextView view, boolean configured,
+                                   boolean hasSuccessfulCheck, boolean offline) {
+        if (!configured || offline || !hasSuccessfulCheck) {
+            view.setText(R.string.vivo_outlet_source_offline);
+            view.setTextColor(getColor(R.color.danger));
+        } else {
+            view.setText(R.string.vivo_outlet_source_online);
+            view.setTextColor(getColor(R.color.action));
+        }
     }
 
     private String formatSourceCheckTime(long timestamp) {

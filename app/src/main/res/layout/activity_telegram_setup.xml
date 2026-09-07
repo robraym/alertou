@@ -35,7 +35,6 @@
             android:textColor="@color/text_primary"
             android:textSize="27sp"
             android:textStyle="bold" />
-            <include layout="@layout/view_app_status" />
         </LinearLayout>
 
         <ImageButton
@@ -200,21 +199,19 @@
             android:gravity="center_vertical"
             android:minHeight="48dp"
             android:orientation="horizontal"
-            android:paddingStart="8dp"
+            android:paddingStart="6dp"
             android:paddingTop="6dp"
-            android:paddingEnd="8dp"
+            android:paddingEnd="0dp"
             android:paddingBottom="6dp">
 
-            <ImageButton
-                android:id="@+id/button_add_store_source"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_icon_circle"
-                android:contentDescription="@string/store_sources_add"
-                android:padding="5dp"
-                android:scaleType="center"
-                android:src="@drawable/ic_add_store_source" />
+                android:contentDescription="@string/vivo_outlet_sources_title"
+                android:padding="7dp"
+                android:src="@drawable/ic_offer_tag" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -245,7 +242,7 @@
                 android:id="@+id/button_toggle_store_sources"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginEnd="6dp"
+                android:layout_marginEnd="2dp"
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/alerts_section_collapse"
                 android:padding="7dp"
@@ -289,6 +286,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
@@ -299,19 +297,13 @@
                         android:textSize="13sp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/vivo_outlet_source_separator"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <TextView
                         android:id="@+id/text_vivo_outlet_source_state"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
                         android:text="@string/vivo_outlet_source_online"
                         android:textColor="@color/action"
-                        android:textSize="13sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <TextView
@@ -323,6 +315,73 @@
                     android:text="@string/vivo_outlet_source_check_pending"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="@color/divider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <ImageView
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_icon_circle"
+                android:contentDescription="@string/vivo_madrugada_source_title"
+                android:padding="7dp"
+                android:src="@drawable/ic_offer_tag" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/vivo_madrugada_source_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/text_vivo_madrugada_source_state"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:text="@string/vivo_outlet_source_online"
+                        android:textColor="@color/action"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/text_vivo_madrugada_source_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="@string/vivo_madrugada_source_check_pending"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11sp" />
+
             </LinearLayout>
         </LinearLayout>
 
@@ -362,6 +421,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
@@ -372,19 +432,13 @@
                         android:textSize="13sp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/vivo_outlet_source_separator"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <TextView
                         android:id="@+id/text_pelando_source_state"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
                         android:text="@string/vivo_outlet_source_online"
                         android:textColor="@color/action"
-                        android:textSize="13sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <TextView
@@ -396,6 +450,7 @@
                     android:text="@string/pelando_source_check_pending"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp" />
+
             </LinearLayout>
         </LinearLayout>
 
@@ -435,6 +490,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
@@ -445,19 +501,13 @@
                         android:textSize="13sp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/vivo_outlet_source_separator"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <TextView
                         android:id="@+id/text_promobit_source_state"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
                         android:text="@string/vivo_outlet_source_online"
                         android:textColor="@color/action"
-                        android:textSize="13sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <TextView
@@ -469,6 +519,7 @@
                     android:text="@string/promobit_source_check_pending"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp" />
+
             </LinearLayout>
         </LinearLayout>
 
@@ -508,6 +559,7 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
 
                     <TextView
@@ -518,19 +570,13 @@
                         android:textSize="13sp" />
 
                     <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/vivo_outlet_source_separator"
-                        android:textColor="@color/text_secondary"
-                        android:textSize="13sp" />
-
-                    <TextView
                         android:id="@+id/text_kabum_offer_source_state"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
                         android:text="@string/vivo_outlet_source_online"
                         android:textColor="@color/action"
-                        android:textSize="13sp" />
+                        android:textSize="11sp" />
                 </LinearLayout>
 
                 <TextView
@@ -542,6 +588,7 @@
                     android:text="@string/kabum_offer_source_check_pending"
                     android:textColor="@color/text_secondary"
                     android:textSize="11sp" />
+
             </LinearLayout>
         </LinearLayout>
         </LinearLayout>
@@ -591,8 +638,17 @@
                     android:orientation="horizontal"
                     android:paddingStart="6dp"
                     android:paddingTop="5dp"
-                    android:paddingEnd="8dp"
+                    android:paddingEnd="2dp"
                     android:paddingBottom="5dp">
+
+                    <ImageView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/bg_icon_circle"
+                        android:contentDescription="@string/telegram_groups_card_title"
+                        android:padding="7dp"
+                        android:src="@drawable/ic_telegram_source" />
 
                     <LinearLayout
                         android:layout_width="0dp"

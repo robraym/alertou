@@ -36,7 +36,6 @@
             android:textColor="@color/text_primary"
             android:textSize="27sp"
             android:textStyle="bold" />
-            <include layout="@layout/view_app_status" />
         </LinearLayout>
 
         <ImageButton

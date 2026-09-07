@@ -24,6 +24,11 @@ public class TrashedOffersActivity extends StoredOffersActivity {
     }
 
     @Override
+    int getCardTitleIcon() {
+        return R.drawable.ic_trash_outline;
+    }
+
+    @Override
     List<ObservedOffer> getOffers(OfferRepository repository) {
         return repository.getTrashed();
     }
@@ -75,7 +80,7 @@ public class TrashedOffersActivity extends StoredOffersActivity {
 
     @Override
     int getHeaderActionBackground() {
-        return R.drawable.bg_icon_circle;
+        return R.drawable.bg_icon_danger;
     }
 
     @Override

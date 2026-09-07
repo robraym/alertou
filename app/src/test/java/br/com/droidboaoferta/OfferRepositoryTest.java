@@ -73,6 +73,25 @@ public class OfferRepositoryTest {
         assertEquals("[{truncated", preferences.getString("recovery_recent_offers", ""));
     }
 
+    @Test public void clearingPropertyAlertKeepsItsLowestMarketReference() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long interestId = 23L;
+        long observedAt = System.currentTimeMillis();
+        repository.add(new ObservedOffer("property|23|listing-a", interestId,
+                "Edifício Sol", "Alerta de imóvel", 500000, 600000,
+                observedAt, "https://example.com/a", ""));
+        repository.add(new ObservedOffer("property_market|23|listing-b", interestId,
+                "Edifício Sol", "Menor valor", 480000, 600000,
+                observedAt, "https://example.com/b", ""));
+
+        repository.clearRecentForPropertyAlert(interestId);
+
+        List<ObservedOffer> offers = repository.getRecentForValidation();
+        assertEquals(1, offers.size());
+        assertEquals("property_market|23|listing-b", offers.get(0).getId());
+    }
+
     private static ObservedOffer offer(int id) {
         return new ObservedOffer("offer-" + id, id + 1, "Produto " + id, "Fonte " + id,
                 100, 200, System.currentTimeMillis() - 1000, "https://example.com/" + id, "");

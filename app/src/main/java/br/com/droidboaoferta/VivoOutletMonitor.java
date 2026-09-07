@@ -69,16 +69,33 @@ final class VivoOutletMonitor {
 
     private void checkAllSafely() {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !VivoOutletSource.isConfigured(context)) {
+        if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
+        boolean found = false;
+        if (VivoOutletSource.isConfigured(context)) {
+            found |= checkSource(context, VivoOutletSource.getUrl(context), "vivo_outlet_",
+                    "vivo|", R.string.vivo_outlet_offer_source, true);
+        }
+        found |= checkSource(context, VivoMadrugadaSource.URL, "vivo_madrugada_",
+                "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false);
+        if (found) {
+            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                    .setPackage(context.getPackageName()));
+        }
+        context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
+                .setPackage(context.getPackageName()));
+    }
+
+    private boolean checkSource(Context context, String sourceUrl, String preferencePrefix,
+                                String offerPrefix, int sourceResource, boolean outlet) {
         try {
-            List<VivoOutletProduct> products = VivoOutletClient.fetchProducts(
-                    VivoOutletSource.getUrl(context));
+            List<VivoOutletProduct> products = VivoOutletClient.fetchProducts(sourceUrl);
             if (products.isEmpty()) {
-                throw new IllegalStateException("No Vivo outlet products");
+                throw new IllegalStateException("No Vivo products");
             }
-            VivoOutletSource.markSuccessfulCheck(context);
+            if (outlet) VivoOutletSource.markSuccessfulCheck(context);
+            else VivoMadrugadaSource.markSuccessfulCheck(context);
             List<Interest> interests = new InterestRepository(context).getAll();
             OfferRepository repository = new OfferRepository(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -94,7 +111,9 @@ final class VivoOutletMonitor {
                             || product.getPixPrice() > interest.getMaximumPrice()) {
                         continue;
                     }
-                    String key = LAST_PRICE_PREFIX + interest.getId() + "_" + product.getCode();
+                    if (!MonitorRunPolicy.isCurrent(context, interest)) return found;
+                    String key = preferencePrefix + LAST_PRICE_PREFIX + interest.getId()
+                            + "_" + product.getCode();
                     boolean known = preferences.contains(key);
                     double lastPrice = Double.longBitsToDouble(preferences.getLong(
                             key, Double.doubleToRawLongBits(Double.NaN)));
@@ -104,10 +123,10 @@ final class VivoOutletMonitor {
                     preferences.edit().putLong(key, Double.doubleToRawLongBits(product.getPixPrice()))
                             .apply();
                     ObservedOffer offer = new ObservedOffer(
-                            "vivo|" + interest.getId() + "|" + product.getCode(),
+                            offerPrefix + interest.getId() + "|" + product.getCode(),
                             interest.getId(),
                             interest.getTerm(),
-                            context.getString(R.string.vivo_outlet_offer_source),
+                            context.getString(sourceResource),
                             product.getPixPrice(),
                             interest.getMaximumPrice(),
                             observedAt,
@@ -119,16 +138,12 @@ final class VivoOutletMonitor {
                     found = true;
                 }
             }
-            if (found) {
-                context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
-                        .setPackage(context.getPackageName()));
-            }
+            return found;
         } catch (Exception ignored) {
-            VivoOutletSource.markFailedCheck(context);
+            if (outlet) VivoOutletSource.markFailedCheck(context);
+            else VivoMadrugadaSource.markFailedCheck(context);
             // Mantém a última leitura válida se a loja estiver indisponível temporariamente.
-        } finally {
-            context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
-                    .setPackage(context.getPackageName()));
+            return false;
         }
     }
 

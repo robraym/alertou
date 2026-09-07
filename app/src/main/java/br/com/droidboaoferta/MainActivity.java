@@ -574,10 +574,23 @@ public class MainActivity extends AlertouActivity {
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
-        header.setPadding(dp(6), dp(2), 0, dp(3));
+        header.setPadding(dp(4), dp(2), 0, dp(3));
+
+        ImageView sectionIcon = new ImageView(this);
+        sectionIcon.setImageResource(getOfferSectionIcon(titleResource));
+        sectionIcon.setBackgroundResource(R.drawable.bg_icon_circle);
+        sectionIcon.setContentDescription(getString(titleResource));
+        sectionIcon.setPadding(dp(7), dp(7), dp(7), dp(7));
+        LinearLayout.LayoutParams sectionIconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+        sectionIconParams.rightMargin = dp(8);
+        header.addView(sectionIcon, sectionIconParams);
 
         LinearLayout headerText = new LinearLayout(this);
         headerText.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout titleLine = new LinearLayout(this);
+        titleLine.setGravity(Gravity.CENTER_VERTICAL);
+        titleLine.setOrientation(LinearLayout.HORIZONTAL);
 
         TextView title = new TextView(this);
         title.setText(titleResource);
@@ -585,7 +598,26 @@ public class MainActivity extends AlertouActivity {
         title.setTextSize(16);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
-        headerText.addView(title, new LinearLayout.LayoutParams(
+        titleLine.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        TextView count = new TextView(this);
+        count.setText(getResources().getQuantityString(
+                R.plurals.dashboard_offer_section_count,
+                offers.size(),
+                offers.size()
+        ));
+        count.setTextColor(getColor(R.color.text_secondary));
+        count.setTextSize(14);
+        LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        countParams.leftMargin = dp(6);
+        titleLine.addView(count, countParams);
+        headerText.addView(titleLine, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
@@ -607,7 +639,7 @@ public class MainActivity extends AlertouActivity {
                 if (propertyMarketUpdating) {
                     animatePropertyMarketRefreshButton(refresh);
                 }
-                LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(18), dp(18));
+                LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(16), dp(16));
                 refreshParams.rightMargin = dp(5);
                 summaryLine.addView(refresh, refreshParams);
             }
@@ -635,21 +667,6 @@ public class MainActivity extends AlertouActivity {
                 1
         ));
 
-        TextView count = new TextView(this);
-        count.setText(getResources().getQuantityString(
-                R.plurals.dashboard_offer_section_count,
-                offers.size(),
-                offers.size()
-        ));
-        count.setTextColor(getColor(R.color.text_secondary));
-        count.setTextSize(14);
-        LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        countParams.leftMargin = dp(6);
-        header.addView(count, countParams);
-
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
         toggle.setBackgroundResource(R.drawable.bg_icon_circle);
@@ -660,19 +677,19 @@ public class MainActivity extends AlertouActivity {
         toggle.setScaleType(ImageView.ScaleType.CENTER);
         toggle.setRotation(expanded ? 90f : 0f);
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(dp(32), dp(32));
-        toggleParams.rightMargin = dp(6);
-        header.addView(toggle, toggleParams);
+        toggleParams.rightMargin = 0;
 
         if (titleResource != R.string.property_market_alerts_list_title) {
             ImageButton trash = new ImageButton(this);
             trash.setImageResource(R.drawable.ic_trash_outline);
-            trash.setBackgroundResource(R.drawable.bg_icon_circle);
+            trash.setBackgroundResource(R.drawable.bg_icon_danger);
             trash.setContentDescription(getString(R.string.action_trash_offer_section));
             trash.setPadding(dp(8), dp(8), dp(8), dp(8));
             trash.setScaleType(ImageView.ScaleType.CENTER);
             trash.setOnClickListener(view -> trashOfferSection(offers));
             header.addView(trash, new LinearLayout.LayoutParams(dp(36), dp(36)));
         }
+        header.addView(toggle, toggleParams);
         card.addView(header);
         header.setOnClickListener(view -> toggleOfferSection(preferenceKey));
         toggle.setOnClickListener(view -> toggleOfferSection(preferenceKey));
@@ -739,6 +756,16 @@ public class MainActivity extends AlertouActivity {
         card.addView(content);
 
         addOfferSectionCard(card);
+    }
+
+    private int getOfferSectionIcon(int titleResource) {
+        if (titleResource == R.string.coupon_alerts_list_title) {
+            return R.drawable.ic_coupon_alert;
+        }
+        if (titleResource == R.string.product_alerts_list_title) {
+            return R.drawable.ic_price_alert;
+        }
+        return R.drawable.ic_property_alert;
     }
 
     private void addOfferSectionCard(LinearLayout card) {
@@ -908,7 +935,7 @@ public class MainActivity extends AlertouActivity {
         background.setOrientation(LinearLayout.HORIZONTAL);
         background.setPadding(dp(12), 0, dp(12), 0);
 
-        ImageView trashIcon = createSwipeActionIcon(R.drawable.ic_trash_outline, R.drawable.bg_icon_circle);
+        ImageView trashIcon = createSwipeActionIcon(R.drawable.ic_trash_outline, R.drawable.bg_icon_danger);
         background.addView(trashIcon, new LinearLayout.LayoutParams(dp(40), dp(40)));
 
         View spacer = new View(this);
@@ -1724,7 +1751,7 @@ public class MainActivity extends AlertouActivity {
         ImageButton button = new ImageButton(this);
         button.setImageResource(R.drawable.ic_delete);
         button.setColorFilter(getColor(R.color.danger));
-        button.setBackgroundResource(R.drawable.bg_icon_circle);
+        button.setBackgroundResource(R.drawable.bg_icon_danger);
         button.setContentDescription(getString(R.string.action_remove_interest));
         button.setScaleType(ImageView.ScaleType.CENTER);
         button.setPadding(dp(7), dp(7), dp(7), dp(7));

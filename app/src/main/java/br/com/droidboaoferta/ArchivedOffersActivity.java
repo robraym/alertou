@@ -24,6 +24,11 @@ public class ArchivedOffersActivity extends StoredOffersActivity {
     }
 
     @Override
+    int getCardTitleIcon() {
+        return R.drawable.ic_archive;
+    }
+
+    @Override
     List<ObservedOffer> getOffers(OfferRepository repository) {
         return repository.getArchived();
     }

@@ -19,9 +19,14 @@ final class CoalescingCheckScheduler {
     private Runnable requestedAction;
 
     synchronized void start(Runnable check, long intervalMs) {
+        start(check, intervalMs, null);
+    }
+
+    synchronized void start(Runnable check, long intervalMs, Runnable initialAction) {
         if (executor != null) return;
         this.check = check;
         this.intervalMs = intervalMs;
+        this.requestedAction = initialAction;
         executor = Executors.newSingleThreadScheduledExecutor();
         schedule(0);
     }

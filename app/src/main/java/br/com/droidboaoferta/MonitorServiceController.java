@@ -57,6 +57,7 @@ final class MonitorServiceController {
                 || hasPropertyAlert
                 || (hasPriceAlert && (selectedGroupCount(context) > 0
                 || VivoOutletSource.isConfigured(context)
+                || VivoMadrugadaSource.isConfigured(context)
                 || PelandoSource.isConfigured(context)
                 || PromobitSource.isConfigured(context)
                 || KabumOfferSource.isConfigured(context)));

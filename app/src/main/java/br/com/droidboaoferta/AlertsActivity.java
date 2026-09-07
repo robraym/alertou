@@ -1105,10 +1105,7 @@ public class AlertsActivity extends AlertouActivity {
                                 term,
                                 maximumPrice
                         );
-                        VivoOutletMonitor.getInstance().checkNow(this);
-                        PelandoMonitor.getInstance().checkNow(this);
-                        PromobitMonitor.getInstance().checkNow(this);
-                        KabumOfferMonitor.getInstance().checkNow(this);
+                        refreshProductSources();
                     }
                 }
                 long remaining = Math.max(
@@ -1167,7 +1164,7 @@ public class AlertsActivity extends AlertouActivity {
                     );
                     PropertyPageMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
-                    offerRepository.clearRecentForInterest(interestToEdit.getId());
+                    offerRepository.clearRecentForPropertyAlert(interestToEdit.getId());
                 } else {
                     savedInterestId = interestRepository.addProperty(
                             pageUrl,
@@ -1198,8 +1195,8 @@ public class AlertsActivity extends AlertouActivity {
                 }
                 if (updateSucceeded) {
                     requestNotificationPermissionIfNeeded();
+                    PropertyPageMonitor.getInstance().checkAlertsNow(this);
                     MonitorServiceController.update(this);
-                    PropertyPageMonitor.getInstance().checkNow(this);
                 }
                 long remaining = Math.max(
                         0L,
@@ -1221,6 +1218,13 @@ public class AlertsActivity extends AlertouActivity {
                 }, remaining);
             });
         });
+    }
+
+    private void refreshProductSources() {
+        VivoOutletMonitor.getInstance().checkNow(this);
+        if (PelandoSource.isConfigured(this)) PelandoMonitor.getInstance().checkNow(this);
+        if (PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkNow(this);
+        if (KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkNow(this);
     }
 
     private Dialog showUpdatingDialog() {

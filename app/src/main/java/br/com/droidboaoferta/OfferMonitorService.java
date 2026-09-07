@@ -81,7 +81,8 @@ public class OfferMonitorService extends Service {
         } else {
             OfferMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && VivoOutletSource.isConfigured(this)) {
+        if (hasPriceAlert && (VivoOutletSource.isConfigured(this)
+                || VivoMadrugadaSource.isConfigured(this))) {
             VivoOutletMonitor.getInstance().start(this);
         } else {
             VivoOutletMonitor.getInstance().stop();

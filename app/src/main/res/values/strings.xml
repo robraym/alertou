@@ -30,16 +30,7 @@
     <string name="vivo_outlet_source_title">Outlet Vivo</string>
     <string name="vivo_outlet_source_compact">Outlet Vivo · produtos cadastrados</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
-    <string name="vivo_outlet_sources_count">• 4 disponíveis</string>
-    <string name="store_sources_add">Adicionar loja</string>
-    <string name="store_sources_add_title">Adicionar loja</string>
-    <string-array name="store_sources_add_options">
-        <item>Outlet Vivo</item>
-        <item>Pelando</item>
-        <item>Promobit</item>
-        <item>KaBuM</item>
-    </string-array>
-    <string name="vivo_outlet_source_separator"> • </string>
+    <string name="vivo_outlet_sources_count">• 5 disponíveis</string>
     <string name="vivo_outlet_source_online">Online</string>
     <string name="vivo_outlet_source_offline">Offline</string>
     <string name="vivo_outlet_source_not_configured">Cadastre o link da página</string>
@@ -56,6 +47,13 @@
     <string name="vivo_outlet_dialog_title">Página do Outlet Vivo</string>
     <string name="vivo_outlet_dialog_summary">Você pode trocar o link se a Vivo alterar a página. O Alertou acompanha somente produtos que já têm alerta de preço.</string>
     <string name="vivo_outlet_offer_source">Outlet Vivo • preço no Pix</string>
+    <string name="vivo_madrugada_source_title">Madrugada Vivo</string>
+    <string name="vivo_madrugada_source_check_pending">Aguardando primeira consulta</string>
+    <string name="vivo_madrugada_source_check_succeeded">Última consulta: %1$s</string>
+    <string name="vivo_madrugada_source_check_failed">Última consulta válida: %1$s</string>
+    <string name="vivo_madrugada_offer_source">Madrugada Vivo • preço no Pix</string>
+    <string name="source_state_pending">Aguardando consulta</string>
+    <string name="source_state_disabled">Desativada</string>
     <string name="pelando_source_title">Pelando</string>
     <string name="pelando_source_not_configured">Cadastre o link de recentes</string>
     <string name="pelando_source_check_pending">Aguardando primeira consulta</string>
