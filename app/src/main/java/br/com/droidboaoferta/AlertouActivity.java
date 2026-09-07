@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 abstract class AlertouActivity extends AppCompatActivity {
     private String appliedAccentMode;
+    private AppStatusIndicator appStatusIndicator;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -18,9 +19,19 @@ abstract class AlertouActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        if (appStatusIndicator == null && findViewById(R.id.app_status_indicator) != null) {
+            appStatusIndicator = new AppStatusIndicator(this);
+        }
+        if (appStatusIndicator != null) appStatusIndicator.start();
         String savedAccentMode = AccentColorController.getSavedMode(this);
         if (!savedAccentMode.equals(appliedAccentMode)) {
             recreate();
         }
+    }
+
+    @Override
+    protected void onPause() {
+        if (appStatusIndicator != null) appStatusIndicator.stop();
+        super.onPause();
     }
 }

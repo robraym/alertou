@@ -11,20 +11,28 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
+        android:layout_marginStart="@dimen/screen_card_inset"
+        android:layout_marginEnd="@dimen/screen_card_inset"
         android:gravity="center_vertical"
         android:orientation="horizontal">
 
-        <TextView
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="6dp"
             android:layout_weight="1"
+            android:orientation="vertical">
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="0dp"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:text="@string/alerts_screen_title"
             android:textColor="@color/text_primary"
             android:textSize="27sp"
             android:textStyle="bold" />
+            <include layout="@layout/view_app_status" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/button_sort_alerts"
@@ -52,7 +60,7 @@
         android:id="@+id/floating_search_content_area"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="@dimen/screen_header_content_gap"
         android:layout_weight="1">
 
     <ScrollView
@@ -60,8 +68,8 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
+        android:paddingStart="@dimen/screen_card_inset"
+        android:paddingEnd="@dimen/screen_card_inset"
         android:paddingBottom="58dp">
 
         <LinearLayout

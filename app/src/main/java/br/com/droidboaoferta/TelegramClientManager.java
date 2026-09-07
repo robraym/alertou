@@ -125,6 +125,7 @@ final class TelegramClientManager {
     private volatile Listener listener;
     private volatile MessageListener messageListener;
     private volatile State state = State.STARTING;
+    private volatile boolean connectionReady;
     private volatile List<TelegramGroup> groups = Collections.emptyList();
     private volatile String accountName = "";
     private volatile String accountPhone = "";
@@ -702,6 +703,10 @@ final class TelegramClientManager {
         return state;
     }
 
+    boolean isConnectionReady() {
+        return state == State.READY && connectionReady;
+    }
+
     String getAccountName() {
         return accountName;
     }
@@ -885,7 +890,10 @@ final class TelegramClientManager {
                 || "user".equals(type)) {
             Log.d(TAG, "result type=" + type + ", extra=" + extra);
         }
-        if ("updateAuthorizationState".equals(type)) {
+        if ("updateConnectionState".equals(type)) {
+            connectionReady = "connectionStateReady".equals(
+                    result.getJSONObject("state").optString("@type"));
+        } else if ("updateAuthorizationState".equals(type)) {
             handleAuthorizationState(result.getJSONObject("authorization_state"));
         } else if ("updateNewChat".equals(type)) {
             JSONObject chat = result.getJSONObject("chat");

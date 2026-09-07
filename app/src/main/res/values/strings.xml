@@ -1,6 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Alertou</string>
+    <string name="app_status_title">Status do aplicativo</string>
+    <string name="app_status_active">Tudo ativo</string>
+    <string name="app_status_attention">Atenção</string>
+    <string name="app_status_stopped">Parado</string>
+    <string name="app_status_empty">Sem alertas</string>
+    <string name="app_status_accessibility">%1$s. Toque para ver o status do aplicativo.</string>
+    <string name="app_status_monitor">Monitoramento dos alertas</string>
+    <string name="app_status_monitor_active">Ativo em segundo plano</string>
+    <string name="app_status_paused">Pausado nas configurações</string>
+    <string name="app_status_no_alerts">Cadastre um alerta para começar.</string>
+    <string name="app_status_no_sources">Escolha uma fonte para acompanhar seus produtos.</string>
+    <string name="app_status_service_stopped">O monitoramento não está em execução.</string>
+    <string name="app_status_telegram">Telegram</string>
+    <string name="app_status_connected">Conectado e acompanhando os grupos</string>
+    <string name="app_status_reconnecting">Aguardando conexão</string>
+    <string name="app_status_login">Conecte sua conta em Fontes.</string>
+    <string name="app_status_source_ok">Última consulta concluída</string>
+    <string name="app_status_source_error">Falha na última consulta</string>
+    <string name="app_status_source_waiting">Aguardando confirmação da consulta</string>
+    <string name="app_status_source_idle">Sem alerta de produto para acompanhar</string>
+    <string name="app_status_last_check">Última consulta: %1$s</string>
+    <string name="app_status_scope">Fontes usadas pelos seus alertas. Sites são consultados em intervalos; o status considera a última consulta.</string>
     <string name="app_slogan">Só avisa quando vale a pena.</string>
     <string name="telegram_setup_screen_title">Fontes</string>
     <string name="telegram_choose_groups_short">Escolha os grupos de promoções.</string>

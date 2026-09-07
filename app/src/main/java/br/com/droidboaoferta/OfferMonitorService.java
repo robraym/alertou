@@ -13,12 +13,18 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 public class OfferMonitorService extends Service {
+    private static volatile boolean running;
+
+    static boolean isRunning() {
+        return running;
+    }
     private static final String CHANNEL_MONITOR = "offer_monitor_status";
     private static final int NOTIFICATION_ID = 4101;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        running = true;
         MonitorStatusStore.setServiceRunning(this, true);
         createChannel();
         startForeground(NOTIFICATION_ID, createNotification());
@@ -39,6 +45,7 @@ public class OfferMonitorService extends Service {
 
     @Override
     public void onDestroy() {
+        running = false;
         OfferMonitor.getInstance().stop();
         CouponPageMonitor.getInstance().stop();
         PropertyPageMonitor.getInstance().stop();

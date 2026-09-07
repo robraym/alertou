@@ -44,7 +44,7 @@
             android:id="@+id/card_telegram_account"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="@dimen/screen_header_content_gap"
             android:background="@drawable/bg_card_compact"
             android:clickable="true"
             android:focusable="true"
