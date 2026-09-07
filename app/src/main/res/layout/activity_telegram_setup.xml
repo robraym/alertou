@@ -229,6 +229,7 @@
                     android:textSize="18sp" />
 
                 <TextView
+                    android:id="@+id/text_store_sources_status"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="6dp"
@@ -656,12 +657,30 @@
                         android:layout_weight="1"
                         android:orientation="vertical">
 
-                        <TextView
+                        <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:text="@string/telegram_groups_card_title"
-                            android:textColor="@color/text_primary"
-                            android:textSize="18sp" />
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:singleLine="true"
+                                android:text="@string/telegram_groups_card_title"
+                                android:textColor="@color/text_primary"
+                                android:textSize="18sp" />
+
+                            <TextView
+                                android:id="@+id/text_groups_sync_state"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:singleLine="true"
+                                android:text="@string/vivo_outlet_source_offline"
+                                android:textColor="@color/danger"
+                                android:textSize="14sp" />
+                        </LinearLayout>
 
                         <TextView
                             android:id="@+id/text_groups_count"

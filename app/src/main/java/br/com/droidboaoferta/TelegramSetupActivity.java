@@ -111,8 +111,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private LinearLayout groupRankingContainer;
     private TextView groupsCountText;
     private TextView groupsEvaluationText;
+    private TextView groupsSyncStateText;
     private LinearLayout storeSourcesContainer;
     private ImageButton storeSourcesToggle;
+    private TextView storeSourcesStatusText;
     private ImageButton telegramGroupsToggle;
     private TextView vivoOutletSourceRow;
     private TextView vivoOutletSourceState;
@@ -224,8 +226,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         groupsContainer = findViewById(R.id.container_groups);
         groupsCountText = findViewById(R.id.text_groups_count);
         groupsEvaluationText = findViewById(R.id.text_groups_evaluation);
+        groupsSyncStateText = findViewById(R.id.text_groups_sync_state);
         storeSourcesContainer = findViewById(R.id.container_store_sources);
         storeSourcesToggle = findViewById(R.id.button_toggle_store_sources);
+        storeSourcesStatusText = findViewById(R.id.text_store_sources_status);
         telegramGroupsToggle = findViewById(R.id.button_toggle_telegram_groups);
         vivoOutletSourceRow = findViewById(R.id.text_vivo_outlet_source_row);
         vivoOutletSourceState = findViewById(R.id.text_vivo_outlet_source_state);
@@ -518,6 +522,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 hideAuthenticationInput();
                 break;
         }
+        renderGroupsSyncState();
     }
 
     private void renderGroups(List<TelegramGroup> groups) {
@@ -861,6 +866,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         });
         availableGroups = displayGroups;
         updateGroupsCountSummary();
+        renderGroupsSyncState();
         boolean groupsExpanded = isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED);
         applySourceSectionState(telegramGroupsToggle, groupsContainer, groupsExpanded, false);
         groupsSearchBar.setVisibility(groupsExpanded ? View.VISIBLE : View.GONE);
@@ -1428,6 +1434,59 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         ));
     }
 
+    private void renderGroupsSyncState() {
+        if (groupsSyncStateText == null || clientManager == null) {
+            return;
+        }
+        boolean online = countSelectedAvailableGroups() > 0
+                && clientManager.isConnectionReady();
+        groupsSyncStateText.setText(online
+                ? R.string.vivo_outlet_source_online
+                : R.string.vivo_outlet_source_offline);
+        groupsSyncStateText.setTextColor(getColor(online ? R.color.action : R.color.danger));
+    }
+
+    private void renderStoreSourcesStatus() {
+        if (storeSourcesStatusText == null) {
+            return;
+        }
+        int online = 0;
+        online += isSourceOnline(VivoOutletSource.isConfigured(this),
+                VivoOutletSource.hasSuccessfulCheck(this), VivoOutletSource.hasLastCheckFailed(this)) ? 1 : 0;
+        online += isSourceOnline(VivoMadrugadaSource.isConfigured(this),
+                VivoMadrugadaSource.hasSuccessfulCheck(this), VivoMadrugadaSource.hasLastCheckFailed(this)) ? 1 : 0;
+        online += isSourceOnline(PelandoSource.isConfigured(this),
+                PelandoSource.hasSuccessfulCheck(this), PelandoSource.hasLastCheckFailed(this)) ? 1 : 0;
+        online += isSourceOnline(PromobitSource.isConfigured(this),
+                PromobitSource.hasSuccessfulCheck(this), PromobitSource.hasLastCheckFailed(this)) ? 1 : 0;
+        online += isSourceOnline(KabumOfferSource.isConfigured(this),
+                KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
+        int offline = 5 - online;
+        String summary = offline == 0
+                ? getString(R.string.source_status_summary_online, online)
+                : getString(R.string.source_status_summary_mixed, online, offline);
+        SpannableString coloredSummary = new SpannableString(summary);
+        String onlineLabel = online + " " + getString(R.string.vivo_outlet_source_online);
+        int onlineStart = summary.indexOf(onlineLabel);
+        if (onlineStart >= 0) {
+            coloredSummary.setSpan(new ForegroundColorSpan(getColor(R.color.action)),
+                    onlineStart, onlineStart + onlineLabel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        if (offline > 0) {
+            String offlineLabel = offline + " " + getString(R.string.vivo_outlet_source_offline);
+            int offlineStart = summary.indexOf(offlineLabel);
+            if (offlineStart >= 0) {
+                coloredSummary.setSpan(new ForegroundColorSpan(getColor(R.color.danger)),
+                        offlineStart, offlineStart + offlineLabel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        }
+        storeSourcesStatusText.setText(coloredSummary);
+    }
+
+    private boolean isSourceOnline(boolean configured, boolean hasSuccessfulCheck, boolean failed) {
+        return configured && hasSuccessfulCheck && !failed;
+    }
+
     private int countSelectedAvailableGroups() {
         if (availableGroups == null || availableGroups.isEmpty()
                 || selectedGroupIds == null || selectedGroupIds.isEmpty()) {
@@ -1901,6 +1960,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         vivoOutletEditButton.setContentDescription(getString(configured
                 ? R.string.vivo_outlet_edit_link
                 : R.string.vivo_outlet_add_link));
+        renderStoreSourcesStatus();
     }
 
     private void renderVivoMadrugadaSource() {
@@ -1915,6 +1975,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 : getString(R.string.vivo_madrugada_source_check_pending)));
         renderSourceState(vivoMadrugadaSourceState, true,
                 VivoMadrugadaSource.hasSuccessfulCheck(this), offline);
+        renderStoreSourcesStatus();
     }
 
     private void renderPelandoSource() {
@@ -1937,6 +1998,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         pelandoEditButton.setContentDescription(getString(configured
                 ? R.string.pelando_edit_link
                 : R.string.pelando_add_link));
+        renderStoreSourcesStatus();
     }
 
     private void renderPromobitSource() {
@@ -1959,6 +2021,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         promobitEditButton.setContentDescription(getString(configured
                 ? R.string.promobit_edit_link
                 : R.string.promobit_add_link));
+        renderStoreSourcesStatus();
     }
 
     private void renderKabumOfferSource() {
@@ -1981,6 +2044,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         kabumOfferEditButton.setContentDescription(getString(configured
                 ? R.string.kabum_offer_edit_link
                 : R.string.kabum_offer_add_link));
+        renderStoreSourcesStatus();
     }
 
     private void renderSourceState(TextView view, boolean configured,

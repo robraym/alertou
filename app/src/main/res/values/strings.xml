@@ -31,6 +31,8 @@
     <string name="vivo_outlet_source_compact">Outlet Vivo · produtos cadastrados</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
     <string name="vivo_outlet_sources_count">• 5 disponíveis</string>
+    <string name="source_status_summary_online">• %1$d Online</string>
+    <string name="source_status_summary_mixed">• %1$d Online · %2$d Offline</string>
     <string name="vivo_outlet_source_online">Online</string>
     <string name="vivo_outlet_source_offline">Offline</string>
     <string name="vivo_outlet_source_not_configured">Cadastre o link da página</string>

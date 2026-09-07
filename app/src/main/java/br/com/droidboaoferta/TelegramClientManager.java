@@ -891,8 +891,12 @@ final class TelegramClientManager {
             Log.d(TAG, "result type=" + type + ", extra=" + extra);
         }
         if ("updateConnectionState".equals(type)) {
-            connectionReady = "connectionStateReady".equals(
+            boolean ready = "connectionStateReady".equals(
                     result.getJSONObject("state").optString("@type"));
+            if (connectionReady != ready) {
+                connectionReady = ready;
+                notifyState();
+            }
         } else if ("updateAuthorizationState".equals(type)) {
             handleAuthorizationState(result.getJSONObject("authorization_state"));
         } else if ("updateNewChat".equals(type)) {
