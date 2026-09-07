@@ -369,7 +369,7 @@ public class AlertsActivity extends AlertouActivity {
                 return byValue != 0 ? byValue : Long.compare(second.getId(), first.getId());
             };
         } else {
-            return;
+            comparator = (first, second) -> Long.compare(second.getId(), first.getId());
         }
         interests.sort(comparator);
     }

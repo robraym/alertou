@@ -301,6 +301,8 @@ abstract class StoredOffersActivity extends AlertouActivity {
     private void sortOffers(List<ObservedOffer> offers) {
         int sortOrder = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
                 .getInt(getSortPreferenceKey(), SORT_RECENT);
+        PropertyHistoryRepository propertyHistoryRepository =
+                sortOrder == SORT_RECENT ? new PropertyHistoryRepository(this) : null;
         Comparator<ObservedOffer> comparator;
         if (sortOrder == SORT_NAME) {
             comparator = (first, second) -> {
@@ -319,9 +321,29 @@ abstract class StoredOffersActivity extends AlertouActivity {
                 return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
         } else {
-            comparator = (first, second) -> Long.compare(second.getObservedAt(), first.getObservedAt());
+            comparator = (first, second) -> {
+                long firstRecentAt = getRecentSortTimestamp(first, propertyHistoryRepository);
+                long secondRecentAt = getRecentSortTimestamp(second, propertyHistoryRepository);
+                int byRecent = Long.compare(secondRecentAt, firstRecentAt);
+                return byRecent != 0 ? byRecent
+                        : Long.compare(second.getObservedAt(), first.getObservedAt());
+            };
         }
         offers.sort(comparator);
+    }
+
+    private long getRecentSortTimestamp(ObservedOffer offer,
+                                        PropertyHistoryRepository propertyHistoryRepository) {
+        if (offer == null || (!offer.getId().startsWith("property|")
+                && !PropertyMarketReferenceSettings.isReference(offer))) {
+            return offer == null ? 0L : offer.getObservedAt();
+        }
+        PropertyHistoryEntry history = propertyHistoryRepository == null
+                ? null : propertyHistoryRepository.getForOffer(offer);
+        if (history != null && history.getFirstPublicationAt() > 0L) {
+            return history.getFirstPublicationAt();
+        }
+        return offer.getObservedAt();
     }
 
     private String getSortPreferenceKey() {

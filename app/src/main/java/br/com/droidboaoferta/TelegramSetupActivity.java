@@ -244,6 +244,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 new Intent(this, ProfileActivity.class)
         ));
         findViewById(R.id.button_sort_sources).setOnClickListener(view -> showSourcesSortDialog());
+        findViewById(R.id.button_add_store_source).setOnClickListener(
+                view -> showStoreSourcePickerDialog());
         configureSourceSection(
                 R.id.header_store_sources,
                 storeSourcesToggle,
@@ -1977,6 +1979,24 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         kabumOfferEditButton.setContentDescription(getString(configured
                 ? R.string.kabum_offer_edit_link
                 : R.string.kabum_offer_add_link));
+    }
+
+    private void showStoreSourcePickerDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.store_sources_add_title)
+                .setItems(R.array.store_sources_add_options, (dialog, which) -> {
+                    dialog.dismiss();
+                    if (which == 0) {
+                        showVivoOutletSourceDialog();
+                    } else if (which == 1) {
+                        showPelandoSourceDialog();
+                    } else if (which == 2) {
+                        showPromobitSourceDialog();
+                    } else if (which == 3) {
+                        showKabumOfferSourceDialog();
+                    }
+                })
+                .show();
     }
 
     private String formatSourceCheckTime(long timestamp) {

@@ -205,28 +205,47 @@
             android:paddingEnd="8dp"
             android:paddingBottom="6dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:singleLine="true"
-                android:text="@string/vivo_outlet_sources_title"
-                android:textColor="@color/text_primary"
-                android:textSize="18sp" />
+            <ImageButton
+                android:id="@+id/button_add_store_source"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_icon_circle"
+                android:contentDescription="@string/store_sources_add"
+                android:padding="5dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_add_store_source" />
 
-            <TextView
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
                 android:layout_weight="1"
-                android:singleLine="true"
-                android:text="@string/vivo_outlet_sources_count"
-                android:textColor="@color/text_secondary"
-                android:textSize="14sp" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:text="@string/vivo_outlet_sources_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:singleLine="true"
+                    android:text="@string/vivo_outlet_sources_count"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <ImageButton
                 android:id="@+id/button_toggle_store_sources"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
+                android:layout_marginEnd="6dp"
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/alerts_section_collapse"
                 android:padding="7dp"

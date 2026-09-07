@@ -30,7 +30,15 @@
     <string name="vivo_outlet_source_title">Outlet Vivo</string>
     <string name="vivo_outlet_source_compact">Outlet Vivo · produtos cadastrados</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
-    <string name="vivo_outlet_sources_count">• 4 cadastradas</string>
+    <string name="vivo_outlet_sources_count">• 4 disponíveis</string>
+    <string name="store_sources_add">Adicionar loja</string>
+    <string name="store_sources_add_title">Adicionar loja</string>
+    <string-array name="store_sources_add_options">
+        <item>Outlet Vivo</item>
+        <item>Pelando</item>
+        <item>Promobit</item>
+        <item>KaBuM</item>
+    </string-array>
     <string name="vivo_outlet_source_separator"> • </string>
     <string name="vivo_outlet_source_online">Online</string>
     <string name="vivo_outlet_source_offline">Offline</string>
