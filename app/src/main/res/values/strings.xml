@@ -26,7 +26,7 @@
     <string name="app_slogan">Só avisa quando vale a pena.</string>
     <string name="telegram_setup_screen_title">Fontes</string>
     <string name="telegram_choose_groups_short">Escolha os grupos de promoções.</string>
-    <string name="telegram_groups_card_title">Grupos de promoções</string>
+    <string name="telegram_groups_card_title">Grupos do Telegram</string>
     <string name="vivo_outlet_source_title">Outlet Vivo</string>
     <string name="vivo_outlet_source_compact">Outlet Vivo · produtos cadastrados</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
@@ -94,7 +94,7 @@
     <string name="kabum_offer_source">KaBuM • oferta relâmpago</string>
     <string name="telegram_groups_count_empty">0 selecionados de 0 grupos</string>
     <string name="telegram_groups_count_format">%1$s de %2$s</string>
-    <string name="telegram_groups_count_with_evaluation">%1$d de %2$d ativos · Semana dia %3$d de 7</string>
+    <string name="telegram_groups_count_with_evaluation">%1$d de %2$d ativos · Semana %3$d de 7</string>
     <plurals name="telegram_groups_selected_count">
         <item quantity="one">%d selecionado</item>
         <item quantity="other">%d selecionados</item>
