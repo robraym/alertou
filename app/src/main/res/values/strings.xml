@@ -33,6 +33,13 @@
     <string name="vivo_outlet_sources_count">• 5 disponíveis</string>
     <string name="source_status_summary_online">• %1$d Online</string>
     <string name="source_status_summary_mixed">• %1$d Online · %2$d Offline</string>
+    <string name="source_status_chip_online">%1$d Online</string>
+    <string name="source_status_chip_offline">%1$d Offline</string>
+    <string name="source_status_dot">●</string>
+    <string name="source_status_dot_online">● %1$d Online</string>
+    <string name="source_status_dot_offline">● %1$d Offline</string>
+    <string name="source_status_dot_online_label">● Online</string>
+    <string name="source_status_dot_offline_label">● Offline</string>
     <string name="vivo_outlet_source_online">Online</string>
     <string name="vivo_outlet_source_offline">Offline</string>
     <string name="vivo_outlet_source_not_configured">Cadastre o link da página</string>
@@ -99,7 +106,7 @@
     <string name="kabum_offer_source">KaBuM • oferta relâmpago</string>
     <string name="telegram_groups_count_empty">0 selecionados de 0 grupos</string>
     <string name="telegram_groups_count_format">%1$s de %2$s</string>
-    <string name="telegram_groups_count_with_evaluation">%1$d de %2$d ativos · Semana %3$d de 7</string>
+    <string name="telegram_groups_count_with_evaluation">Semana dia %3$d de 7 · %1$d de %2$d ativos</string>
     <plurals name="telegram_groups_selected_count">
         <item quantity="one">%d selecionado</item>
         <item quantity="other">%d selecionados</item>

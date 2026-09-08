@@ -11,6 +11,7 @@ import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -114,7 +115,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView groupsSyncStateText;
     private LinearLayout storeSourcesContainer;
     private ImageButton storeSourcesToggle;
-    private TextView storeSourcesStatusText;
+    private TextView storeSourcesOnlineText;
+    private TextView storeSourcesOfflineText;
     private ImageButton telegramGroupsToggle;
     private TextView vivoOutletSourceRow;
     private TextView vivoOutletSourceState;
@@ -230,7 +232,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         groupsSyncStateText = findViewById(R.id.text_groups_sync_state);
         storeSourcesContainer = findViewById(R.id.container_store_sources);
         storeSourcesToggle = findViewById(R.id.button_toggle_store_sources);
-        storeSourcesStatusText = findViewById(R.id.text_store_sources_status);
+        storeSourcesOnlineText = findViewById(R.id.text_store_sources_online);
+        storeSourcesOfflineText = findViewById(R.id.text_store_sources_offline);
         telegramGroupsToggle = findViewById(R.id.button_toggle_telegram_groups);
         vivoOutletSourceRow = findViewById(R.id.text_vivo_outlet_source_row);
         vivoOutletSourceState = findViewById(R.id.text_vivo_outlet_source_state);
@@ -1444,50 +1447,59 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         boolean online = countSelectedAvailableGroups() > 0
                 && clientManager.isConnectionReady();
         groupsSyncStateText.setText(online
-                ? R.string.vivo_outlet_source_online
-                : R.string.vivo_outlet_source_offline);
+                ? R.string.source_status_dot_online_label
+                : R.string.source_status_dot_offline_label);
         groupsSyncStateText.setTextColor(getColor(online ? R.color.action : R.color.danger));
+        groupsSyncStateText.setBackground(null);
+        groupsSyncStateText.setPadding(0, 0, 0, 0);
+        groupsSyncStateText.setContentDescription(getString(online
+                ? R.string.vivo_outlet_source_online
+                : R.string.vivo_outlet_source_offline));
     }
 
     private void renderStoreSourcesStatus() {
-        if (storeSourcesStatusText == null) {
+        if (storeSourcesOnlineText == null || storeSourcesOfflineText == null) {
             return;
         }
+        boolean outletConfigured = VivoOutletSource.isConfigured(this);
+        boolean madrugadaConfigured = VivoMadrugadaSource.isConfigured(this);
+        boolean pelandoConfigured = PelandoSource.isConfigured(this);
+        boolean promobitConfigured = PromobitSource.isConfigured(this);
+        boolean kabumConfigured = KabumOfferSource.isConfigured(this);
         int online = 0;
-        online += isSourceOnline(VivoOutletSource.isConfigured(this),
+        online += isSourceOnline(outletConfigured,
                 VivoOutletSource.hasSuccessfulCheck(this), VivoOutletSource.hasLastCheckFailed(this)) ? 1 : 0;
-        online += isSourceOnline(VivoMadrugadaSource.isConfigured(this),
+        online += isSourceOnline(madrugadaConfigured,
                 VivoMadrugadaSource.hasSuccessfulCheck(this), VivoMadrugadaSource.hasLastCheckFailed(this)) ? 1 : 0;
-        online += isSourceOnline(PelandoSource.isConfigured(this),
+        online += isSourceOnline(pelandoConfigured,
                 PelandoSource.hasSuccessfulCheck(this), PelandoSource.hasLastCheckFailed(this)) ? 1 : 0;
-        online += isSourceOnline(PromobitSource.isConfigured(this),
+        online += isSourceOnline(promobitConfigured,
                 PromobitSource.hasSuccessfulCheck(this), PromobitSource.hasLastCheckFailed(this)) ? 1 : 0;
-        online += isSourceOnline(KabumOfferSource.isConfigured(this),
+        online += isSourceOnline(kabumConfigured,
                 KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
+        storeSourcesOnlineText.setText(getString(R.string.source_status_dot_online, online));
+        storeSourcesOnlineText.setTextColor(getColor(R.color.action));
         int offline = 5 - online;
-        String summary = offline == 0
-                ? getString(R.string.source_status_summary_online, online)
-                : getString(R.string.source_status_summary_mixed, online, offline);
-        SpannableString coloredSummary = new SpannableString(summary);
-        String onlineLabel = online + " " + getString(R.string.vivo_outlet_source_online);
-        int onlineStart = summary.indexOf(onlineLabel);
-        if (onlineStart >= 0) {
-            coloredSummary.setSpan(new ForegroundColorSpan(getColor(R.color.action)),
-                    onlineStart, onlineStart + onlineLabel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        }
         if (offline > 0) {
-            String offlineLabel = offline + " " + getString(R.string.vivo_outlet_source_offline);
-            int offlineStart = summary.indexOf(offlineLabel);
-            if (offlineStart >= 0) {
-                coloredSummary.setSpan(new ForegroundColorSpan(getColor(R.color.danger)),
-                        offlineStart, offlineStart + offlineLabel.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
+            storeSourcesOfflineText.setText(getString(R.string.source_status_dot_offline, offline));
+            storeSourcesOfflineText.setTextColor(getColor(R.color.danger));
+            storeSourcesOfflineText.setVisibility(View.VISIBLE);
+        } else {
+            storeSourcesOfflineText.setVisibility(View.GONE);
         }
-        storeSourcesStatusText.setText(coloredSummary);
     }
 
     private boolean isSourceOnline(boolean configured, boolean hasSuccessfulCheck, boolean failed) {
         return configured && hasSuccessfulCheck && !failed;
+    }
+
+    private void applyStatusChip(TextView view, boolean online) {
+        int color = getColor(online ? R.color.action : R.color.danger);
+        GradientDrawable background = new GradientDrawable();
+        background.setColor(Color.argb(44, Color.red(color), Color.green(color), Color.blue(color)));
+        background.setCornerRadius(dp(12));
+        view.setBackground(background);
+        view.setTextColor(color);
     }
 
     private int countSelectedAvailableGroups() {
@@ -2054,13 +2066,18 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void renderSourceState(TextView view, boolean configured,
                                    boolean hasSuccessfulCheck, boolean offline) {
-        if (!configured || offline || !hasSuccessfulCheck) {
-            view.setText(R.string.vivo_outlet_source_offline);
-            view.setTextColor(getColor(R.color.danger));
-        } else {
-            view.setText(R.string.vivo_outlet_source_online);
-            view.setTextColor(getColor(R.color.action));
-        }
+        boolean online = configured && !offline && hasSuccessfulCheck;
+        applyStatusDot(view, online);
+    }
+
+    private void applyStatusDot(TextView view, boolean online) {
+        view.setText(R.string.source_status_dot);
+        view.setTextColor(getColor(online ? R.color.action : R.color.danger));
+        view.setBackground(null);
+        view.setPadding(0, 0, 0, 0);
+        view.setContentDescription(getString(online
+                ? R.string.vivo_outlet_source_online
+                : R.string.vivo_outlet_source_offline));
     }
 
     private String formatSourceCheckTime(long timestamp) {
