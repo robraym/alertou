@@ -121,6 +121,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private ImageButton vivoOutletEditButton;
     private TextView vivoMadrugadaSourceRow;
     private TextView vivoMadrugadaSourceState;
+    private ImageButton vivoMadrugadaEditButton;
     private TextView pelandoSourceRow;
     private TextView pelandoSourceState;
     private ImageButton pelandoEditButton;
@@ -236,6 +237,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         vivoOutletEditButton = findViewById(R.id.button_vivo_outlet_edit);
         vivoMadrugadaSourceRow = findViewById(R.id.text_vivo_madrugada_source_row);
         vivoMadrugadaSourceState = findViewById(R.id.text_vivo_madrugada_source_state);
+        vivoMadrugadaEditButton = findViewById(R.id.button_vivo_madrugada_edit);
         pelandoSourceRow = findViewById(R.id.text_pelando_source_row);
         pelandoSourceState = findViewById(R.id.text_pelando_source_state);
         pelandoEditButton = findViewById(R.id.button_pelando_edit);
@@ -269,6 +271,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 false
         );
         vivoOutletEditButton.setOnClickListener(view -> showVivoOutletSourceDialog());
+        vivoMadrugadaEditButton.setOnClickListener(view -> showVivoMadrugadaSourceDialog());
         pelandoEditButton.setOnClickListener(view -> showPelandoSourceDialog());
         promobitEditButton.setOnClickListener(view -> showPromobitSourceDialog());
         kabumOfferEditButton.setOnClickListener(view -> showKabumOfferSourceDialog());
@@ -1964,6 +1967,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     }
 
     private void renderVivoMadrugadaSource() {
+        boolean configured = VivoMadrugadaSource.isConfigured(this);
         boolean offline = VivoMadrugadaSource.hasLastCheckFailed(this);
         long lastSuccessfulCheck = VivoMadrugadaSource.getLastSuccessfulCheckAt(this);
         vivoMadrugadaSourceRow.setText(offline
@@ -1973,8 +1977,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.vivo_madrugada_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.vivo_madrugada_source_check_pending)));
-        renderSourceState(vivoMadrugadaSourceState, true,
+        renderSourceState(vivoMadrugadaSourceState, configured,
                 VivoMadrugadaSource.hasSuccessfulCheck(this), offline);
+        vivoMadrugadaEditButton.setContentDescription(getString(R.string.vivo_madrugada_edit_link));
         renderStoreSourcesStatus();
     }
 
@@ -2064,6 +2069,91 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         return new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR"))
                 .format(new java.util.Date(timestamp));
+    }
+
+    private void showVivoMadrugadaSourceDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.vivo_madrugada_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(22);
+        content.addView(title);
+
+        TextView message = new TextView(this);
+        message.setText(R.string.vivo_madrugada_dialog_summary);
+        message.setTextColor(getColor(R.color.text_secondary));
+        message.setTextSize(15);
+        message.setPadding(0, dp(6), 0, dp(16));
+        content.addView(message);
+
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        input.setHint(R.string.vivo_madrugada_link_hint);
+        input.setTextColor(getColor(R.color.text_primary));
+        input.setHintTextColor(getColor(R.color.text_secondary));
+        input.setTextSize(13);
+        input.setSingleLine(false);
+        input.setMinLines(2);
+        input.setMaxLines(4);
+        input.setHorizontallyScrolling(false);
+        input.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        input.setPadding(dp(12), dp(6), dp(12), dp(6));
+        input.setBackgroundResource(R.drawable.bg_input);
+        input.setText(VivoMadrugadaSource.getUrl(this));
+        content.addView(input, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        actions.setPadding(0, dp(14), 0, 0);
+        TextView cancel = createSourceDialogAction(R.string.action_cancel);
+        cancel.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(cancel);
+        TextView save = createSourcePrimaryDialogAction(R.string.action_save);
+        save.setOnClickListener(view -> {
+            String rawUrl = input.getText().toString().trim();
+            if (VivoMadrugadaSource.normalizeUrl(rawUrl) == null) {
+                input.setError(getString(R.string.vivo_madrugada_link_unsupported));
+                return;
+            }
+            VivoMadrugadaSource.save(this, rawUrl);
+            renderVivoMadrugadaSource();
+            MonitorServiceController.update(this);
+            VivoOutletMonitor.getInstance().checkNow(this);
+            dialog.dismiss();
+        });
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(42)
+        );
+        saveParams.leftMargin = dp(10);
+        actions.addView(save, saveParams);
+        content.addView(actions);
+
+        dialog.setContentView(content);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(shownWindow.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            params.dimAmount = 0.65f;
+            shownWindow.setAttributes(params);
+            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
     }
 
     private void showVivoOutletSourceDialog() {

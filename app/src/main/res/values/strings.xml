@@ -50,6 +50,11 @@
     <string name="vivo_outlet_dialog_summary">Você pode trocar o link se a Vivo alterar a página. O Alertou acompanha somente produtos que já têm alerta de preço.</string>
     <string name="vivo_outlet_offer_source">Outlet Vivo • preço no Pix</string>
     <string name="vivo_madrugada_source_title">Madrugada Vivo</string>
+    <string name="vivo_madrugada_edit_link">Editar link</string>
+    <string name="vivo_madrugada_link_hint">Link da Madrugada Vivo</string>
+    <string name="vivo_madrugada_link_unsupported">Use uma página oficial da loja Vivo</string>
+    <string name="vivo_madrugada_dialog_title">Página da Madrugada Vivo</string>
+    <string name="vivo_madrugada_dialog_summary">Você pode atualizar o link se a Vivo alterar a página da campanha. O Alertou acompanha ofertas que combinam com seus alertas de preço.</string>
     <string name="vivo_madrugada_source_check_pending">Aguardando primeira consulta</string>
     <string name="vivo_madrugada_source_check_succeeded">Última consulta: %1$s</string>
     <string name="vivo_madrugada_source_check_failed">Última consulta válida: %1$s</string>

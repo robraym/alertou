@@ -268,12 +268,13 @@
 
             <ImageButton
                 android:id="@+id/button_vivo_outlet_edit"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_icon_circle"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="@android:color/transparent"
                 android:contentDescription="@string/vivo_outlet_edit_link"
-                android:padding="7dp"
-                android:scaleType="fitCenter"
+                android:padding="6dp"
+                android:scaleType="center"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 
@@ -335,13 +336,17 @@
             android:orientation="horizontal"
             android:padding="4dp">
 
-            <ImageView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_icon_circle"
-                android:contentDescription="@string/vivo_madrugada_source_title"
-                android:padding="7dp"
-                android:src="@drawable/ic_offer_tag" />
+            <ImageButton
+                android:id="@+id/button_vivo_madrugada_edit"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/vivo_madrugada_edit_link"
+                android:padding="6dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_edit"
+                android:tint="@color/action" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -403,12 +408,13 @@
 
             <ImageButton
                 android:id="@+id/button_pelando_edit"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_icon_circle"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="@android:color/transparent"
                 android:contentDescription="@string/pelando_edit_link"
-                android:padding="7dp"
-                android:scaleType="fitCenter"
+                android:padding="6dp"
+                android:scaleType="center"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 
@@ -472,12 +478,13 @@
 
             <ImageButton
                 android:id="@+id/button_promobit_edit"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_icon_circle"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="@android:color/transparent"
                 android:contentDescription="@string/promobit_edit_link"
-                android:padding="7dp"
-                android:scaleType="fitCenter"
+                android:padding="6dp"
+                android:scaleType="center"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 
@@ -541,12 +548,13 @@
 
             <ImageButton
                 android:id="@+id/button_kabum_offer_edit"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_icon_circle"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="2dp"
+                android:background="@android:color/transparent"
                 android:contentDescription="@string/kabum_offer_edit_link"
-                android:padding="7dp"
-                android:scaleType="fitCenter"
+                android:padding="6dp"
+                android:scaleType="center"
                 android:src="@drawable/ic_edit"
                 android:tint="@color/action" />
 

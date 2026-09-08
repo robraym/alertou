@@ -77,7 +77,7 @@ final class VivoOutletMonitor {
             found |= checkSource(context, VivoOutletSource.getUrl(context), "vivo_outlet_",
                     "vivo|", R.string.vivo_outlet_offer_source, true);
         }
-        found |= checkSource(context, VivoMadrugadaSource.URL, "vivo_madrugada_",
+        found |= checkSource(context, VivoMadrugadaSource.getUrl(context), "vivo_madrugada_",
                 "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false);
         if (found) {
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
