@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Alertou acompanha as fontes escolhidas por você e avisa quando uma oferta parece valer a pena.">
+    <title>Alertou — Só avisa quando vale a pena</title>
+    <style>
+        :root { color-scheme: dark; --bg:#080b0c; --card:#171b20; --card-2:#20252d; --text:#f2f4f5; --muted:#aeb4bc; --green:#43d391; --blue:#38aef5; --line:#303741; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; color:var(--text); background:radial-gradient(circle at 85% -10%,#12392f 0,transparent 35%),var(--bg); line-height:1.5; }
+        main { width:min(1040px,calc(100% - 40px)); margin:auto; }
+        .top { display:flex; justify-content:space-between; align-items:center; padding:26px 0; }
+        .brand { font-weight:800; letter-spacing:-.04em; font-size:1.35rem; text-decoration:none; color:var(--text); }
+        .brand i { display:inline-block; width:10px; height:10px; margin-right:7px; border-radius:50%; background:var(--green); }
+        .link { color:var(--muted); text-decoration:none; font-size:.95rem; }
+        .hero { display:grid; grid-template-columns:1.3fr .7fr; gap:42px; align-items:center; min-height:460px; padding:58px 0 68px; }
+        h1 { max-width:680px; margin:0 0 18px; font-size:clamp(2.65rem,7vw,5.4rem); line-height:.98; letter-spacing:-.065em; }
+        h1 em { color:var(--green); font-style:normal; }
+        .lead { max-width:590px; margin:0; color:var(--muted); font-size:1.16rem; }
+        .actions { display:flex; gap:12px; flex-wrap:wrap; margin-top:28px; }
+        .button { display:inline-flex; align-items:center; min-height:46px; padding:0 19px; border:1px solid var(--line); border-radius:23px; color:var(--text); background:var(--card); font-weight:650; text-decoration:none; }
+        .button.primary { background:var(--green); border-color:var(--green); color:#082016; }
+        .phone { width:min(100%,276px); margin:auto; border:7px solid #0c0f12; border-radius:34px; background:#101419; box-shadow:0 26px 60px rgba(0,0,0,.48); overflow:hidden; }
+        .phone-head { height:28px; display:flex; justify-content:center; align-items:center; }
+        .phone-head::after { content:""; width:72px; height:5px; border-radius:5px; background:#242b32; }
+        .screen { padding:18px 14px 20px; background:linear-gradient(135deg,#11171a,#080b0c); }
+        .screen-title { font-weight:800; font-size:1.6rem; letter-spacing:-.05em; }.screen-status { color:var(--green); font-size:.82rem; }
+        .mock-card { margin-top:17px; padding:13px; border-radius:19px; background:var(--card); }
+        .mock-row { display:flex; gap:10px; align-items:center; padding:9px 0; }.mock-row + .mock-row { border-top:1px solid var(--line); }
+        .mock-icon { display:grid; place-items:center; flex:none; width:34px; height:34px; border-radius:50%; color:var(--green); background:#202631; font-weight:800; }
+        .mock-copy { min-width:0; flex:1; }.mock-copy strong,.mock-copy small { display:block; }.mock-copy small { color:var(--muted); font-size:.73rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .dot { width:8px; height:8px; border-radius:50%; background:var(--green); }.price { color:var(--green); font-size:.78rem; font-weight:700; }
+        section { padding:72px 0; border-top:1px solid var(--line); } h2 { margin:0 0 14px; font-size:clamp(1.9rem,4vw,3rem); line-height:1.05; letter-spacing:-.05em; } .intro { max-width:610px; color:var(--muted); margin:0 0 30px; }
+        .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }.feature { min-height:205px; padding:22px; border-radius:22px; background:var(--card); }.feature b { display:grid; place-items:center; width:40px; height:40px; margin-bottom:24px; border-radius:50%; background:#202631; color:var(--green); font-size:1.05rem; }.feature h3 { margin:0 0 7px; font-size:1.08rem; }.feature p { margin:0; color:var(--muted); font-size:.94rem; }
+        .privacy { display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center; }.privacy-box { padding:22px; border:1px solid #24553f; border-radius:22px; background:#0d2119; }.privacy-box p { margin:0; color:#c6e7d7; }.privacy-box b { color:var(--green); }
+        footer { display:flex; justify-content:space-between; gap:20px; padding:28px 0 38px; color:var(--muted); font-size:.9rem; }.footer-links { display:flex; gap:18px; }.footer-links a { color:var(--muted); }
+        @media (max-width:720px) { main { width:min(100% - 30px,1040px); }.hero,.privacy { grid-template-columns:1fr; }.hero { padding-top:36px; text-align:center; }.lead { margin:auto; }.actions { justify-content:center; }.phone { margin-top:8px; }.grid { grid-template-columns:1fr; }.feature { min-height:0; }.feature b { margin-bottom:14px; } footer { flex-direction:column; } }
+    </style>
+</head>
+<body>
+<main>
+    <header class="top">
+        <a class="brand" href="./"><i></i>Alertou</a>
+        <a class="link" href="https://github.com/robraym/DroidBoaOferta">Ver projeto no GitHub</a>
+    </header>
+    <section class="hero">
+        <div>
+            <h1>Só avisa quando <em>vale a pena.</em></h1>
+            <p class="lead">O Alertou acompanha as fontes de promoções que você escolhe, organiza as ofertas e destaca os preços que fazem sentido para você.</p>
+            <div class="actions"><a class="button primary" href="https://github.com/robraym/DroidBoaOferta">Acompanhar o projeto</a><a class="button" href="#como-funciona">Como funciona</a></div>
+        </div>
+        <div class="phone" aria-label="Prévia ilustrativa do Alertou"><div class="phone-head"></div><div class="screen"><div class="screen-title">Alertou</div><div class="screen-status">● Monitoramento ativo</div><div class="mock-card"><div class="mock-row"><div class="mock-icon">⌂</div><div class="mock-copy"><strong>Imóveis</strong><small>10 ofertas acompanhadas</small></div><span class="dot"></span></div><div class="mock-row"><div class="mock-icon">⌁</div><div class="mock-copy"><strong>Fone Bluetooth</strong><small>Oferta encontrada</small></div><span class="price">R$ 149</span></div><div class="mock-row"><div class="mock-icon">⌑</div><div class="mock-copy"><strong>Fontes</strong><small>Lojas e grupos selecionados</small></div><span class="dot"></span></div></div></div></div>
+    </section>
+    <section id="como-funciona">
+        <h2>Menos ruído. Mais ofertas relevantes.</h2>
+        <p class="intro">Você decide o que acompanhar. O Alertou trabalha no seu aparelho para encontrar ofertas que correspondam aos seus interesses e limites de preço.</p>
+        <div class="grid"><article class="feature"><b>1</b><h3>Escolha as fontes</h3><p>Selecione grupos e canais de promoções e acompanhe lojas compatíveis escolhidas por você.</p></article><article class="feature"><b>2</b><h3>Defina seus alertas</h3><p>Cadastre produtos, palavras-chave ou categorias e informe o preço máximo que faz sentido.</p></article><article class="feature"><b>3</b><h3>Receba o que importa</h3><p>Quando uma oferta corresponde ao seu alerta, você recebe uma explicação clara para decidir.</p></article></div>
+    </section>
+    <section class="privacy">
+        <div><h2>Seus dados ficam com você.</h2><p class="intro">A conta do Telegram é conectada localmente no aparelho. O Alertou acompanha somente os grupos escolhidos e preserva apenas as informações necessárias para organizar suas ofertas.</p><a class="button" href="privacy.html">Ler política de privacidade</a></div>
+        <div class="privacy-box"><b>Privacidade por padrão</b><p>O aplicativo não analisa conversas pessoais e não envia o conteúdo integral das mensagens para serviços externos de inteligência artificial.</p></div>
+    </section>
+    <footer><span>© 2026 Alertou</span><span class="footer-links"><a href="privacy.html">Privacidade</a><a href="https://github.com/robraym/DroidBoaOferta/issues">Contato</a></span></footer>
+</main>
+</body>
+</html>
