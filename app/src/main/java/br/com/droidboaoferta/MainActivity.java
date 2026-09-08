@@ -1,6 +1,8 @@
 package br.com.droidboaoferta;
 
 import android.Manifest;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.ClipData;
@@ -27,6 +29,7 @@ import android.view.View;
 import android.view.ViewParent;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.LinearInterpolator;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
@@ -582,6 +585,9 @@ public class MainActivity extends AlertouActivity {
             sectionAction.setBackgroundResource(R.drawable.bg_icon_circle);
             sectionAction.setContentDescription(getString(R.string.action_refresh_property_market_prices));
             sectionAction.setOnClickListener(view -> refreshPropertyMarketPrices());
+            if (isPropertyMarketUpdating()) {
+                animatePropertyMarketRefreshIcon(sectionAction);
+            }
         } else {
             sectionAction.setImageResource(R.drawable.ic_trash_outline);
             sectionAction.setBackgroundResource(R.drawable.bg_icon_danger);
@@ -810,6 +816,24 @@ public class MainActivity extends AlertouActivity {
             }
             PropertyPageMonitor.getInstance().checkNow(this, visiblePropertyAlertIds);
         }
+    }
+
+    private void animatePropertyMarketRefreshIcon(ImageView icon) {
+        ObjectAnimator spin = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f);
+        spin.setDuration(900L);
+        spin.setInterpolator(new LinearInterpolator());
+        spin.setRepeatCount(ValueAnimator.INFINITE);
+        icon.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View view) {
+                spin.start();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View view) {
+                spin.cancel();
+            }
+        });
     }
 
     private List<ObservedOffer> filterOffers(List<ObservedOffer> offers, String query) {

@@ -40,8 +40,8 @@
 
         <ImageButton
             android:id="@+id/button_sort_offers"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:layout_marginEnd="6dp"
             android:background="@drawable/bg_icon_circle"
             android:contentDescription="@string/dashboard_sort_title"
@@ -51,8 +51,8 @@
 
         <ImageButton
             android:id="@+id/button_profile"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
             android:background="@drawable/bg_icon_circle"
             android:contentDescription="@string/profile_screen_title"
             android:padding="8dp"
