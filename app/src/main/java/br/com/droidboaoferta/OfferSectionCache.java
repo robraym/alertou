@@ -51,6 +51,9 @@ final class OfferSectionCache {
         GroupSpeedRepository speed = new GroupSpeedRepository(context);
         for (ObservedOffer offer : offers) {
             key.append('|').append(speed.isOfferExpired(offer));
+            if (PropertyMarketReferenceSettings.isReference(offer)) {
+                key.append('|').append(SourceCheckStatus.isRunning(context, offer.getInterestId()));
+            }
             PropertyHistoryEntry entry = history.getForOffer(offer);
             if (entry != null) {
                 key.append('|').append(entry.isUnavailable()).append('|').append(entry.isPendingValidation())

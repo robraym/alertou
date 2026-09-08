@@ -85,6 +85,18 @@ final class OfferRepository {
         }
     }
 
+    /** Keeps one current lowest-price reference for each property alert. */
+    void replacePropertyMarketReference(ObservedOffer offer) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
+            offers.removeIf(item -> PropertyMarketReferenceSettings.isReference(item)
+                    && item.getInterestId() == offer.getInterestId());
+            offers.add(0, offer);
+            saveOffers(KEY_OFFERS, trimOffers(sortByObservedAt(offers)));
+            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+        }
+    }
+
     void clearRecentForPropertyAlert(long interestId) {
         synchronized (OfferStorage.LOCK) {
             List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));

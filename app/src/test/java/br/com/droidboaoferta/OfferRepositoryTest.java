@@ -92,6 +92,26 @@ public class OfferRepositoryTest {
         assertEquals("property_market|23|listing-b", offers.get(0).getId());
     }
 
+    @Test public void replacingLowestMarketReferenceKeepsOnlyOnePerPropertyAlert() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long observedAt = System.currentTimeMillis() - 1_000L;
+        repository.replacePropertyMarketReference(new ObservedOffer(
+                "property_market|23|listing-a", 23L, "Edifício Sol", "QuintoAndar",
+                500000, 600000, observedAt, "https://example.com/a", ""));
+        repository.replacePropertyMarketReference(new ObservedOffer(
+                "property_market|23|listing-b", 23L, "Edifício Sol", "QuintoAndar",
+                480000, 600000, observedAt + 1, "https://example.com/b", ""));
+        repository.replacePropertyMarketReference(new ObservedOffer(
+                "property_market|24|listing-c", 24L, "Edifício Lua", "QuintoAndar",
+                450000, 600000, observedAt + 2, "https://example.com/c", ""));
+
+        List<ObservedOffer> offers = repository.getRecentForValidation();
+        assertEquals(2, offers.size());
+        assertTrue(offers.stream().anyMatch(offer -> offer.getId().equals("property_market|23|listing-b")));
+        assertTrue(offers.stream().anyMatch(offer -> offer.getId().equals("property_market|24|listing-c")));
+    }
+
     private static ObservedOffer offer(int id) {
         return new ObservedOffer("offer-" + id, id + 1, "Produto " + id, "Fonte " + id,
                 100, 200, System.currentTimeMillis() - 1000, "https://example.com/" + id, "");

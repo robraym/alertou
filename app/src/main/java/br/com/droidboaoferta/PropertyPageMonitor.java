@@ -13,10 +13,12 @@ import org.json.JSONObject;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -50,9 +52,24 @@ final class PropertyPageMonitor {
     }
 
     synchronized void checkNow(Context context) {
-        boolean started = scheduler.isStarted();
-        start(context);
-        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0);
+        checkNow(context, Collections.emptyList());
+    }
+
+    synchronized void checkNow(Context context, List<Long> preferredInterestOrder) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        List<Long> order = preferredInterestOrder == null
+                ? Collections.emptyList()
+                : new ArrayList<>(new LinkedHashSet<>(preferredInterestOrder));
+        Runnable requestedCheck = () -> checkAllSafely(order);
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely,
+                    TimeUnit.MINUTES.toMillis(
+                            PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)),
+                    requestedCheck);
+            return;
+        }
+        scheduler.request(0, requestedCheck);
     }
 
     synchronized void checkAlertsNow(Context context) {
@@ -100,6 +117,15 @@ final class PropertyPageMonitor {
     }
 
     private void checkAllSafely(boolean includeMarketReferences) {
+        checkAllSafely(Collections.emptyList(), includeMarketReferences);
+    }
+
+    private void checkAllSafely(List<Long> preferredInterestOrder) {
+        checkAllSafely(preferredInterestOrder, true);
+    }
+
+    private void checkAllSafely(List<Long> preferredInterestOrder,
+                                boolean includeMarketReferences) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context)) {
             return;
@@ -110,7 +136,8 @@ final class PropertyPageMonitor {
                     .setPackage(context.getPackageName()));
         }
         try {
-        for (Interest interest : new InterestRepository(context).getAll()) {
+        for (Interest interest : orderPropertyInterests(
+                new InterestRepository(context).getAll(), preferredInterestOrder)) {
             if (!interest.isProperty()) {
                 continue;
             }
@@ -142,6 +169,79 @@ final class PropertyPageMonitor {
                         .setPackage(context.getPackageName()));
             }
         }
+    }
+
+    private List<Interest> orderPropertyInterests(List<Interest> interests,
+                                                  List<Long> preferredInterestOrder) {
+        if (preferredInterestOrder == null || preferredInterestOrder.isEmpty()) {
+            preferredInterestOrder = getSavedPropertyMarketOrder();
+        }
+        if (preferredInterestOrder.isEmpty()) {
+            return interests;
+        }
+        Map<Long, Interest> byId = new HashMap<>();
+        for (Interest interest : interests) {
+            if (interest.isProperty()) byId.put(interest.getId(), interest);
+        }
+        List<Interest> ordered = new ArrayList<>();
+        for (Long id : preferredInterestOrder) {
+            Interest interest = byId.remove(id);
+            if (interest != null) ordered.add(interest);
+        }
+        for (Interest interest : interests) {
+            if (interest.isProperty() && byId.remove(interest.getId()) != null) {
+                ordered.add(interest);
+            }
+        }
+        return ordered;
+    }
+
+    private List<Long> getSavedPropertyMarketOrder() {
+        Context context = appContext;
+        if (context == null) return Collections.emptyList();
+        List<ObservedOffer> references = new ArrayList<>();
+        for (ObservedOffer offer : new OfferRepository(context).getRecent()) {
+            if (PropertyMarketReferenceSettings.isReference(offer)) {
+                references.add(offer);
+            }
+        }
+        int sortOrder = context.getSharedPreferences("offer_preferences", Context.MODE_PRIVATE)
+                .getInt("home_sort_order", 0);
+        PropertyHistoryRepository history = sortOrder == 0
+                ? new PropertyHistoryRepository(context) : null;
+        references.sort((first, second) -> {
+            if (sortOrder == 1) {
+                int byName = OfferTextParser.normalize(first.getInterest())
+                        .compareTo(OfferTextParser.normalize(second.getInterest()));
+                return byName != 0 ? byName
+                        : Long.compare(second.getObservedAt(), first.getObservedAt());
+            }
+            if (sortOrder == 2 || sortOrder == 3) {
+                int byPrice = sortOrder == 2
+                        ? Double.compare(first.getPrice(), second.getPrice())
+                        : Double.compare(second.getPrice(), first.getPrice());
+                return byPrice != 0 ? byPrice
+                        : Long.compare(second.getObservedAt(), first.getObservedAt());
+            }
+            long firstTime = getVisiblePropertyTime(first, history);
+            long secondTime = getVisiblePropertyTime(second, history);
+            int byTime = Long.compare(secondTime, firstTime);
+            return byTime != 0 ? byTime
+                    : Long.compare(second.getObservedAt(), first.getObservedAt());
+        });
+        List<Long> order = new ArrayList<>();
+        for (ObservedOffer offer : references) {
+            if (!order.contains(offer.getInterestId())) order.add(offer.getInterestId());
+        }
+        return order;
+    }
+
+    private long getVisiblePropertyTime(ObservedOffer offer,
+                                        PropertyHistoryRepository history) {
+        PropertyHistoryEntry entry = history == null ? null : history.getForOffer(offer);
+        return entry != null && entry.getFirstPublicationAt() > 0L
+                ? entry.getFirstPublicationAt()
+                : offer.getObservedAt();
     }
 
     private void checkInterestSafely(long interestId) {
@@ -368,7 +468,7 @@ final class PropertyPageMonitor {
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
-        repository.add(new ObservedOffer(
+        repository.replacePropertyMarketReference(new ObservedOffer(
                 PropertyMarketReferenceSettings.createOfferId(interest.getId(), listing.getId()),
                 interest.getId(),
                 propertyName,
