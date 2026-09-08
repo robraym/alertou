@@ -3,10 +3,6 @@
     <color name="background">#F7F8FA</color>
     <color name="card">#FFFFFF</color>
     <color name="card_pressed">#EEF1F5</color>
-    <color name="accent">#9BD33E</color>
-    <color name="accent_pressed">#82B832</color>
-    <color name="accent_soft">#EAF5D7</color>
-    <color name="accent_soft_pressed">#DCEEC0</color>
     <color name="action_blue">#2478D8</color>
     <color name="action_blue_pressed">#1E62B0</color>
     <color name="action_blue_soft">#E7F1FF</color>
@@ -60,13 +56,11 @@
     <color name="text_primary">#1F2329</color>
     <color name="text_secondary">#6C727C</color>
     <color name="button_text">#FFFFFF</color>
-    <color name="launcher_symbol">#101608</color>
     <color name="input_background">#F0F2F5</color>
     <color name="input_border">#D4D8DE</color>
     <color name="divider">#D8DCE2</color>
     <color name="section_divider">#C3CAD4</color>
     <color name="icon_telegram">#2AABEE</color>
-    <color name="icon_interest">#7E63F5</color>
     <color name="danger">#FF5C5C</color>
     <color name="danger_soft">#FFB8B8</color>
     <color name="danger_soft_pressed">#FF9E9E</color>

@@ -39,26 +39,6 @@ public class TrashedOffersActivity extends StoredOffersActivity {
     }
 
     @Override
-    int getSecondaryActionIcon() {
-        return R.drawable.ic_restore;
-    }
-
-    @Override
-    int getSecondaryActionDescription() {
-        return R.string.action_restore_offer;
-    }
-
-    @Override
-    void runSecondaryAction(OfferRepository repository, String id) {
-        repository.restoreTrashed(id);
-    }
-
-    @Override
-    int getSecondaryActionBackground() {
-        return R.drawable.bg_icon_circle;
-    }
-
-    @Override
     boolean hasDeleteAction() {
         return false;
     }

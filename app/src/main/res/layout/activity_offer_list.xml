@@ -39,18 +39,6 @@
         </LinearLayout>
 
         <ImageButton
-            android:id="@+id/button_header_action"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
-            android:layout_marginEnd="6dp"
-            android:background="@drawable/bg_icon_circle"
-            android:contentDescription="@string/action_restore_all_offers"
-            android:padding="8dp"
-            android:scaleType="center"
-            android:src="@drawable/ic_unarchive"
-            android:visibility="gone" />
-
-        <ImageButton
             android:id="@+id/button_sort_offers"
             android:layout_width="42dp"
             android:layout_height="42dp"

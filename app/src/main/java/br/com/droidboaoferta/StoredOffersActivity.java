@@ -43,7 +43,6 @@ abstract class StoredOffersActivity extends AlertouActivity {
     private OfferRepository offerRepository;
     private LinearLayout offersContainer;
     private EditText searchInput;
-    private ImageButton headerAction;
     private FloatingSearchController floatingSearchController;
     private final BroadcastReceiver syncReceiver = new BroadcastReceiver() {
         @Override
@@ -238,8 +237,6 @@ abstract class StoredOffersActivity extends AlertouActivity {
                 renderOffers();
             }
         });
-        headerAction = findViewById(R.id.button_header_action);
-        headerAction.setVisibility(View.GONE);
     }
 
     @Override
