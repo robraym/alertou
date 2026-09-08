@@ -35,7 +35,7 @@ public class TrashedOffersActivity extends StoredOffersActivity {
 
     @Override
     boolean hasSecondaryAction() {
-        return true;
+        return false;
     }
 
     @Override
@@ -61,6 +61,36 @@ public class TrashedOffersActivity extends StoredOffersActivity {
     @Override
     boolean hasDeleteAction() {
         return false;
+    }
+
+    @Override
+    boolean hasLongPressActions() {
+        return true;
+    }
+
+    @Override
+    int getLongPressPrimaryActionDescription() {
+        return R.string.action_restore_offer;
+    }
+
+    @Override
+    int getLongPressPrimaryActionIcon() {
+        return R.drawable.ic_restore;
+    }
+
+    @Override
+    int getLongPressPrimaryConfirmationTitle() {
+        return R.string.restore_saved_offer_dialog_title;
+    }
+
+    @Override
+    int getLongPressPrimaryConfirmationMessage() {
+        return R.string.restore_saved_offer_dialog_message;
+    }
+
+    @Override
+    void runLongPressPrimaryAction(OfferRepository repository, String id) {
+        repository.restoreTrashed(id);
     }
 
     @Override
@@ -116,6 +146,11 @@ public class TrashedOffersActivity extends StoredOffersActivity {
     @Override
     int getSectionActionDescription() {
         return R.string.action_clear_trash;
+    }
+
+    @Override
+    int getSectionActionColor() {
+        return R.color.danger;
     }
 
     @Override

@@ -163,6 +163,10 @@ abstract class StoredOffersActivity extends AlertouActivity {
         return 0;
     }
 
+    int getSectionActionColor() {
+        return R.color.action;
+    }
+
     int getSectionConfirmationTitle() {
         return 0;
     }
@@ -180,6 +184,10 @@ abstract class StoredOffersActivity extends AlertouActivity {
 
     int getLongPressPrimaryActionDescription() {
         return 0;
+    }
+
+    int getLongPressPrimaryActionIcon() {
+        return R.drawable.ic_unarchive;
     }
 
     int getLongPressPrimaryConfirmationTitle() {
@@ -396,15 +404,11 @@ abstract class StoredOffersActivity extends AlertouActivity {
             renderOffers();
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(message)
-                .setNegativeButton(R.string.action_cancel, null)
-                .setPositiveButton(getSectionActionDescription(), (dialog, which) -> {
+        showStyledConfirmation(title, getString(message), getSectionActionDescription(),
+                getSectionActionColor(), () -> {
                     runSectionAction(offerRepository, offers);
                     renderOffers();
-                })
-                .show();
+                });
     }
 
     private void addOfferRows(LinearLayout container, List<ObservedOffer> offers) {
@@ -729,19 +733,96 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     private void showLongPressActionsDialog(ObservedOffer offer) {
-        new AlertDialog.Builder(this)
-                .setTitle(offer.getInterest())
-                .setItems(new CharSequence[]{
-                        getString(getLongPressPrimaryActionDescription()),
-                        getString(R.string.action_delete_offer)
-                }, (dialog, selected) -> {
-                    if (selected == 0) {
-                        showLongPressPrimaryConfirmationDialog(offer);
-                    } else {
-                        showDeleteConfirmationDialog(offer);
-                    }
-                })
-                .show();
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(16), dp(14), dp(16), dp(10));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(offer.getInterest());
+        title.setTextColor(getColor(R.color.text_secondary));
+        title.setTextSize(14);
+        title.setSingleLine(true);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        title.setPadding(dp(8), 0, dp(8), dp(8));
+        content.addView(title);
+
+        addLongPressMenuAction(content,
+                getLongPressPrimaryActionIcon(),
+                R.drawable.bg_icon_circle,
+                R.color.action,
+                getLongPressPrimaryActionDescription(),
+                () -> {
+                    dialog.dismiss();
+                    showLongPressPrimaryConfirmationDialog(offer);
+                });
+
+        View divider = new View(this);
+        divider.setBackgroundColor(getColor(R.color.divider));
+        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
+        dividerParams.setMargins(dp(48), 0, dp(8), 0);
+        content.addView(divider, dividerParams);
+
+        addLongPressMenuAction(content,
+                R.drawable.ic_delete,
+                R.drawable.bg_icon_danger,
+                R.color.danger,
+                R.string.action_delete_offer,
+                () -> {
+                    dialog.dismiss();
+                    showDeleteConfirmationDialog(offer);
+                });
+
+        dialog.setContentView(content);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(shownWindow.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(52);
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            params.dimAmount = 0.38f;
+            shownWindow.setAttributes(params);
+            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+    }
+
+    private void addLongPressMenuAction(LinearLayout content, int iconResource,
+                                        int backgroundResource, int colorResource,
+                                        int labelResource, Runnable action) {
+        LinearLayout row = new LinearLayout(this);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackgroundResource(R.drawable.bg_row_pressed);
+        row.setClickable(true);
+        row.setFocusable(true);
+        row.setPadding(dp(6), dp(4), dp(10), dp(4));
+        row.setMinimumHeight(dp(48));
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconResource);
+        icon.setColorFilter(getColor(colorResource));
+        icon.setBackgroundResource(backgroundResource);
+        icon.setPadding(dp(8), dp(8), dp(8), dp(8));
+        row.addView(icon, new LinearLayout.LayoutParams(dp(32), dp(32)));
+
+        TextView label = new TextView(this);
+        label.setText(labelResource);
+        label.setTextColor(getColor(colorResource));
+        label.setTextSize(16);
+        LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        labelParams.leftMargin = dp(12);
+        row.addView(label, labelParams);
+        row.setOnClickListener(view -> action.run());
+        content.addView(row, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
     }
 
     private void showLongPressPrimaryConfirmationDialog(ObservedOffer offer) {
@@ -752,15 +833,11 @@ abstract class StoredOffersActivity extends AlertouActivity {
             renderOffers();
             return;
         }
-        new AlertDialog.Builder(this)
-                .setTitle(title)
-                .setMessage(getString(message, offer.getInterest()))
-                .setNegativeButton(R.string.action_cancel, null)
-                .setPositiveButton(R.string.action_confirm, (dialog, ignored) -> {
+        showStyledConfirmation(title, getString(message, offer.getInterest()),
+                getLongPressPrimaryActionDescription(), R.color.action, () -> {
                     runLongPressPrimaryAction(offerRepository, offer.getId());
                     renderOffers();
-                })
-                .show();
+                });
     }
 
     private View createOfferDivider() {
@@ -789,36 +866,46 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     private void showDeleteConfirmationDialog(ObservedOffer offer) {
+        showStyledConfirmation(getDeleteConfirmationTitle(),
+                getString(getDeleteConfirmationMessage(), offer.getInterest()),
+                R.string.action_delete_offer, R.color.danger, () -> {
+                    deleteOffer(offerRepository, offer.getId());
+                    renderOffers();
+                });
+    }
+
+    private void showStyledConfirmation(int titleResource, String messageText, int actionResource,
+                                        int actionColor, Runnable action) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setPadding(dp(20), dp(18), dp(20), dp(12));
         content.setBackgroundResource(R.drawable.bg_dialog);
 
         TextView title = new TextView(this);
-        title.setText(getDeleteConfirmationTitle());
+        title.setText(titleResource);
         title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(21);
+        title.setTextSize(18);
         content.addView(title);
 
         TextView message = new TextView(this);
-        message.setText(getString(getDeleteConfirmationMessage(), offer.getInterest()));
+        message.setText(messageText);
         message.setTextColor(getColor(R.color.text_secondary));
-        message.setTextSize(15);
-        message.setPadding(0, dp(8), 0, dp(16));
+        message.setTextSize(14);
+        message.setPadding(0, dp(6), 0, dp(10));
         content.addView(message);
 
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
         TextView cancel = createDialogAction(R.string.action_cancel);
+        cancel.setTextColor(getColor(R.color.text_secondary));
         cancel.setOnClickListener(view -> dialog.dismiss());
         actions.addView(cancel);
-        TextView confirm = createDialogAction(R.string.action_confirm);
-        confirm.setTextColor(getColor(R.color.danger));
+        TextView confirm = createDialogAction(actionResource);
+        confirm.setTextColor(getColor(actionColor));
         confirm.setOnClickListener(view -> {
-            deleteOffer(offerRepository, offer.getId());
             dialog.dismiss();
-            renderOffers();
+            action.run();
         });
         actions.addView(confirm);
         content.addView(actions);
@@ -833,9 +920,9 @@ abstract class StoredOffersActivity extends AlertouActivity {
         if (shownWindow != null) {
             WindowManager.LayoutParams params = new WindowManager.LayoutParams();
             params.copyFrom(shownWindow.getAttributes());
-            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(52);
             params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-            params.dimAmount = 0.65f;
+            params.dimAmount = 0.38f;
             shownWindow.setAttributes(params);
             shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));

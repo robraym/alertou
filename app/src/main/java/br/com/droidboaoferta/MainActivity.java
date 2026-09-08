@@ -207,13 +207,13 @@ public class MainActivity extends AlertouActivity {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setPadding(dp(20), dp(18), dp(20), dp(12));
         content.setBackgroundResource(R.drawable.bg_dialog);
 
         TextView title = new TextView(this);
         title.setText(R.string.battery_notice_title);
         title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(21);
+        title.setTextSize(18);
         content.addView(title);
 
         TextView message = new TextView(this);
@@ -1416,7 +1416,7 @@ public class MainActivity extends AlertouActivity {
             trendView.setPoints(entry.getPoints());
             content.addView(trendView, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(210)
+                    dp(entry.getPoints().size() <= 2 ? 120 : 180)
             ));
 
             TextView readingsTitle = new TextView(this);
@@ -1452,7 +1452,7 @@ public class MainActivity extends AlertouActivity {
             params.copyFrom(shownWindow.getAttributes());
             params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
             params.height = getResources().getDisplayMetrics().heightPixels - dp(72);
-            params.dimAmount = 0.65f;
+            params.dimAmount = 0.38f;
             shownWindow.setAttributes(params);
             shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
