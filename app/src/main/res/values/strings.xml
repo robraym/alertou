@@ -106,7 +106,7 @@
     <string name="kabum_offer_source">KaBuM • oferta relâmpago</string>
     <string name="telegram_groups_count_empty">0 selecionados de 0 grupos</string>
     <string name="telegram_groups_count_format">%1$s de %2$s</string>
-    <string name="telegram_groups_count_with_evaluation">Semana dia %3$d de 7 · %1$d de %2$d ativos</string>
+    <string name="telegram_groups_count_with_evaluation">Semana %3$d de 7 · %1$d de %2$d ativos</string>
     <plurals name="telegram_groups_selected_count">
         <item quantity="one">%d selecionado</item>
         <item quantity="other">%d selecionados</item>

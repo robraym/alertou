@@ -273,22 +273,126 @@ abstract class StoredOffersActivity extends AlertouActivity {
             return;
         }
 
+        List<ObservedOffer> coupons = new java.util.ArrayList<>();
+        List<ObservedOffer> properties = new java.util.ArrayList<>();
+        List<ObservedOffer> products = new java.util.ArrayList<>();
+        for (ObservedOffer offer : visibleOffers) {
+            if (isPropertyOffer(offer)) {
+                properties.add(offer);
+            } else if (isCouponOffer(offer)) {
+                coupons.add(offer);
+            } else {
+                products.add(offer);
+            }
+        }
+        addOfferSection(R.string.coupon_alerts_list_title, R.drawable.ic_coupon_alert, coupons);
+        addOfferSection(R.string.property_alerts_list_title, R.drawable.ic_property_alert, properties);
+        addOfferSection(R.string.product_alerts_list_title, R.drawable.ic_price_alert, products);
+    }
+
+    private void addOfferSection(int titleResource, int iconResource, List<ObservedOffer> offers) {
+        if (offers.isEmpty()) {
+            return;
+        }
+        String preferenceKey = "stored_section_" + getBottomNavigationItem() + "_" + titleResource;
+        boolean expanded = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                .getBoolean(preferenceKey, true);
+
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_card_compact);
+        card.setPadding(dp(6), dp(4), dp(6), dp(6));
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setBackgroundResource(R.drawable.bg_row_pressed);
+        header.setClickable(true);
+        header.setFocusable(true);
+        header.setPadding(dp(4), dp(2), 0, dp(3));
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(iconResource);
+        icon.setBackgroundResource(R.drawable.bg_icon_circle);
+        icon.setContentDescription(getString(titleResource));
+        icon.setPadding(dp(7), dp(7), dp(7), dp(7));
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+        iconParams.rightMargin = dp(8);
+        header.addView(icon, iconParams);
+
+        LinearLayout titleLine = new LinearLayout(this);
+        titleLine.setGravity(Gravity.CENTER_VERTICAL);
+        titleLine.setOrientation(LinearLayout.HORIZONTAL);
+        TextView title = new TextView(this);
+        title.setText(titleResource);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(16);
+        title.setSingleLine(true);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        titleLine.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+        TextView count = new TextView(this);
+        count.setText(getResources().getQuantityString(
+                R.plurals.dashboard_offer_section_count, offers.size(), offers.size()));
+        count.setTextColor(getColor(R.color.text_secondary));
+        count.setTextSize(14);
+        LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        countParams.leftMargin = dp(6);
+        titleLine.addView(count, countParams);
+        header.addView(titleLine, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        ImageButton toggle = new ImageButton(this);
+        toggle.setImageResource(R.drawable.ic_chevron_right);
+        toggle.setBackgroundResource(R.drawable.bg_icon_circle);
+        toggle.setContentDescription(getString(expanded
+                ? R.string.alerts_section_collapse : R.string.alerts_section_expand));
+        toggle.setPadding(dp(7), dp(7), dp(7), dp(7));
+        toggle.setScaleType(ImageView.ScaleType.CENTER);
+        toggle.setRotation(expanded ? 90f : 0f);
+        header.addView(toggle, new LinearLayout.LayoutParams(dp(32), dp(32)));
+
+        View.OnClickListener toggleSection = view -> {
+            getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(preferenceKey, !expanded)
+                    .apply();
+            renderOffers();
+        };
+        header.setOnClickListener(toggleSection);
+        toggle.setOnClickListener(toggleSection);
+        card.addView(header);
+
+        if (expanded) {
+            LinearLayout content = new LinearLayout(this);
+            content.setOrientation(LinearLayout.VERTICAL);
+            addOfferRows(content, offers);
+            card.addView(content);
+        }
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        cardParams.bottomMargin = dp(8);
+        offersContainer.addView(card, cardParams);
+    }
+
+    private void addOfferRows(LinearLayout container, List<ObservedOffer> offers) {
         NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         String previousGroup = null;
-        for (int index = 0; index < visibleOffers.size(); index++) {
-            ObservedOffer offer = visibleOffers.get(index);
+        for (int index = 0; index < offers.size(); index++) {
+            ObservedOffer offer = offers.get(index);
             String group = OfferDateFormatter.getGroupKey(offer.getObservedAt());
             if (!group.equals(previousGroup)) {
                 if (previousGroup != null) {
-                    offersContainer.addView(createDateGroupDivider());
+                    container.addView(createDateGroupDivider());
                 }
-                offersContainer.addView(createOfferGroupHeader(
+                container.addView(createOfferGroupHeader(
                         OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt()),
                         previousGroup != null
                 ));
                 previousGroup = group;
             } else {
-                offersContainer.addView(createOfferDivider());
+                container.addView(createOfferDivider());
             }
             LinearLayout row = createOfferRow(
                     offer,
@@ -300,8 +404,18 @@ abstract class StoredOffersActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            offersContainer.addView(row, params);
+            container.addView(row, params);
         }
+    }
+
+    private boolean isPropertyOffer(ObservedOffer offer) {
+        return offer.getId().startsWith("property|")
+                || PropertyMarketReferenceSettings.isReference(offer);
+    }
+
+    private boolean isCouponOffer(ObservedOffer offer) {
+        return offer.getId().startsWith("coupon|")
+                || OfferTextParser.normalize(offer.getSource()).contains("cupom");
     }
 
     private TextView createOfferGroupHeader(String label, boolean hasPreviousGroup) {
