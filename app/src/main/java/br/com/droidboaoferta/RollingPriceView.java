@@ -1,21 +1,23 @@
 package br.com.droidboaoferta;
 
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
 
 import androidx.appcompat.widget.AppCompatTextView;
 
-/** Keeps a price on one normal text line while its individual digits change in place. */
+/** Keeps the normal price dimensions while each digit softly changes in its fixed position. */
 final class RollingPriceView extends AppCompatTextView {
-    private static final long FRAME_MS = 90L;
+    private static final long DIGIT_INTERVAL_MS = 180L;
+    private static final long DIGIT_STAGGER_MS = 46L;
 
     private final String price;
     private final long startedAt;
     private final Runnable ticker = new Runnable() {
         @Override
         public void run() {
-            long step = (android.os.SystemClock.uptimeMillis() - startedAt) / FRAME_MS;
-            setText(createFrame(step));
-            if (isAttachedToWindow()) postDelayed(this, FRAME_MS);
+            invalidate();
+            if (isAttachedToWindow()) postDelayed(this, 16L);
         }
     };
 
@@ -42,21 +44,42 @@ final class RollingPriceView extends AppCompatTextView {
         super.onDetachedFromWindow();
     }
 
-    private String createFrame(long step) {
-        StringBuilder frame = new StringBuilder(price.length());
+    @Override
+    protected void onDraw(Canvas canvas) {
+        Paint paint = getPaint();
+        paint.setColor(getCurrentTextColor());
+        int savedAlpha = paint.getAlpha();
+        float x = getPaddingLeft();
+        float baseline = getBaseline();
+        long elapsed = android.os.SystemClock.uptimeMillis() - startedAt;
         int digitPosition = 0;
         for (int index = 0; index < price.length(); index++) {
             char character = price.charAt(index);
+            String value = String.valueOf(character);
+            float width = paint.measureText(value);
             if (!Character.isDigit(character)) {
-                frame.append(character);
+                paint.setAlpha(savedAlpha);
+                canvas.drawText(value, x, baseline, paint);
+                x += width;
                 continue;
             }
-            int originalDigit = character - '0';
+            long digitElapsed = elapsed + digitPosition * DIGIT_STAGGER_MS;
+            long step = digitElapsed / DIGIT_INTERVAL_MS;
+            float transition = (digitElapsed % DIGIT_INTERVAL_MS)
+                    / (float) DIGIT_INTERVAL_MS;
             int direction = digitPosition % 2 == 0 ? 1 : -1;
-            int value = Math.floorMod(originalDigit + direction * (int) step, 10);
-            frame.append(value);
+            int originalDigit = character - '0';
+            String outgoing = String.valueOf(Math.floorMod(
+                    originalDigit + direction * (int) step, 10));
+            String incoming = String.valueOf(Math.floorMod(
+                    originalDigit + direction * ((int) step + 1), 10));
+            paint.setAlpha(Math.round(savedAlpha * (1f - transition)));
+            canvas.drawText(outgoing, x, baseline, paint);
+            paint.setAlpha(Math.round(savedAlpha * transition));
+            canvas.drawText(incoming, x, baseline, paint);
+            x += width;
             digitPosition++;
         }
-        return frame.toString();
+        paint.setAlpha(savedAlpha);
     }
 }

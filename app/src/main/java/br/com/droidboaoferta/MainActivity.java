@@ -995,7 +995,7 @@ public class MainActivity extends AlertouActivity {
         } else {
             TextView priceView = new TextView(this);
             priceView.setText(price);
-            priceView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.text_primary));
+            priceView.setTextColor(getColor(R.color.action));
             priceView.setTextSize(14);
             priceView.setSingleLine(true);
             priceView.setPadding(dp(6), 0, 0, 0);
