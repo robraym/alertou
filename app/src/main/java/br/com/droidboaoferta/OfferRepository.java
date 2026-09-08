@@ -248,6 +248,26 @@ final class OfferRepository {
         }
     }
 
+    void unarchiveAll() {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> archived = new ArrayList<>(readOffers(KEY_ARCHIVED_OFFERS));
+            if (archived.isEmpty()) {
+                return;
+            }
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            for (ObservedOffer offer : archived) {
+                recent.removeIf(item -> item.getId().equals(offer.getId()));
+                recent.add(0, offer);
+            }
+            preferences.edit().putString(KEY_OFFERS, OfferStorage.encode(sortByObservedAt(recent)))
+                    .putString(KEY_ARCHIVED_OFFERS, "[]").apply();
+            long changedAt = System.currentTimeMillis();
+            CloudSyncStore.rememberRecentChanged(context, changedAt);
+            CloudSyncStore.rememberArchivedChanged(context, changedAt);
+            CloudSyncStore.markLocalChanged(context);
+        }
+    }
+
     void trash(String id) {
         synchronized (OfferStorage.LOCK) {
             if (moveOffer(id, KEY_OFFERS, KEY_TRASHED_OFFERS)) {

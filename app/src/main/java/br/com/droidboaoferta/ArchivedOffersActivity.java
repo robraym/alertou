@@ -34,28 +34,78 @@ public class ArchivedOffersActivity extends StoredOffersActivity {
     }
 
     @Override
-    boolean hasSecondaryAction() {
+    boolean hasHeaderAction() {
         return true;
     }
 
     @Override
-    int getSecondaryActionIcon() {
+    int getHeaderActionIcon() {
         return R.drawable.ic_unarchive;
     }
 
     @Override
-    int getSecondaryActionDescription() {
-        return R.string.action_unarchive_offer;
+    int getHeaderActionDescription() {
+        return R.string.action_restore_all_offers;
     }
 
     @Override
-    void runSecondaryAction(OfferRepository repository, String id) {
+    int getHeaderEmptyActionMessage() {
+        return R.string.archived_empty_action;
+    }
+
+    @Override
+    void runHeaderAction(OfferRepository repository) {
+        repository.unarchiveAll();
+    }
+
+    @Override
+    int getHeaderConfirmationTitle() {
+        return R.string.restore_all_saved_dialog_title;
+    }
+
+    @Override
+    int getHeaderConfirmationMessage() {
+        return R.string.restore_all_saved_dialog_message;
+    }
+
+    @Override
+    boolean hasLongPressActions() {
+        return true;
+    }
+
+    @Override
+    int getLongPressPrimaryActionDescription() {
+        return R.string.action_restore_offer;
+    }
+
+    @Override
+    int getLongPressPrimaryConfirmationTitle() {
+        return R.string.restore_saved_offer_dialog_title;
+    }
+
+    @Override
+    int getLongPressPrimaryConfirmationMessage() {
+        return R.string.restore_saved_offer_dialog_message;
+    }
+
+    @Override
+    void runLongPressPrimaryAction(OfferRepository repository, String id) {
         repository.unarchive(id);
     }
 
     @Override
     boolean hasDeleteAction() {
         return false;
+    }
+
+    @Override
+    int getDeleteConfirmationTitle() {
+        return R.string.trash_saved_offer_dialog_title;
+    }
+
+    @Override
+    int getDeleteConfirmationMessage() {
+        return R.string.trash_saved_offer_dialog_message;
     }
 
     @Override

@@ -40,8 +40,8 @@
 
         <ImageButton
             android:id="@+id/button_sort_offers"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:layout_marginEnd="6dp"
             android:background="@drawable/bg_icon_circle"
             android:contentDescription="@string/saved_sort_title"
@@ -51,8 +51,8 @@
 
         <ImageButton
             android:id="@+id/button_profile"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
             android:background="@drawable/bg_icon_circle"
             android:contentDescription="@string/profile_screen_title"
             android:padding="8dp"
@@ -88,6 +88,18 @@
             android:paddingEnd="0dp"
             android:visibility="gone">
 
+            <ImageButton
+                android:id="@+id/button_header_action"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_icon_danger"
+                android:contentDescription="@string/action_clear_trash"
+                android:padding="8dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_trash_outline"
+                android:visibility="gone" />
+
             <ImageView
                 android:id="@+id/image_card_title_icon"
                 android:layout_width="36dp"
@@ -105,16 +117,6 @@
                 android:textColor="@color/text_primary"
                 android:textSize="18sp" />
 
-            <ImageButton
-                android:id="@+id/button_header_action"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:background="@drawable/bg_icon_circle"
-                android:contentDescription="@string/action_clear_trash"
-                android:padding="8dp"
-                android:scaleType="center"
-                android:src="@drawable/ic_trash_outline"
-                android:visibility="gone" />
         </LinearLayout>
 
         <ScrollView

@@ -21,8 +21,10 @@ import android.widget.ImageView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 
 import java.text.NumberFormat;
@@ -139,7 +141,30 @@ abstract class StoredOffersActivity extends AlertouActivity {
         return 0;
     }
 
+    int getHeaderEmptyActionMessage() {
+        return R.string.trash_empty_action;
+    }
+
     void runHeaderAction(OfferRepository repository) {
+    }
+
+    boolean hasLongPressActions() {
+        return false;
+    }
+
+    int getLongPressPrimaryActionDescription() {
+        return 0;
+    }
+
+    int getLongPressPrimaryConfirmationTitle() {
+        return 0;
+    }
+
+    int getLongPressPrimaryConfirmationMessage() {
+        return 0;
+    }
+
+    void runLongPressPrimaryAction(OfferRepository repository, String id) {
     }
 
     abstract void deleteOffer(OfferRepository repository, String id);
@@ -186,12 +211,13 @@ abstract class StoredOffersActivity extends AlertouActivity {
         cardTitleIcon.setContentDescription(getString(getCardTitleResource()));
         headerAction = findViewById(R.id.button_header_action);
         if (hasHeaderAction()) {
+            cardTitleIcon.setVisibility(View.GONE);
             headerAction.setImageResource(getHeaderActionIcon());
             headerAction.setBackgroundResource(getHeaderActionBackground());
             headerAction.setContentDescription(getString(getHeaderActionDescription()));
             headerAction.setOnClickListener(view -> {
                 if (getOffers(offerRepository).isEmpty()) {
-                    headerAction.setVisibility(View.GONE);
+                    Toast.makeText(this, getHeaderEmptyActionMessage(), Toast.LENGTH_SHORT).show();
                     return;
                 }
                 if (getHeaderConfirmationTitle() != 0 && getHeaderConfirmationMessage() != 0) {
@@ -240,7 +266,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         sortOffers(visibleOffers);
         if (headerAction != null) {
             cardHeader.setVisibility(View.VISIBLE);
-            headerAction.setVisibility(hasHeaderAction() && !offers.isEmpty() ? View.VISIBLE : View.GONE);
+            headerAction.setVisibility(hasHeaderAction() ? View.VISIBLE : View.GONE);
         }
         if (visibleOffers.isEmpty()) {
             offersContainer.addView(createEmptyText());
@@ -548,7 +574,48 @@ abstract class StoredOffersActivity extends AlertouActivity {
                     new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getTelegramPostLink()))
             ));
         }
+        if (hasLongPressActions()) {
+            row.setOnLongClickListener(view -> {
+                showLongPressActionsDialog(offer);
+                return true;
+            });
+        }
         return row;
+    }
+
+    private void showLongPressActionsDialog(ObservedOffer offer) {
+        new AlertDialog.Builder(this)
+                .setTitle(offer.getInterest())
+                .setItems(new CharSequence[]{
+                        getString(getLongPressPrimaryActionDescription()),
+                        getString(R.string.action_delete_offer)
+                }, (dialog, selected) -> {
+                    if (selected == 0) {
+                        showLongPressPrimaryConfirmationDialog(offer);
+                    } else {
+                        showDeleteConfirmationDialog(offer);
+                    }
+                })
+                .show();
+    }
+
+    private void showLongPressPrimaryConfirmationDialog(ObservedOffer offer) {
+        int title = getLongPressPrimaryConfirmationTitle();
+        int message = getLongPressPrimaryConfirmationMessage();
+        if (title == 0 || message == 0) {
+            runLongPressPrimaryAction(offerRepository, offer.getId());
+            renderOffers();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(getString(message, offer.getInterest()))
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(R.string.action_confirm, (dialog, ignored) -> {
+                    runLongPressPrimaryAction(offerRepository, offer.getId());
+                    renderOffers();
+                })
+                .show();
     }
 
     private View createOfferDivider() {
