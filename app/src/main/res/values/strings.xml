@@ -482,6 +482,8 @@
     <string name="trash_offer_section_dialog_message">As ofertas deste card sairão da aba Alertou e poderão ser restauradas pela Lixeira.</string>
     <string name="clear_trash_dialog_title">Limpar lixeira?</string>
     <string name="clear_trash_dialog_message">As ofertas da lixeira serão apagadas definitivamente.</string>
+    <string name="clear_trash_section_dialog_title">Limpar esta categoria?</string>
+    <string name="clear_trash_section_dialog_message">As ofertas desta categoria serão apagadas definitivamente.</string>
     <string name="trash_empty_action">Não há itens na lixeira para excluir.</string>
     <string name="archived_empty_action">Não há ofertas salvas para restaurar.</string>
     <string name="trash_saved_offer_dialog_title">Enviar oferta para a lixeira?</string>
@@ -490,6 +492,8 @@
     <string name="restore_saved_offer_dialog_message">A oferta “%1$s” voltará para o Alertou.</string>
     <string name="restore_all_saved_dialog_title">Restaurar todas as ofertas salvas?</string>
     <string name="restore_all_saved_dialog_message">Todas as ofertas salvas voltarão para o Alertou.</string>
+    <string name="restore_saved_section_dialog_title">Restaurar esta categoria?</string>
+    <string name="restore_saved_section_dialog_message">As ofertas desta categoria voltarão para o Alertou.</string>
     <string name="remove_alert_dialog_title">Excluir alerta?</string>
     <string name="remove_alert_dialog_message">O alerta “%1$s” será excluído.</string>
     <string name="delete_offer_dialog_title">Excluir oferta?</string>

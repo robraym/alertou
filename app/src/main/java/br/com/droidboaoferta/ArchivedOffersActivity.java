@@ -59,6 +59,36 @@ public class ArchivedOffersActivity extends StoredOffersActivity {
     }
 
     @Override
+    boolean hasSectionAction() {
+        return true;
+    }
+
+    @Override
+    int getSectionActionIcon() {
+        return R.drawable.ic_unarchive;
+    }
+
+    @Override
+    int getSectionActionDescription() {
+        return R.string.action_restore_all_offers;
+    }
+
+    @Override
+    int getSectionConfirmationTitle() {
+        return R.string.restore_saved_section_dialog_title;
+    }
+
+    @Override
+    int getSectionConfirmationMessage() {
+        return R.string.restore_saved_section_dialog_message;
+    }
+
+    @Override
+    void runSectionAction(OfferRepository repository, List<ObservedOffer> offers) {
+        repository.unarchive(offers);
+    }
+
+    @Override
     int getHeaderConfirmationTitle() {
         return R.string.restore_all_saved_dialog_title;
     }

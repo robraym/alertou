@@ -68,6 +68,19 @@ final class PropertyPageMonitor {
         scheduler.request(0, () -> checkAllSafely(false));
     }
 
+    synchronized void checkAlertNow(Context context, long interestId) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely,
+                    TimeUnit.MINUTES.toMillis(
+                            PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)),
+                    () -> checkInterestSafely(interestId));
+            return;
+        }
+        scheduler.request(0, () -> checkInterestSafely(interestId));
+    }
+
     synchronized void rescheduleIfRunning(Context context) {
         if (!scheduler.isStarted()) return;
         stop();
@@ -129,6 +142,37 @@ final class PropertyPageMonitor {
                         .setPackage(context.getPackageName()));
             }
         }
+    }
+
+    private void checkInterestSafely(long interestId) {
+        Context context = appContext;
+        if (!MonitorRunPolicy.canRun(context)) return;
+        for (Interest interest : new InterestRepository(context).getAll()) {
+            if (interest.getId() != interestId || !interest.isProperty()) continue;
+            if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+            SourceCheckStatus.begin(context, interest.getId());
+            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                    .setPackage(context.getPackageName()));
+            try {
+                checkInterest(context, interest, false);
+            } catch (Exception error) {
+                if (MonitorRunPolicy.canRun(context)) {
+                    SourceCheckStatus.failed(context, interest.getId(), error);
+                }
+            } finally {
+                if (MonitorRunPolicy.isCurrent(context, interest)) {
+                    SourceCheckStatus.finish(context, interest.getId(),
+                            TimeUnit.MINUTES.toMillis(
+                                    PropertyMarketReferenceSettings.getCheckIntervalMinutes(context)));
+                } else {
+                    SourceCheckStatus.cancel(context, interest.getId());
+                }
+            }
+            break;
+        }
+        PropertyHistoryRepository.publishPendingChanges(context);
+        context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                .setPackage(context.getPackageName()));
     }
 
     private void checkInterest(Context context, Interest interest,

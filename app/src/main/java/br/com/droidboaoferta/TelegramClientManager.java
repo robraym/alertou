@@ -520,7 +520,9 @@ final class TelegramClientManager {
                 + ", published=" + publishedCount
                 + ", floor=" + cached.lowestPlausiblePrice
                 + ", ceiling=" + maximumPrice);
-        return true;
+        // Um cache sem candidatos publicáveis não conclui a atualização do alerta.
+        // Nesse caso, o chamador deve continuar com a busca paginada desse produto.
+        return publishedCount > 0;
     }
 
     void syncCloudBackupSoon() {

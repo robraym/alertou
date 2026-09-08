@@ -99,6 +99,41 @@ public class TrashedOffersActivity extends StoredOffersActivity {
     }
 
     @Override
+    boolean hasSectionAction() {
+        return true;
+    }
+
+    @Override
+    int getSectionActionIcon() {
+        return R.drawable.ic_trash_outline;
+    }
+
+    @Override
+    int getSectionActionBackground() {
+        return R.drawable.bg_icon_danger;
+    }
+
+    @Override
+    int getSectionActionDescription() {
+        return R.string.action_clear_trash;
+    }
+
+    @Override
+    int getSectionConfirmationTitle() {
+        return R.string.clear_trash_section_dialog_title;
+    }
+
+    @Override
+    int getSectionConfirmationMessage() {
+        return R.string.clear_trash_section_dialog_message;
+    }
+
+    @Override
+    void runSectionAction(OfferRepository repository, List<ObservedOffer> offers) {
+        repository.deleteTrashed(offers);
+    }
+
+    @Override
     void deleteOffer(OfferRepository repository, String id) {
         repository.deleteTrashed(id);
     }

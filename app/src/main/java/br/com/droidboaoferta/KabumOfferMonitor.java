@@ -47,6 +47,18 @@ final class KabumOfferMonitor {
         if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, () -> checkAllSafely(true));
     }
 
+    synchronized void checkInterestNow(Context context, long interestId) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                    KabumOfferSource.getCheckIntervalSeconds(appContext)),
+                    () -> checkAllSafely(true, interestId));
+            return;
+        }
+        scheduler.request(0, () -> checkAllSafely(true, interestId));
+    }
+
     void clearState(Context context, long interestId) {
         String prefix = LAST_PRICE_PREFIX + interestId + "_";
         SharedPreferences preferences = context.getApplicationContext()
@@ -69,6 +81,10 @@ final class KabumOfferMonitor {
     }
 
     private void checkAllSafely(boolean force) {
+        checkAllSafely(force, 0L);
+    }
+
+    private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context) || !KabumOfferSource.isConfigured(context)) {
             return;
@@ -93,6 +109,7 @@ final class KabumOfferMonitor {
             boolean found = false;
             for (ExternalProductDeal deal : deals) {
                 for (Interest interest : interests) {
+                    if (interestId != 0L && interest.getId() != interestId) continue;
                     if (!MonitorRunPolicy.isCurrent(context, interest)) return;
                     if (!interest.isPrice()
                             || !OfferTextParser.matchesInterest(deal.getTitle(), interest.getTerm())

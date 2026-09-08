@@ -533,11 +533,11 @@ public class MainActivity extends AlertouActivity {
                 productOffers.add(offer);
             }
         }
-        addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
-                propertyHistoryRepository, SECTION_COUPONS_EXPANDED, "");
         addOfferSection(R.string.property_market_alerts_list_title, propertyMarketOffers, currency,
                 propertyHistoryRepository, SECTION_PROPERTY_MARKET_EXPANDED,
                 getPropertyMarketLastCheckSummary(propertyMarketOffers));
+        addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
+                propertyHistoryRepository, SECTION_COUPONS_EXPANDED, "");
         addOfferSection(R.string.property_alerts_list_title, propertyOffers, currency,
                 propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED, "");
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
@@ -576,14 +576,27 @@ public class MainActivity extends AlertouActivity {
         header.setFocusable(true);
         header.setPadding(dp(4), dp(2), 0, dp(3));
 
-        ImageView sectionIcon = new ImageView(this);
-        sectionIcon.setImageResource(getOfferSectionIcon(titleResource));
-        sectionIcon.setBackgroundResource(R.drawable.bg_icon_circle);
-        sectionIcon.setContentDescription(getString(titleResource));
-        sectionIcon.setPadding(dp(7), dp(7), dp(7), dp(7));
-        LinearLayout.LayoutParams sectionIconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-        sectionIconParams.rightMargin = dp(8);
-        header.addView(sectionIcon, sectionIconParams);
+        boolean propertyMarketSection = titleResource == R.string.property_market_alerts_list_title;
+        ImageButton sectionAction = new ImageButton(this);
+        sectionAction.setPadding(dp(7), dp(7), dp(7), dp(7));
+        sectionAction.setScaleType(ImageView.ScaleType.CENTER);
+        if (propertyMarketSection) {
+            sectionAction.setImageResource(R.drawable.ic_sync);
+            sectionAction.setBackgroundResource(R.drawable.bg_icon_circle);
+            sectionAction.setContentDescription(getString(R.string.action_refresh_property_market_prices));
+            sectionAction.setOnClickListener(view -> refreshPropertyMarketPrices());
+            if (isPropertyMarketUpdating()) {
+                animatePropertyMarketRefreshButton(sectionAction);
+            }
+        } else {
+            sectionAction.setImageResource(R.drawable.ic_trash_outline);
+            sectionAction.setBackgroundResource(R.drawable.bg_icon_danger);
+            sectionAction.setContentDescription(getString(R.string.action_trash_offer_section));
+            sectionAction.setOnClickListener(view -> trashOfferSection(offers));
+        }
+        LinearLayout.LayoutParams sectionActionParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+        sectionActionParams.rightMargin = dp(8);
+        header.addView(sectionAction, sectionActionParams);
 
         LinearLayout headerText = new LinearLayout(this);
         headerText.setOrientation(LinearLayout.VERTICAL);
@@ -623,27 +636,9 @@ public class MainActivity extends AlertouActivity {
         ));
 
         if (!sectionSummary.isEmpty()) {
-            boolean propertyMarketUpdating = titleResource == R.string.property_market_alerts_list_title
-                    && isPropertyMarketUpdating();
             LinearLayout summaryLine = new LinearLayout(this);
             summaryLine.setGravity(Gravity.CENTER_VERTICAL);
             summaryLine.setOrientation(LinearLayout.HORIZONTAL);
-            if (titleResource == R.string.property_market_alerts_list_title) {
-                ImageButton refresh = new ImageButton(this);
-                refresh.setImageResource(R.drawable.ic_sync);
-                refresh.setBackgroundResource(R.drawable.bg_icon_circle);
-                refresh.setContentDescription(getString(R.string.action_refresh_property_market_prices));
-                refresh.setPadding(dp(3), dp(3), dp(3), dp(3));
-                refresh.setScaleType(ImageView.ScaleType.CENTER);
-                refresh.setOnClickListener(view -> refreshPropertyMarketPrices());
-                if (propertyMarketUpdating) {
-                    animatePropertyMarketRefreshButton(refresh);
-                }
-                LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(16), dp(16));
-                refreshParams.rightMargin = dp(5);
-                summaryLine.addView(refresh, refreshParams);
-            }
-
             TextView summary = new TextView(this);
             summary.setText(sectionSummary);
             summary.setTextColor(getColor(R.color.text_secondary));
@@ -679,16 +674,6 @@ public class MainActivity extends AlertouActivity {
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(dp(32), dp(32));
         toggleParams.rightMargin = 0;
 
-        if (titleResource != R.string.property_market_alerts_list_title) {
-            ImageButton trash = new ImageButton(this);
-            trash.setImageResource(R.drawable.ic_trash_outline);
-            trash.setBackgroundResource(R.drawable.bg_icon_danger);
-            trash.setContentDescription(getString(R.string.action_trash_offer_section));
-            trash.setPadding(dp(8), dp(8), dp(8), dp(8));
-            trash.setScaleType(ImageView.ScaleType.CENTER);
-            trash.setOnClickListener(view -> trashOfferSection(offers));
-            header.addView(trash, new LinearLayout.LayoutParams(dp(36), dp(36)));
-        }
         header.addView(toggle, toggleParams);
         card.addView(header);
         header.setOnClickListener(view -> toggleOfferSection(preferenceKey));
@@ -756,16 +741,6 @@ public class MainActivity extends AlertouActivity {
         card.addView(content);
 
         addOfferSectionCard(card);
-    }
-
-    private int getOfferSectionIcon(int titleResource) {
-        if (titleResource == R.string.coupon_alerts_list_title) {
-            return R.drawable.ic_coupon_alert;
-        }
-        if (titleResource == R.string.product_alerts_list_title) {
-            return R.drawable.ic_price_alert;
-        }
-        return R.drawable.ic_property_alert;
     }
 
     private void addOfferSectionCard(LinearLayout card) {

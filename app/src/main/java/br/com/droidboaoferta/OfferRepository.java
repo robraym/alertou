@@ -268,6 +268,39 @@ final class OfferRepository {
         }
     }
 
+    void unarchive(List<ObservedOffer> offers) {
+        synchronized (OfferStorage.LOCK) {
+            if (offers == null || offers.isEmpty()) {
+                return;
+            }
+            Set<String> ids = new HashSet<>();
+            for (ObservedOffer offer : offers) {
+                ids.add(offer.getId());
+            }
+            List<ObservedOffer> archived = new ArrayList<>(readOffers(KEY_ARCHIVED_OFFERS));
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            boolean changed = false;
+            for (ObservedOffer offer : archived) {
+                if (!ids.contains(offer.getId())) {
+                    continue;
+                }
+                recent.removeIf(item -> item.getId().equals(offer.getId()));
+                recent.add(0, offer);
+                changed = true;
+            }
+            if (!changed) {
+                return;
+            }
+            archived.removeIf(offer -> ids.contains(offer.getId()));
+            preferences.edit().putString(KEY_OFFERS, OfferStorage.encode(sortByObservedAt(recent)))
+                    .putString(KEY_ARCHIVED_OFFERS, OfferStorage.encode(archived)).apply();
+            long changedAt = System.currentTimeMillis();
+            CloudSyncStore.rememberRecentChanged(context, changedAt);
+            CloudSyncStore.rememberArchivedChanged(context, changedAt);
+            CloudSyncStore.markLocalChanged(context);
+        }
+    }
+
     void trash(String id) {
         synchronized (OfferStorage.LOCK) {
             if (moveOffer(id, KEY_OFFERS, KEY_TRASHED_OFFERS)) {
@@ -389,6 +422,24 @@ final class OfferRepository {
     void clearTrashed() {
         synchronized (OfferStorage.LOCK) {
             saveOffers(KEY_TRASHED_OFFERS, new ArrayList<>());
+            CloudSyncStore.rememberTrashChanged(context, System.currentTimeMillis());
+        }
+    }
+
+    void deleteTrashed(List<ObservedOffer> offers) {
+        synchronized (OfferStorage.LOCK) {
+            if (offers == null || offers.isEmpty()) {
+                return;
+            }
+            Set<String> ids = new HashSet<>();
+            for (ObservedOffer offer : offers) {
+                ids.add(offer.getId());
+            }
+            List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
+            if (!trashed.removeIf(offer -> ids.contains(offer.getId()))) {
+                return;
+            }
+            saveOffers(KEY_TRASHED_OFFERS, trashed);
             CloudSyncStore.rememberTrashChanged(context, System.currentTimeMillis());
         }
     }

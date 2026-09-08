@@ -1061,6 +1061,8 @@ public class AlertsActivity extends AlertouActivity {
             long savedInterestId = editing ? interestToEdit.getId() : 0L;
             try {
                 if (editing) {
+                    boolean sameProduct = OfferTextParser.normalize(interestToEdit.getTerm())
+                            .equals(OfferTextParser.normalize(term));
                     interestRepository.update(interestToEdit.getId(), term, maximumPrice);
                     CouponPageMonitor.getInstance().clearState(this, interestToEdit.getId());
                     VivoOutletMonitor.getInstance().clearState(this, interestToEdit.getId());
@@ -1068,7 +1070,9 @@ public class AlertsActivity extends AlertouActivity {
                     PromobitMonitor.getInstance().clearState(this, interestToEdit.getId());
                     KabumOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
-                    offerRepository.clearRecentForInterest(interestToEdit.getId());
+                    if (!sameProduct) {
+                        offerRepository.clearRecentForInterest(interestToEdit.getId());
+                    }
                 } else {
                     savedInterestId = couponAlert
                             ? interestRepository.addCoupon(term, maximumPrice)
@@ -1096,9 +1100,11 @@ public class AlertsActivity extends AlertouActivity {
                 }
                 if (updateSucceeded) {
                     requestNotificationPermissionIfNeeded();
-                    MonitorServiceController.update(this);
                     if (couponAlert) {
-                        CouponPageMonitor.getInstance().checkNow(this);
+                        CouponPageMonitor.getInstance().checkInterestNow(
+                                this,
+                                interestIdForHistory
+                        );
                     } else {
                         OfferMonitor.getInstance().refreshInterestHistory(
                                 this,
@@ -1106,8 +1112,9 @@ public class AlertsActivity extends AlertouActivity {
                                 term,
                                 maximumPrice
                         );
-                        refreshProductSources();
+                        refreshProductSources(interestIdForHistory);
                     }
+                    MonitorServiceController.update(this);
                 }
                 long remaining = Math.max(
                         0L,
@@ -1155,6 +1162,10 @@ public class AlertsActivity extends AlertouActivity {
                     }
                 }
                 if (editing) {
+                    boolean samePropertySearch = interestToEdit.getTerm().trim()
+                            .equals(pageUrl.trim())
+                            && Double.compare(interestToEdit.getMinimumArea(), minimumArea) == 0
+                            && Double.compare(interestToEdit.getMaximumArea(), maximumArea) == 0;
                     interestRepository.updateProperty(
                             interestToEdit.getId(),
                             pageUrl,
@@ -1165,7 +1176,9 @@ public class AlertsActivity extends AlertouActivity {
                     );
                     PropertyPageMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
-                    offerRepository.clearRecentForPropertyAlert(interestToEdit.getId());
+                    if (!samePropertySearch) {
+                        offerRepository.clearRecentForPropertyAlert(interestToEdit.getId());
+                    }
                 } else {
                     savedInterestId = interestRepository.addProperty(
                             pageUrl,
@@ -1189,6 +1202,7 @@ public class AlertsActivity extends AlertouActivity {
                 succeeded = false;
             }
             boolean updateSucceeded = succeeded;
+            long interestIdForCheck = savedInterestId;
             runOnUiThread(() -> {
                 if (isFinishing() || isDestroyed()) {
                     updatingDialog.dismiss();
@@ -1196,7 +1210,7 @@ public class AlertsActivity extends AlertouActivity {
                 }
                 if (updateSucceeded) {
                     requestNotificationPermissionIfNeeded();
-                    PropertyPageMonitor.getInstance().checkAlertsNow(this);
+                    PropertyPageMonitor.getInstance().checkAlertNow(this, interestIdForCheck);
                     MonitorServiceController.update(this);
                 }
                 long remaining = Math.max(
@@ -1221,11 +1235,11 @@ public class AlertsActivity extends AlertouActivity {
         });
     }
 
-    private void refreshProductSources() {
-        VivoOutletMonitor.getInstance().checkNow(this);
-        if (PelandoSource.isConfigured(this)) PelandoMonitor.getInstance().checkNow(this);
-        if (PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkNow(this);
-        if (KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkNow(this);
+    private void refreshProductSources(long interestId) {
+        VivoOutletMonitor.getInstance().checkInterestNow(this, interestId);
+        if (PelandoSource.isConfigured(this)) PelandoMonitor.getInstance().checkInterestNow(this, interestId);
+        if (PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkInterestNow(this, interestId);
+        if (KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkInterestNow(this, interestId);
     }
 
     private Dialog showUpdatingDialog() {

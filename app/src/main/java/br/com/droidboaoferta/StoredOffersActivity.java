@@ -44,7 +44,6 @@ abstract class StoredOffersActivity extends AlertouActivity {
     private LinearLayout offersContainer;
     private EditText searchInput;
     private ImageButton headerAction;
-    private LinearLayout cardHeader;
     private FloatingSearchController floatingSearchController;
     private final BroadcastReceiver syncReceiver = new BroadcastReceiver() {
         @Override
@@ -148,6 +147,33 @@ abstract class StoredOffersActivity extends AlertouActivity {
     void runHeaderAction(OfferRepository repository) {
     }
 
+    boolean hasSectionAction() {
+        return false;
+    }
+
+    int getSectionActionIcon() {
+        return 0;
+    }
+
+    int getSectionActionBackground() {
+        return R.drawable.bg_icon_circle;
+    }
+
+    int getSectionActionDescription() {
+        return 0;
+    }
+
+    int getSectionConfirmationTitle() {
+        return 0;
+    }
+
+    int getSectionConfirmationMessage() {
+        return 0;
+    }
+
+    void runSectionAction(OfferRepository repository, List<ObservedOffer> offers) {
+    }
+
     boolean hasLongPressActions() {
         return false;
     }
@@ -204,31 +230,8 @@ abstract class StoredOffersActivity extends AlertouActivity {
                 renderOffers();
             }
         });
-        cardHeader = findViewById(R.id.container_card_header);
-        ((TextView) findViewById(R.id.text_card_title)).setText(getCardTitleResource());
-        ImageView cardTitleIcon = findViewById(R.id.image_card_title_icon);
-        cardTitleIcon.setImageResource(getCardTitleIcon());
-        cardTitleIcon.setContentDescription(getString(getCardTitleResource()));
         headerAction = findViewById(R.id.button_header_action);
-        if (hasHeaderAction()) {
-            cardTitleIcon.setVisibility(View.GONE);
-            headerAction.setImageResource(getHeaderActionIcon());
-            headerAction.setBackgroundResource(getHeaderActionBackground());
-            headerAction.setContentDescription(getString(getHeaderActionDescription()));
-            headerAction.setOnClickListener(view -> {
-                if (getOffers(offerRepository).isEmpty()) {
-                    Toast.makeText(this, getHeaderEmptyActionMessage(), Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                if (getHeaderConfirmationTitle() != 0 && getHeaderConfirmationMessage() != 0) {
-                    showHeaderConfirmationDialog();
-                } else {
-                    performHeaderAction();
-                }
-            });
-        } else {
-            headerAction.setVisibility(View.GONE);
-        }
+        headerAction.setVisibility(View.GONE);
     }
 
     @Override
@@ -264,10 +267,6 @@ abstract class StoredOffersActivity extends AlertouActivity {
                 filterOffers(offers, searchInput.getText().toString())
         );
         sortOffers(visibleOffers);
-        if (headerAction != null) {
-            cardHeader.setVisibility(View.VISIBLE);
-            headerAction.setVisibility(hasHeaderAction() ? View.VISIBLE : View.GONE);
-        }
         if (visibleOffers.isEmpty()) {
             offersContainer.addView(createEmptyText());
             return;
@@ -311,14 +310,27 @@ abstract class StoredOffersActivity extends AlertouActivity {
         header.setFocusable(true);
         header.setPadding(dp(4), dp(2), 0, dp(3));
 
-        ImageView icon = new ImageView(this);
-        icon.setImageResource(iconResource);
-        icon.setBackgroundResource(R.drawable.bg_icon_circle);
-        icon.setContentDescription(getString(titleResource));
-        icon.setPadding(dp(7), dp(7), dp(7), dp(7));
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-        iconParams.rightMargin = dp(8);
-        header.addView(icon, iconParams);
+        if (hasSectionAction()) {
+            ImageButton action = new ImageButton(this);
+            action.setImageResource(getSectionActionIcon());
+            action.setBackgroundResource(getSectionActionBackground());
+            action.setContentDescription(getString(getSectionActionDescription()));
+            action.setPadding(dp(8), dp(8), dp(8), dp(8));
+            action.setScaleType(ImageView.ScaleType.CENTER);
+            action.setOnClickListener(view -> showSectionConfirmationDialog(offers));
+            LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+            actionParams.rightMargin = dp(8);
+            header.addView(action, actionParams);
+        } else {
+            ImageView icon = new ImageView(this);
+            icon.setImageResource(iconResource);
+            icon.setBackgroundResource(R.drawable.bg_icon_circle);
+            icon.setContentDescription(getString(titleResource));
+            icon.setPadding(dp(7), dp(7), dp(7), dp(7));
+            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+            iconParams.rightMargin = dp(8);
+            header.addView(icon, iconParams);
+        }
 
         LinearLayout titleLine = new LinearLayout(this);
         titleLine.setGravity(Gravity.CENTER_VERTICAL);
@@ -374,6 +386,25 @@ abstract class StoredOffersActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         cardParams.bottomMargin = dp(8);
         offersContainer.addView(card, cardParams);
+    }
+
+    private void showSectionConfirmationDialog(List<ObservedOffer> offers) {
+        int title = getSectionConfirmationTitle();
+        int message = getSectionConfirmationMessage();
+        if (title == 0 || message == 0) {
+            runSectionAction(offerRepository, offers);
+            renderOffers();
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setTitle(title)
+                .setMessage(message)
+                .setNegativeButton(R.string.action_cancel, null)
+                .setPositiveButton(getSectionActionDescription(), (dialog, which) -> {
+                    runSectionAction(offerRepository, offers);
+                    renderOffers();
+                })
+                .show();
     }
 
     private void addOfferRows(LinearLayout container, List<ObservedOffer> offers) {

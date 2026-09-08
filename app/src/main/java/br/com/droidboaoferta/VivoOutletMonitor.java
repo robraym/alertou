@@ -46,6 +46,18 @@ final class VivoOutletMonitor {
         if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, this::checkAllSafely);
     }
 
+    synchronized void checkInterestNow(Context context, long interestId) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(
+                    VivoOutletSource.getCheckIntervalMinutes(appContext)),
+                    () -> checkInterestSafely(interestId));
+            return;
+        }
+        scheduler.request(0, () -> checkInterestSafely(interestId));
+    }
+
     void clearState(Context context, long interestId) {
         String prefix = LAST_PRICE_PREFIX + interestId + "_";
         SharedPreferences preferences = context.getApplicationContext()
@@ -68,6 +80,14 @@ final class VivoOutletMonitor {
     }
 
     private void checkAllSafely() {
+        checkSafely(0L);
+    }
+
+    private void checkInterestSafely(long interestId) {
+        checkSafely(interestId);
+    }
+
+    private void checkSafely(long interestId) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context)) {
             return;
@@ -75,10 +95,10 @@ final class VivoOutletMonitor {
         boolean found = false;
         if (VivoOutletSource.isConfigured(context)) {
             found |= checkSource(context, VivoOutletSource.getUrl(context), "vivo_outlet_",
-                    "vivo|", R.string.vivo_outlet_offer_source, true);
+                    "vivo|", R.string.vivo_outlet_offer_source, true, interestId);
         }
         found |= checkSource(context, VivoMadrugadaSource.getUrl(context), "vivo_madrugada_",
-                "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false);
+                "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false, interestId);
         if (found) {
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                     .setPackage(context.getPackageName()));
@@ -88,7 +108,8 @@ final class VivoOutletMonitor {
     }
 
     private boolean checkSource(Context context, String sourceUrl, String preferencePrefix,
-                                String offerPrefix, int sourceResource, boolean outlet) {
+                                String offerPrefix, int sourceResource, boolean outlet,
+                                long interestId) {
         try {
             List<VivoOutletProduct> products = VivoOutletClient.fetchProducts(sourceUrl);
             if (products.isEmpty()) {
@@ -102,6 +123,7 @@ final class VivoOutletMonitor {
             long observedAt = System.currentTimeMillis();
             boolean found = false;
             for (Interest interest : interests) {
+                if (interestId != 0L && interest.getId() != interestId) continue;
                 if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
                 if (!interest.isPrice()) {
                     continue;

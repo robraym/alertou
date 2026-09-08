@@ -45,6 +45,18 @@ final class CouponPageMonitor {
         if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0);
     }
 
+    synchronized void checkInterestNow(Context context, long interestId) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely,
+                    TimeUnit.MINUTES.toMillis(CHECK_INTERVAL_MINUTES),
+                    () -> checkInterestSafely(interestId));
+            return;
+        }
+        scheduler.request(0, () -> checkInterestSafely(interestId));
+    }
+
     synchronized void checkIfStale(Context context) {
         boolean started = scheduler.isStarted();
         start(context);
@@ -85,6 +97,29 @@ final class CouponPageMonitor {
                 if (MonitorRunPolicy.isCurrent(context, interest)) SourceCheckStatus.finish(context, interest.getId(),
                         TimeUnit.MINUTES.toMillis(CHECK_INTERVAL_MINUTES));
             }
+        }
+    }
+
+    private void checkInterestSafely(long interestId) {
+        Context context = appContext;
+        if (!MonitorRunPolicy.canRun(context)) return;
+        for (Interest interest : new InterestRepository(context).getAll()) {
+            if (interest.getId() != interestId || !interest.isCoupon()) continue;
+            if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+            SourceCheckStatus.begin(context, interest.getId());
+            try {
+                checkInterest(context, interest);
+            } catch (Exception error) {
+                if (MonitorRunPolicy.canRun(context)) {
+                    SourceCheckStatus.failed(context, interest.getId(), error);
+                }
+            } finally {
+                if (MonitorRunPolicy.isCurrent(context, interest)) {
+                    SourceCheckStatus.finish(context, interest.getId(),
+                            TimeUnit.MINUTES.toMillis(CHECK_INTERVAL_MINUTES));
+                }
+            }
+            break;
         }
     }
 
