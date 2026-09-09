@@ -101,6 +101,13 @@ final class VivoOutletSource {
                 .getLong(KEY_LAST_SUCCESS, 0L);
     }
 
+    static long getLastCheckAt(Context context) {
+        SharedPreferences preferences = context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        return Math.max(preferences.getLong(KEY_LAST_SUCCESS, 0L),
+                preferences.getLong(KEY_LAST_FAILURE, 0L));
+    }
+
     static int getCheckIntervalMinutes(Context context) {
         int saved = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getInt(KEY_CHECK_INTERVAL_MINUTES, DEFAULT_CHECK_INTERVAL_MINUTES);

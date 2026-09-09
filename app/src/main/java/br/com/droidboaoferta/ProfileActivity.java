@@ -87,6 +87,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView propertyMarketReferenceSummary;
     private TextView propertyIntervalSummary;
     private TextView vivoOutletIntervalSummary;
+    private TextView vivoMadrugadaIntervalSummary;
     private TextView pelandoIntervalSummary;
     private TextView promobitIntervalSummary;
     private TextView kabumOfferIntervalSummary;
@@ -124,6 +125,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         propertyMarketReferenceSummary = findViewById(R.id.text_property_market_reference_summary);
         propertyIntervalSummary = findViewById(R.id.text_property_interval_summary);
         vivoOutletIntervalSummary = findViewById(R.id.text_vivo_outlet_interval_summary);
+        vivoMadrugadaIntervalSummary = findViewById(R.id.text_vivo_madrugada_interval_summary);
         pelandoIntervalSummary = findViewById(R.id.text_pelando_interval_summary);
         promobitIntervalSummary = findViewById(R.id.text_promobit_interval_summary);
         kabumOfferIntervalSummary = findViewById(R.id.text_kabum_offer_interval_summary);
@@ -188,6 +190,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         );
         findViewById(R.id.row_vivo_outlet_interval).setOnClickListener(
                 view -> showVivoOutletIntervalDialog()
+        );
+        findViewById(R.id.row_vivo_madrugada_interval).setOnClickListener(
+                view -> showVivoMadrugadaIntervalDialog()
         );
         findViewById(R.id.row_pelando_interval).setOnClickListener(
                 view -> showPelandoIntervalDialog()
@@ -315,6 +320,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 PropertyMarketReferenceSettings.getCheckIntervalMinutes(this)));
         vivoOutletIntervalSummary.setText(getString(R.string.vivo_outlet_interval_summary,
                 VivoOutletSource.getCheckIntervalMinutes(this)));
+        vivoMadrugadaIntervalSummary.setText(getString(R.string.vivo_madrugada_interval_summary,
+                VivoMadrugadaSource.getCheckIntervalMinutes(this)));
         pelandoIntervalSummary.setText(formatPelandoInterval(
                 PelandoSource.getCheckIntervalSeconds(this)
         ));
@@ -489,6 +496,54 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+    }
+
+    private void showVivoMadrugadaIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.vivo_madrugada_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = VivoMadrugadaSource.getCheckIntervalMinutes(this);
+        int[] intervals = {5, 15, 30, 60};
+        int[] labels = {
+                R.string.vivo_outlet_interval_five,
+                R.string.vivo_outlet_interval_fifteen,
+                R.string.vivo_outlet_interval_thirty,
+                R.string.vivo_outlet_interval_sixty
+        };
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int index = 0; index < intervals.length; index++) {
+            int interval = intervals[index];
+            TextView option = createThemeOption(labels[index], interval == savedInterval);
+            option.setOnClickListener(view -> {
+                VivoMadrugadaSource.saveCheckIntervalMinutes(this, interval);
+                vivoMadrugadaIntervalSummary.setText(getString(
+                        R.string.vivo_madrugada_interval_summary, interval));
+                VivoOutletMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+
+        showCompactDialog(dialog, content);
     }
 
     private void showPelandoIntervalDialog() {

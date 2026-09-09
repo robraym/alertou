@@ -11,6 +11,8 @@ final class VivoMadrugadaSource {
     private static final String KEY_URL = "vivo_madrugada_url";
     private static final String LAST_SUCCESS = "vivo_madrugada_last_success";
     private static final String LAST_FAILURE = "vivo_madrugada_last_failure";
+    private static final String KEY_CHECK_INTERVAL_MINUTES = "vivo_madrugada_check_interval_minutes";
+    private static final int DEFAULT_CHECK_INTERVAL_MINUTES = 15;
 
     private VivoMadrugadaSource() { }
 
@@ -47,6 +49,24 @@ final class VivoMadrugadaSource {
         preferences(context).edit().putLong(LAST_FAILURE, System.currentTimeMillis()).apply();
     }
 
+    static int getCheckIntervalMinutes(Context context) {
+        int interval = preferences(context).getInt(KEY_CHECK_INTERVAL_MINUTES,
+                DEFAULT_CHECK_INTERVAL_MINUTES);
+        return isSupportedCheckInterval(interval) ? interval : DEFAULT_CHECK_INTERVAL_MINUTES;
+    }
+
+    static void saveCheckIntervalMinutes(Context context, int interval) {
+        if (!isSupportedCheckInterval(interval)) {
+            throw new IllegalArgumentException("Intervalo de consulta da Madrugada Vivo inválido.");
+        }
+        preferences(context).edit().putInt(KEY_CHECK_INTERVAL_MINUTES, interval).apply();
+        SettingsBackup.changed(context);
+    }
+
+    static boolean isSupportedCheckInterval(int interval) {
+        return interval == 5 || interval == 15 || interval == 30 || interval == 60;
+    }
+
     static boolean hasLastCheckFailed(Context context) {
         SharedPreferences preferences = preferences(context);
         return preferences.getLong(LAST_FAILURE, 0L) > preferences.getLong(LAST_SUCCESS, 0L);
@@ -58,6 +78,12 @@ final class VivoMadrugadaSource {
 
     static long getLastSuccessfulCheckAt(Context context) {
         return preferences(context).getLong(LAST_SUCCESS, 0L);
+    }
+
+    static long getLastCheckAt(Context context) {
+        SharedPreferences preferences = preferences(context);
+        return Math.max(preferences.getLong(LAST_SUCCESS, 0L),
+                preferences.getLong(LAST_FAILURE, 0L));
     }
 
     private static SharedPreferences preferences(Context context) {

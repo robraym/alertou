@@ -35,7 +35,7 @@ final class VivoOutletMonitor {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
         scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(
-                VivoOutletSource.getCheckIntervalMinutes(appContext)));
+                getShortestCheckIntervalMinutes(appContext)));
     }
 
     synchronized void stop() { scheduler.stop(); }
@@ -43,7 +43,9 @@ final class VivoOutletMonitor {
     synchronized void checkNow(Context context) {
         boolean started = scheduler.isStarted();
         start(context);
-        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, this::checkAllSafely);
+        if (started && MonitorRunPolicy.canRun(context)) {
+            scheduler.request(0, () -> checkSafely(0L, true));
+        }
     }
 
     synchronized void checkInterestNow(Context context, long interestId) {
@@ -51,7 +53,7 @@ final class VivoOutletMonitor {
         if (!MonitorRunPolicy.canRun(appContext)) return;
         if (!scheduler.isStarted()) {
             scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(
-                    VivoOutletSource.getCheckIntervalMinutes(appContext)),
+                    getShortestCheckIntervalMinutes(appContext)),
                     () -> checkInterestSafely(interestId));
             return;
         }
@@ -80,31 +82,46 @@ final class VivoOutletMonitor {
     }
 
     private void checkAllSafely() {
-        checkSafely(0L);
+        checkSafely(0L, false);
     }
 
     private void checkInterestSafely(long interestId) {
-        checkSafely(interestId);
+        checkSafely(interestId, true);
     }
 
-    private void checkSafely(long interestId) {
+    private void checkSafely(long interestId, boolean force) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
         boolean found = false;
-        if (VivoOutletSource.isConfigured(context)) {
+        if (VivoOutletSource.isConfigured(context)
+                && (force || isDue(VivoOutletSource.getLastCheckAt(context),
+                VivoOutletSource.getCheckIntervalMinutes(context)))) {
             found |= checkSource(context, VivoOutletSource.getUrl(context), "vivo_outlet_",
                     "vivo|", R.string.vivo_outlet_offer_source, true, interestId);
         }
-        found |= checkSource(context, VivoMadrugadaSource.getUrl(context), "vivo_madrugada_",
-                "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false, interestId);
+        if (force || isDue(VivoMadrugadaSource.getLastCheckAt(context),
+                VivoMadrugadaSource.getCheckIntervalMinutes(context))) {
+            found |= checkSource(context, VivoMadrugadaSource.getUrl(context), "vivo_madrugada_",
+                    "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false, interestId);
+        }
         if (found) {
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                     .setPackage(context.getPackageName()));
         }
         context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
                 .setPackage(context.getPackageName()));
+    }
+
+    private int getShortestCheckIntervalMinutes(Context context) {
+        return Math.min(VivoOutletSource.getCheckIntervalMinutes(context),
+                VivoMadrugadaSource.getCheckIntervalMinutes(context));
+    }
+
+    private boolean isDue(long lastCheck, int intervalMinutes) {
+        return lastCheck <= 0L || System.currentTimeMillis() - lastCheck
+                >= TimeUnit.MINUTES.toMillis(intervalMinutes);
     }
 
     private boolean checkSource(Context context, String sourceUrl, String preferencePrefix,
