@@ -87,7 +87,6 @@ final class TelegramClientManager {
     private static final TelegramClientManager INSTANCE = new TelegramClientManager();
     // A burst of offers is kept local and coalesced into one small backup.
     private static final long CLOUD_BACKUP_DEBOUNCE_MS = 2_000L;
-    private static final long CLOUD_BACKUP_MIN_INTERVAL_MS = 5_000L;
     private static final long CLOUD_BACKUP_PART_DELAY_MS = 1_200L;
     private static final long CLOUD_BACKUP_PART_TIMEOUT_MS = 30_000L;
     private static final long CLOUD_PULL_DEBOUNCE_MS = 1500L;
@@ -158,7 +157,6 @@ final class TelegramClientManager {
     private volatile boolean backupPreparationRunning;
     private volatile long pendingCloudBackupUpdatedAt;
     private final CloudBackupRetryGate cloudBackupRetryGate = new CloudBackupRetryGate();
-    private volatile long lastCloudBackupCompletedElapsed;
     private volatile long cloudBackupGeneration;
     private volatile long cloudBackupChunkToken;
     private volatile int pendingCloudExpectedMessages;
@@ -636,6 +634,14 @@ final class TelegramClientManager {
             return;
         }
         sendCloudBackup();
+    }
+
+    synchronized void rescheduleCloudBackup() {
+        cancelCloudBackupWakeup();
+        if (appContext != null && state == State.READY && selfChatId != 0L
+                && CloudSyncStore.hasPendingPush(appContext)) {
+            scheduleCloudBackup();
+        }
     }
 
     synchronized void cancelCloudBackup() {
@@ -2203,7 +2209,6 @@ final class TelegramClientManager {
             pendingCloudNextChunkIndex = 0;
             cloudBackupPausedForRetry = false;
             cloudBackupRetryAttempt = 0;
-            lastCloudBackupCompletedElapsed = SystemClock.elapsedRealtime();
             cloudBackupGeneration++;
             boolean wasRankingDelta = pendingCloudBackupIsRankingDelta;
             boolean fullySynced = wasRankingDelta
@@ -2399,15 +2404,23 @@ final class TelegramClientManager {
     }
 
     private synchronized void scheduleCloudBackup() {
+        if (appContext == null || !CloudBackupSchedule.isAutomatic(appContext)) {
+            return;
+        }
         if (cloudBackupScheduled) {
             return;
         }
         cloudBackupScheduled = true;
         long retryDelay = cloudBackupRetryGate.remaining(SystemClock.elapsedRealtime());
-        long minimumIntervalDelay = Math.max(
+        long intervalMillis = CloudBackupSchedule.getIntervalMillis(appContext);
+        long lastBackupAt = CloudSyncStore.getLastBackupAt(appContext);
+        long pendingStartedAt = CloudSyncStore.getPendingStartedAt(appContext);
+        long nextBackupAt = lastBackupAt > 0L
+                ? lastBackupAt + intervalMillis
+                : pendingStartedAt + intervalMillis;
+        long scheduledDelay = Math.max(
                 0L,
-                lastCloudBackupCompletedElapsed + CLOUD_BACKUP_MIN_INTERVAL_MS
-                        - SystemClock.elapsedRealtime()
+                nextBackupAt - System.currentTimeMillis()
         );
         long wakeupToken = ++cloudBackupWakeupToken;
         cloudBackupWakeup = () -> {
@@ -2430,7 +2443,7 @@ final class TelegramClientManager {
         };
         cloudSyncHandler.postDelayed(cloudBackupWakeup, Math.max(
                 CLOUD_BACKUP_DEBOUNCE_MS + deviceBackupJitterMs(),
-                Math.max(retryDelay, minimumIntervalDelay)
+                Math.max(retryDelay, scheduledDelay)
         ));
     }
 
