@@ -97,6 +97,18 @@ final class OfferRepository {
         }
     }
 
+    ObservedOffer getPropertyMarketReference(long interestId) {
+        synchronized (OfferStorage.LOCK) {
+            for (ObservedOffer offer : getRecentForValidation()) {
+                if (PropertyMarketReferenceSettings.isReference(offer)
+                        && offer.getInterestId() == interestId) {
+                    return offer;
+                }
+            }
+            return null;
+        }
+    }
+
     void clearRecentForPropertyAlert(long interestId) {
         synchronized (OfferStorage.LOCK) {
             List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));

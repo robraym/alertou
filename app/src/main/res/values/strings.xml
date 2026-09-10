@@ -498,6 +498,12 @@
     <string name="property_notification_explanation">%1$s • %2$s m² • %3$s</string>
     <string name="property_notification_explanation_many">Novas opções de compra em %1$s.</string>
     <string name="property_new_ad_badge">Novo</string>
+    <string name="property_new_lowest_badge">Novo menor</string>
+    <string name="property_new_lowest_badge_description">Ver quando este imóvel assumiu o menor preço</string>
+    <string name="property_new_lowest_dialog_title">Novo menor preço</string>
+    <string name="property_new_lowest_dialog_message">Este imóvel assumiu o menor preço em %1$s.\n\nAntes: %2$s\nAgora: %3$s</string>
+    <string name="property_new_lowest_notification_title">Novo imóvel mais barato</string>
+    <string name="property_new_lowest_notification_explanation">%1$s • %2$s m² • agora %3$s; antes %4$s.</string>
     <string name="property_published_line">Publicado %1$s</string>
     <string name="property_listing_code">Código do anúncio: %1$s</string>
     <string name="dashboard_waiting_offer_links">As ofertas aguardam confirmação de que seus links abrem a mensagem original. Os registros foram preservados.</string>

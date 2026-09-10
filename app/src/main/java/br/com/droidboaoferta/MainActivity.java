@@ -691,6 +691,8 @@ public class MainActivity extends AlertouActivity {
         for (int index = 0; index < offers.size(); index++) {
             ObservedOffer offer = offers.get(index);
             boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
+            boolean newLowestMarketReference = propertyMarketReference
+                    && PropertyMarketWinnerStore.isActive(this, offer);
             String group = OfferDateFormatter.getGroupKey(offer.getObservedAt());
             String groupLabel = OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
             if (propertyMarketReference) {
@@ -724,6 +726,7 @@ public class MainActivity extends AlertouActivity {
             GroupSpeedRepository speed = new GroupSpeedRepository(this);
             boolean expired = speed.isOfferExpired(offer);
             LinearLayout row = createOfferRow(
+                    offer,
                     offer.getInterest(),
                     offer.getInterestId(),
                     displayedPrice,
@@ -737,6 +740,7 @@ public class MainActivity extends AlertouActivity {
                     propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangeAmount(),
                     propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangePercentage(),
                     propertyMarketReference,
+                    newLowestMarketReference,
                     view -> showPropertyHistoryDialog(offer)
             );
             FrameLayout swipeContainer = createSwipeContainer(row);
@@ -953,13 +957,15 @@ public class MainActivity extends AlertouActivity {
         return icon;
     }
 
-    private LinearLayout createOfferRow(String title, long interestId, String price, String time, String source,
+    private LinearLayout createOfferRow(ObservedOffer offer, String title, long interestId, String price,
+                                        String time, String source,
                                         String contentDescription, String propertyListingCode,
                                         boolean expired,
                                         boolean newPropertyAd, long propertyPublishedAt,
                                         double propertyPriceChange,
                                         double propertyPriceChangePercentage,
                                         boolean propertyMarketReference,
+                                        boolean newLowestMarketReference,
                                         View.OnClickListener propertyHistoryClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
@@ -991,6 +997,16 @@ public class MainActivity extends AlertouActivity {
 
         if (newPropertyAd) {
             TextView badge = createPropertyNewBadge();
+            LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            badgeParams.leftMargin = dp(5);
+            titleAndBadges.addView(badge, badgeParams);
+        }
+
+        if (newLowestMarketReference) {
+            TextView badge = createPropertyNewLowestBadge(offer);
             LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1089,6 +1105,22 @@ public class MainActivity extends AlertouActivity {
         badge.setSingleLine(true);
         badge.setBackgroundResource(R.drawable.bg_property_new_badge);
         badge.setPadding(dp(6), dp(1), dp(6), dp(1));
+        return badge;
+    }
+
+    private TextView createPropertyNewLowestBadge(ObservedOffer offer) {
+        TextView badge = new TextView(this);
+        badge.setText(R.string.property_new_lowest_badge);
+        badge.setTextColor(getColor(R.color.action_green));
+        badge.setTextSize(10.5f);
+        badge.setTypeface(null, android.graphics.Typeface.BOLD);
+        badge.setSingleLine(true);
+        badge.setBackgroundResource(R.drawable.bg_property_new_badge);
+        badge.setPadding(dp(6), dp(1), dp(6), dp(1));
+        badge.setClickable(true);
+        badge.setFocusable(true);
+        badge.setContentDescription(getString(R.string.property_new_lowest_badge_description));
+        badge.setOnClickListener(view -> showPropertyNewLowestDialog(offer));
         return badge;
     }
 
@@ -1329,6 +1361,22 @@ public class MainActivity extends AlertouActivity {
             return "";
         }
         return source.substring(markerIndex + marker.length()).trim();
+    }
+
+    private void showPropertyNewLowestDialog(ObservedOffer offer) {
+        PropertyMarketWinnerStore.WinnerInfo winner = PropertyMarketWinnerStore.get(this, offer);
+        if (winner == null || Double.isNaN(winner.previousPrice)) {
+            return;
+        }
+        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        String wonAt = new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
+                .format(new java.util.Date(winner.wonAt));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.property_new_lowest_dialog_title)
+                .setMessage(getString(R.string.property_new_lowest_dialog_message,
+                        wonAt, currency.format(winner.previousPrice), currency.format(offer.getPrice())))
+                .setPositiveButton(R.string.action_close, null)
+                .show();
     }
 
     private void showPropertyHistoryDialog(ObservedOffer offer) {

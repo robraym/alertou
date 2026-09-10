@@ -59,4 +59,21 @@ public class PropertyPageMonitorTest {
         assertTrue(PropertyPageMonitor.shouldVerifyIndividualPrice(
                 false, 600000d, 400000d, true));
     }
+
+    @Test
+    public void identifiesOnlyAReplacementThatIsStrictlyCheaperAsNewLowest() {
+        ObservedOffer previous = new ObservedOffer("property_market|9|old", 9L,
+                "Edifício Sol", "QuintoAndar", 420000d, 500000d, 1L,
+                "https://example.com/old", "");
+        ObservedOffer cheaper = new ObservedOffer("property_market|9|new", 9L,
+                "Edifício Sol", "QuintoAndar", 399000d, 500000d, 2L,
+                "https://example.com/new", "");
+        ObservedOffer sameListingLowerPrice = new ObservedOffer("property_market|9|old", 9L,
+                "Edifício Sol", "QuintoAndar", 399000d, 500000d, 2L,
+                "https://example.com/old", "");
+
+        assertTrue(PropertyPageMonitor.isNewLowestMarketReference(previous, cheaper));
+        assertFalse(PropertyPageMonitor.isNewLowestMarketReference(previous, sameListingLowerPrice));
+        assertFalse(PropertyPageMonitor.isNewLowestMarketReference(null, cheaper));
+    }
 }

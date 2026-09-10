@@ -468,7 +468,7 @@ final class PropertyPageMonitor {
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
-        repository.replacePropertyMarketReference(new ObservedOffer(
+        ObservedOffer marketReference = new ObservedOffer(
                 PropertyMarketReferenceSettings.createOfferId(interest.getId(), listing.getId()),
                 interest.getId(),
                 propertyName,
@@ -482,8 +482,25 @@ final class PropertyPageMonitor {
                 observedAt,
                 listing.getUrl(),
                 ""
-        ));
-        return true;
+        );
+        ObservedOffer previousReference = repository.getPropertyMarketReference(interest.getId());
+        boolean newLowest = isNewLowestMarketReference(previousReference, marketReference);
+        boolean changed = previousReference == null
+                || !previousReference.getId().equals(marketReference.getId())
+                || Double.compare(previousReference.getPrice(), marketReference.getPrice()) != 0;
+        repository.replacePropertyMarketReference(marketReference);
+        if (newLowest) {
+            PropertyMarketWinnerStore.record(context, marketReference, previousReference.getPrice());
+            showNewLowestMarketNotification(context, interest, propertyName, listing,
+                    previousReference.getPrice());
+        }
+        return changed;
+    }
+
+    static boolean isNewLowestMarketReference(ObservedOffer previous, ObservedOffer replacement) {
+        return previous != null && replacement != null
+                && !previous.getId().equals(replacement.getId())
+                && replacement.getPrice() < previous.getPrice();
     }
 
     static PropertyPageListing resolveCurrentListing(PropertyPageListing listing,
@@ -556,6 +573,41 @@ final class PropertyPageMonitor {
         NotificationManager manager = (NotificationManager) context.getSystemService(
                 Context.NOTIFICATION_SERVICE);
         manager.notify(Long.hashCode(interest.getId()) ^ 0x51A7, builder.build());
+        AlertSoundController.playSelectedSound(context);
+    }
+
+    private void showNewLowestMarketNotification(Context context, Interest interest,
+                                                  String propertyName,
+                                                  PropertyPageListing listing,
+                                                  double previousPrice) {
+        if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+        Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(listing.getUrl()));
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                Long.hashCode(interest.getId()) ^ 0x651A,
+                openPage,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        areaFormat.setMaximumFractionDigits(1);
+        String explanation = context.getString(R.string.property_new_lowest_notification_explanation,
+                propertyName, areaFormat.format(listing.getArea()),
+                currency.format(listing.getSalePrice()), currency.format(previousPrice));
+        AlertSoundController.configureNotificationChannel(context);
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(
+                context, AlertSoundController.getChannelId(context))
+                .setSmallIcon(R.drawable.ic_notification_offer)
+                .setContentTitle(context.getString(R.string.property_new_lowest_notification_title))
+                .setContentText(explanation)
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(explanation))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setSound(AlertSoundController.getSoundUri(context))
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent);
+        NotificationManager manager = (NotificationManager) context.getSystemService(
+                Context.NOTIFICATION_SERVICE);
+        if (manager != null) manager.notify(Long.hashCode(interest.getId()) ^ 0x651A, builder.build());
         AlertSoundController.playSelectedSound(context);
     }
 }
