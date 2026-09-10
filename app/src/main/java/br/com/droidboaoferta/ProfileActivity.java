@@ -94,6 +94,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView pelandoIntervalSummary;
     private TextView promobitIntervalSummary;
     private TextView kabumOfferIntervalSummary;
+    private TextView motorolaOfferIntervalSummary;
     private LinearLayout accountCard;
     private LinearLayout syncRow;
     private View accountChevron;
@@ -135,6 +136,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         pelandoIntervalSummary = findViewById(R.id.text_pelando_interval_summary);
         promobitIntervalSummary = findViewById(R.id.text_promobit_interval_summary);
         kabumOfferIntervalSummary = findViewById(R.id.text_kabum_offer_interval_summary);
+        motorolaOfferIntervalSummary = findViewById(R.id.text_motorola_offer_interval_summary);
         accountCard = findViewById(R.id.card_telegram_account);
         syncRow = findViewById(R.id.row_sync);
         accountChevron = findViewById(R.id.image_account_chevron);
@@ -208,6 +210,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         );
         findViewById(R.id.row_kabum_offer_interval).setOnClickListener(
                 view -> showKabumOfferIntervalDialog()
+        );
+        findViewById(R.id.row_motorola_offer_interval).setOnClickListener(
+                view -> showMotorolaOfferIntervalDialog()
         );
         findViewById(R.id.row_backup).setOnClickListener(view -> clientManager.backupCloudNow());
         findViewById(R.id.row_backup).setOnLongClickListener(view -> {
@@ -342,6 +347,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         kabumOfferIntervalSummary.setText(formatShortInterval(
                 KabumOfferSource.getCheckIntervalSeconds(this)
         ));
+        motorolaOfferIntervalSummary.setText(getString(R.string.motorola_offer_interval_summary,
+                MotorolaOfferSource.getCheckIntervalMinutes(this)));
         backupScheduleSummary.setText(getBackupScheduleSummary());
     }
 
@@ -835,6 +842,53 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+    }
+
+    private void showMotorolaOfferIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.motorola_offer_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = MotorolaOfferSource.getCheckIntervalMinutes(this);
+        int[] intervals = {5, 15, 30, 60};
+        int[] labels = {
+                R.string.vivo_outlet_interval_five,
+                R.string.vivo_outlet_interval_fifteen,
+                R.string.vivo_outlet_interval_thirty,
+                R.string.vivo_outlet_interval_sixty
+        };
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int index = 0; index < intervals.length; index++) {
+            int interval = intervals[index];
+            TextView option = createThemeOption(labels[index], interval == savedInterval);
+            option.setOnClickListener(view -> {
+                MotorolaOfferSource.saveCheckIntervalMinutes(this, interval);
+                motorolaOfferIntervalSummary.setText(getString(
+                        R.string.motorola_offer_interval_summary, interval));
+                MotorolaOfferMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
     }
 
     private String formatShortInterval(int seconds) {
@@ -2258,7 +2312,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         syncSummary.setText(lastSyncAt > 0L
                 ? getString(R.string.profile_sync_last_format, formatSyncTime(lastSyncAt))
                 : getString(R.string.profile_sync_waiting));
-        updateSyncIconAnimation(clientManager.isCloudSyncInProgress());
+        updateSyncIconAnimation(false);
     }
 
     private void updateSyncIconAnimation(boolean syncing) {

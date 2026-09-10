@@ -335,6 +335,22 @@ public class OfferTextParserTest {
     }
 
     @Test
+    public void rejectsReplacementScreensForAnyMainDeviceInterest() {
+        assertTrue(!OfferTextParser.matchesInterest(
+                "Tela frontal display LCD compatível iPhone 17 Pro Max por R$ 699,90",
+                "iPhone 17"
+        ));
+        assertTrue(!OfferTextParser.matchesInterest(
+                "Display AMOLED para Galaxy S25 Ultra, peça de reposição por R$ 849,00",
+                "Galaxy S25 Ultra"
+        ));
+        assertTrue(OfferTextParser.matchesInterest(
+                "Display AMOLED para Galaxy S25 Ultra por R$ 849,00",
+                "Display AMOLED para Galaxy S25 Ultra"
+        ));
+    }
+
+    @Test
     public void rejectsImplausibleMainDevicePrice() {
         assertTrue(!OfferTextParser.isPlausiblePriceForInterest(11.00, "iPhone 17"));
         assertTrue(!OfferTextParser.isPlausiblePriceForInterest(149.00, "Galaxy Watch Ultra"));

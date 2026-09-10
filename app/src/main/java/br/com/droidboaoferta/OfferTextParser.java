@@ -24,6 +24,11 @@ final class OfferTextParser {
     private static final String[] COMPATIBILITY_TERMS = {
             "para", "compativel com", "compatível com", "serve para", "modelo para"
     };
+    private static final String[] REPLACEMENT_PART_TERMS = {
+            "display", "lcd", "oled", "amoled", "touchscreen", "touch screen",
+            "digitizer", "digitalizador", "frontal", "reposicao", "reposição",
+            "substituicao", "substituição", "peca", "peça", "componente"
+    };
     private static final String[] HIGH_VALUE_DEVICE_TERMS = {
             "iphone", "galaxy s", "galaxy z", "z flip", "zflip", "z fold", "zfold",
             "s23", "s24", "s25", "ultra", "edge", "motorola", "moto g", "moto edge",
@@ -277,7 +282,9 @@ final class OfferTextParser {
         if (containsAccessoryTerm(normalizedInterest)) {
             return true;
         }
-        return !looksLikeAccessoryOffer(normalizedMessage.trim(), normalizedInterest);
+        String plainMessage = normalizedMessage.trim();
+        return !looksLikeAccessoryOffer(plainMessage, normalizedInterest)
+                && !looksLikeReplacementPartOffer(plainMessage, normalizedInterest);
     }
 
     static boolean isFlipModelInterest(String interest) {
@@ -455,6 +462,45 @@ final class OfferTextParser {
         }
         String firstAfterWord = after.isEmpty() ? "" : after.split(" ")[0];
         return isAccessoryTerm(firstAfterWord);
+    }
+
+    private static boolean looksLikeReplacementPartOffer(String message, String interest) {
+        int interestStart = message.indexOf(interest);
+        if (interestStart < 0 || containsReplacementPartTerm(interest)) {
+            return false;
+        }
+        String before = message.substring(Math.max(0, interestStart - 96), interestStart).trim();
+        String after = message.substring(Math.min(message.length(), interestStart + interest.length()),
+                Math.min(message.length(), interestStart + interest.length() + 48)).trim();
+        int partsBefore = countReplacementPartTerms(before);
+        if (partsBefore == 0) {
+            return countReplacementPartTerms(after) >= 2;
+        }
+        return partsBefore >= 2
+                || before.contains("tela frontal")
+                || before.contains("tela lcd")
+                || before.contains("tela display")
+                || containsCompatibilityReference(before);
+    }
+
+    private static boolean containsCompatibilityReference(String text) {
+        return text.contains(" para ") || text.contains(" compativel")
+                || text.contains(" compatibilidade") || text.contains(" modelo ");
+    }
+
+    private static int countReplacementPartTerms(String text) {
+        int count = 0;
+        String padded = " " + text + " ";
+        for (String term : REPLACEMENT_PART_TERMS) {
+            if (padded.contains(" " + term + " ")) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean containsReplacementPartTerm(String text) {
+        return countReplacementPartTerms(text) > 0 || text.contains("tela ");
     }
 
     private static boolean mentionsAccessoryForInterest(String message, String interest) {

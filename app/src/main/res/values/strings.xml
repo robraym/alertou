@@ -91,6 +91,12 @@
     <string name="kabum_offer_dialog_title">Página da KaBuM</string>
     <string name="kabum_offer_dialog_summary">Você pode trocar o link se a KaBuM alterar a vitrine. O Alertou acompanha somente ofertas relâmpago que combinam com seus alertas de preço.</string>
     <string name="kabum_offer_source">KaBuM • oferta relâmpago</string>
+    <string name="motorola_offer_source_title">Motorola</string>
+    <string name="motorola_offer_source_check_pending">Aguardando primeira consulta</string>
+    <string name="motorola_offer_source_check_succeeded">Última consulta: %1$s</string>
+    <string name="motorola_offer_source_check_failed">Última consulta válida: %1$s</string>
+    <string name="motorola_offer_open_link">Abrir página</string>
+    <string name="motorola_offer_source">Motorola • ofertas oficiais</string>
     <string name="telegram_groups_count_empty">0 selecionados de 0 grupos</string>
     <string name="telegram_groups_count_format">%1$s de %2$s</string>
     <string name="telegram_groups_count_with_evaluation">Semana %3$d de 7 · %1$d de %2$d ativos</string>
@@ -246,6 +252,10 @@
     <string name="kabum_offer_interval_title">KaBuM</string>
     <string name="kabum_offer_interval_dialog_title">Intervalo de consulta da KaBuM</string>
     <string name="kabum_offer_interval_default">A cada 1 minuto</string>
+    <string name="motorola_offer_interval_title">Motorola</string>
+    <string name="motorola_offer_interval_dialog_title">Intervalo de consulta da Motorola</string>
+    <string name="motorola_offer_interval_summary">Consulta a cada %1$d minutos</string>
+    <string name="motorola_offer_interval_default">A cada 15 minutos</string>
     <string name="property_market_reference_title">Imóveis baratos</string>
     <string name="property_market_reference_dialog_title">Imóveis baratos</string>
     <string name="property_market_reference_enabled">Mostrar no Alertou</string>

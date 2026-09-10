@@ -133,6 +133,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView kabumOfferSourceRow;
     private TextView kabumOfferSourceState;
     private ImageButton kabumOfferEditButton;
+    private TextView motorolaOfferSourceRow;
+    private TextView motorolaOfferSourceState;
+    private ImageButton motorolaOfferOpenButton;
     private int groupEvaluationDay;
     private long groupEvaluationWeekStartedAt;
     private FrameLayout groupsSearchBar;
@@ -173,6 +176,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             renderPelandoSource();
             renderPromobitSource();
             renderKabumOfferSource();
+            renderMotorolaOfferSource();
         }
     };
     private final BroadcastReceiver smsVerificationReceiver = new BroadcastReceiver() {
@@ -250,6 +254,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         kabumOfferSourceRow = findViewById(R.id.text_kabum_offer_source_row);
         kabumOfferSourceState = findViewById(R.id.text_kabum_offer_source_state);
         kabumOfferEditButton = findViewById(R.id.button_kabum_offer_edit);
+        motorolaOfferSourceRow = findViewById(R.id.text_motorola_offer_source_row);
+        motorolaOfferSourceState = findViewById(R.id.text_motorola_offer_source_state);
+        motorolaOfferOpenButton = findViewById(R.id.button_motorola_offer_open);
         groupsSearchBar = findViewById(R.id.search_groups_bar);
         groupsSearchIcon = findViewById(R.id.icon_search_groups);
         groupsSearchInput = findViewById(R.id.input_search_groups);
@@ -278,11 +285,15 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         pelandoEditButton.setOnClickListener(view -> showPelandoSourceDialog());
         promobitEditButton.setOnClickListener(view -> showPromobitSourceDialog());
         kabumOfferEditButton.setOnClickListener(view -> showKabumOfferSourceDialog());
+        motorolaOfferOpenButton.setOnClickListener(view -> startActivity(new Intent(
+                Intent.ACTION_VIEW, android.net.Uri.parse(MotorolaOfferSource.getUrl(this))
+        )));
         renderVivoOutletSource();
         renderVivoMadrugadaSource();
         renderPelandoSource();
         renderPromobitSource();
         renderKabumOfferSource();
+        renderMotorolaOfferSource();
         continueButton.setOnClickListener(view -> submitAuthenticationValue());
         receiveSmsButton.setOnClickListener(view -> startSmsConsentListening(true));
         countryPickerButton.setOnClickListener(view -> showCountryPicker());
@@ -395,6 +406,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             sourceStatusFilter.addAction(PelandoMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(PromobitMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(KabumOfferMonitor.ACTION_STATUS_CHANGED);
+            sourceStatusFilter.addAction(MotorolaOfferMonitor.ACTION_STATUS_CHANGED);
             ContextCompat.registerReceiver(
                     this,
                     cloudSyncReceiver,
@@ -1466,6 +1478,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         boolean pelandoConfigured = PelandoSource.isConfigured(this);
         boolean promobitConfigured = PromobitSource.isConfigured(this);
         boolean kabumConfigured = KabumOfferSource.isConfigured(this);
+        boolean motorolaConfigured = MotorolaOfferSource.isConfigured(this);
         int online = 0;
         online += isSourceOnline(outletConfigured,
                 VivoOutletSource.hasSuccessfulCheck(this), VivoOutletSource.hasLastCheckFailed(this)) ? 1 : 0;
@@ -1477,9 +1490,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 PromobitSource.hasSuccessfulCheck(this), PromobitSource.hasLastCheckFailed(this)) ? 1 : 0;
         online += isSourceOnline(kabumConfigured,
                 KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
+        online += isSourceOnline(motorolaConfigured,
+                MotorolaOfferSource.hasSuccessfulCheck(this), MotorolaOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
         storeSourcesOnlineText.setText(getString(R.string.source_status_dot_online, online));
         storeSourcesOnlineText.setTextColor(getColor(R.color.action));
-        int offline = 5 - online;
+        int offline = 6 - online;
         if (offline > 0) {
             storeSourcesOfflineText.setText(getString(R.string.source_status_dot_offline, offline));
             storeSourcesOfflineText.setTextColor(getColor(R.color.danger));
@@ -2061,6 +2076,23 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         kabumOfferEditButton.setContentDescription(getString(configured
                 ? R.string.kabum_offer_edit_link
                 : R.string.kabum_offer_add_link));
+        renderStoreSourcesStatus();
+    }
+
+    private void renderMotorolaOfferSource() {
+        long lastSuccessfulCheck = MotorolaOfferSource.getLastSuccessfulCheckAt(this);
+        boolean offline = MotorolaOfferSource.hasLastCheckFailed(this);
+        String sourceStatus = offline
+                ? getString(R.string.motorola_offer_source_check_failed,
+                formatSourceCheckTime(lastSuccessfulCheck))
+                : (MotorolaOfferSource.hasSuccessfulCheck(this)
+                ? getString(R.string.motorola_offer_source_check_succeeded,
+                formatSourceCheckTime(lastSuccessfulCheck))
+                : getString(R.string.motorola_offer_source_check_pending));
+        motorolaOfferSourceRow.setText(sourceStatus);
+        renderSourceState(motorolaOfferSourceState, true,
+                MotorolaOfferSource.hasSuccessfulCheck(this), offline);
+        motorolaOfferOpenButton.setContentDescription(getString(R.string.motorola_offer_open_link));
         renderStoreSourcesStatus();
     }
 

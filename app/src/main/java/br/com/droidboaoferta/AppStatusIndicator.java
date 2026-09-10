@@ -63,7 +63,8 @@ final class AppStatusIndicator {
         rows.add(new Row(s(R.string.app_status_monitor), s(monitorText), running));
         if (price && MonitorServiceController.selectedGroupCount(activity) == 0
                 && !VivoOutletSource.isConfigured(activity) && !PelandoSource.isConfigured(activity)
-                && !PromobitSource.isConfigured(activity) && !KabumOfferSource.isConfigured(activity)) {
+                && !PromobitSource.isConfigured(activity) && !KabumOfferSource.isConfigured(activity)
+                && !MotorolaOfferSource.isConfigured(activity)) {
             rows.add(new Row(s(R.string.alerts_screen_title), s(R.string.app_status_no_sources), false));
         }
 
@@ -90,6 +91,9 @@ final class AppStatusIndicator {
         if (KabumOfferSource.isConfigured(activity)) addSite(rows, R.string.kabum_offer_source_title,
                 KabumOfferSource.getLastSuccessfulCheckAt(activity), KabumOfferSource.hasLastCheckFailed(activity),
                 KabumOfferSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
+        if (MotorolaOfferSource.isConfigured(activity)) addSite(rows, R.string.motorola_offer_source_title,
+                MotorolaOfferSource.getLastSuccessfulCheckAt(activity), MotorolaOfferSource.hasLastCheckFailed(activity),
+                MotorolaOfferSource.getCheckIntervalMinutes(activity) * 60000L, price, running, monitorText);
         SharedPreferences checks = activity.getSharedPreferences("source_check_status", Context.MODE_PRIVATE);
         for (Interest interest : interests) {
             if (!interest.isProperty() && !interest.isCoupon()) continue;
