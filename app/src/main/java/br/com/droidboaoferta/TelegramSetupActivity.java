@@ -971,7 +971,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             score.setText(buildGroupSummary(groupRanking, groupQuality, ranking, group.getId()));
             score.setTextColor(getColor(groupQuality != null && groupQuality.hasLowQuality()
                     ? R.color.text_secondary : R.color.action));
-            score.setTextSize(12);
+            score.setTextSize(11.5f);
             score.setSingleLine(false);
             score.setMaxLines(2);
             score.setEllipsize(TextUtils.TruncateAt.END);

@@ -85,7 +85,10 @@
             android:layout_height="wrap_content"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
-            android:padding="4dp">
+            android:paddingStart="6dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="6dp">
 
             <LinearLayout
                 android:id="@+id/header_coupon_alerts"
@@ -94,13 +97,12 @@
                 android:background="@drawable/bg_row_pressed"
                 android:clickable="true"
                 android:focusable="true"
-                android:minHeight="48dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingTop="6dp"
+                android:paddingStart="4dp"
+                android:paddingTop="2dp"
                 android:paddingEnd="0dp"
-                android:paddingBottom="6dp">
+                android:paddingBottom="3dp">
 
                 <ImageButton
                     android:id="@+id/button_add_coupon_interest"
@@ -126,7 +128,7 @@
                         android:singleLine="true"
                         android:text="@string/coupon_alerts_list_title"
                         android:textColor="@color/text_primary"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/text_coupon_alerts_count"
@@ -163,10 +165,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
-            android:padding="4dp">
+            android:paddingStart="6dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="6dp">
 
             <LinearLayout
                 android:id="@+id/header_property_alerts"
@@ -176,12 +181,11 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingTop="6dp"
+                android:paddingStart="4dp"
+                android:paddingTop="2dp"
                 android:paddingEnd="0dp"
-                android:paddingBottom="6dp">
+                android:paddingBottom="3dp">
 
                 <ImageButton
                     android:id="@+id/button_add_property_interest"
@@ -207,7 +211,7 @@
                         android:singleLine="true"
                         android:text="@string/property_alerts_list_title"
                         android:textColor="@color/text_primary"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/text_property_alerts_count"
@@ -244,10 +248,13 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
-            android:padding="4dp">
+            android:paddingStart="6dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="6dp">
 
             <LinearLayout
                 android:id="@+id/header_price_alerts"
@@ -257,12 +264,11 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:gravity="center_vertical"
-                android:minHeight="48dp"
                 android:orientation="horizontal"
-                android:paddingStart="6dp"
-                android:paddingTop="6dp"
+                android:paddingStart="4dp"
+                android:paddingTop="2dp"
                 android:paddingEnd="0dp"
-                android:paddingBottom="6dp">
+                android:paddingBottom="3dp">
 
                 <ImageButton
                     android:id="@+id/button_add_price_interest"
@@ -288,7 +294,7 @@
                         android:singleLine="true"
                         android:text="@string/product_alerts_list_title"
                         android:textColor="@color/text_primary"
-                        android:textSize="18sp" />
+                        android:textSize="16sp" />
 
                     <TextView
                         android:id="@+id/text_price_alerts_count"

@@ -389,7 +389,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         }
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardParams.bottomMargin = dp(8);
+        cardParams.bottomMargin = getResources().getDimensionPixelSize(R.dimen.screen_card_gap);
         offersContainer.addView(card, cardParams);
     }
 

@@ -2,4 +2,5 @@
 <resources>
     <dimen name="screen_card_inset">8dp</dimen>
     <dimen name="screen_header_content_gap">6dp</dimen>
+    <dimen name="screen_card_gap">9dp</dimen>
 </resources>

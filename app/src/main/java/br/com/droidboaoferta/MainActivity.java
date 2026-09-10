@@ -757,7 +757,7 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
         );
-        cardParams.bottomMargin = dp(12);
+        cardParams.bottomMargin = getResources().getDimensionPixelSize(R.dimen.screen_card_gap);
         card.setLayoutParams(cardParams);
         offerSectionCache.attach(offersContainer, renderingSectionKey, renderingSectionFingerprint, card);
     }
