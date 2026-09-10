@@ -641,7 +641,8 @@ public class MainActivity extends AlertouActivity {
             summaryLine.setOrientation(LinearLayout.HORIZONTAL);
             TextView summary = new TextView(this);
             summary.setText(sectionSummary);
-            summary.setTextColor(getColor(R.color.text_secondary));
+            summary.setTextColor(getColor(propertyMarketSection && isPropertyMarketUpdating()
+                    ? R.color.action_green : R.color.text_secondary));
             summary.setTextSize(11.5f);
             summary.setSingleLine(true);
             summary.setEllipsize(TextUtils.TruncateAt.END);
@@ -789,6 +790,12 @@ public class MainActivity extends AlertouActivity {
 
     private String getPropertyMarketLastCheckSummary(List<ObservedOffer> offers) {
         if (isPropertyMarketUpdating()) {
+            long checkingInterestId = PropertyPageMonitor.getInstance()
+                    .getCheckingMarketReferenceInterestId();
+            String updatingSummary = getPropertyMarketUpdatingSummary(offers, checkingInterestId);
+            if (!updatingSummary.isEmpty()) {
+                return updatingSummary;
+            }
             return getString(R.string.property_market_reference_section_updating);
         }
         long lastCheck = 0L;
@@ -800,6 +807,54 @@ public class MainActivity extends AlertouActivity {
                         OfferDateFormatter.formatGroupLabel(this, lastCheck),
                         OfferDateFormatter.formatTime(lastCheck))
                 : "";
+    }
+
+    private String getPropertyMarketUpdatingSummary(List<ObservedOffer> offers,
+                                                     long checkingInterestId) {
+        if (checkingInterestId == 0L) {
+            return "";
+        }
+        for (ObservedOffer offer : offers) {
+            if (PropertyMarketReferenceSettings.isReference(offer)
+                    && offer.getInterestId() == checkingInterestId) {
+                String area = getPropertyMarketReferenceArea(offer);
+                if (!area.isEmpty()) {
+                    return getString(R.string.property_market_reference_section_updating_property,
+                            offer.getInterest(), area);
+                }
+            }
+        }
+        for (Interest interest : interestRepository.getAll()) {
+            if (interest.getId() != checkingInterestId) {
+                continue;
+            }
+            String name = PropertyPageResult.normalizeCondominiumName(interest.getPropertyName());
+            String area = formatPropertyAreaRange(interest);
+            return name.isEmpty() || area.isEmpty() ? ""
+                    : getString(R.string.property_market_reference_section_updating_property,
+                    name, area);
+        }
+        return "";
+    }
+
+    private String getPropertyMarketReferenceArea(ObservedOffer offer) {
+        String source = offer.getSource();
+        int separator = source.lastIndexOf(" • ");
+        return separator < 0 ? "" : source.substring(separator + 3).trim();
+    }
+
+    private String formatPropertyAreaRange(Interest interest) {
+        double minimum = interest.getMinimumArea();
+        double maximum = interest.getMaximumArea();
+        if (maximum <= 0d) {
+            return "";
+        }
+        NumberFormat format = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        format.setMaximumFractionDigits(1);
+        if (Double.compare(minimum, maximum) == 0 || minimum <= 0d) {
+            return format.format(maximum) + " m²";
+        }
+        return format.format(minimum) + "–" + format.format(maximum) + " m²";
     }
 
     private boolean isPropertyMarketUpdating() {

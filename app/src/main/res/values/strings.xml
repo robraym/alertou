@@ -270,6 +270,7 @@
     <string name="property_market_reference_content_description">Imóveis baratos, não são alertas</string>
     <string name="property_market_reference_section_summary">Atualizado %1$s, %2$s</string>
     <string name="property_market_reference_section_updating">Atualizando imóveis agora…</string>
+    <string name="property_market_reference_section_updating_property">Atualizando %1$s · %2$s…</string>
     <string name="property_market_reference_price_updating">Atualizando</string>
     <string name="action_refresh_property_market_prices">Atualizar preços dos imóveis</string>
     <string name="alert_sound_dialog_title">Som dos alertas</string>

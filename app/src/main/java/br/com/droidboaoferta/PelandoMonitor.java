@@ -140,7 +140,8 @@ final class PelandoMonitor {
                     ));
                     preferences.edit().putLong(key, Double.doubleToRawLongBits(deal.getPrice()))
                             .apply();
-                    if (deal.getPrice() > interest.getMaximumPrice()
+                    if (!OfferTextParser.isPlausiblePriceForInterest(deal.getPrice(), interest.getTerm())
+                            || deal.getPrice() > interest.getMaximumPrice()
                             || (known && Double.compare(lastPrice, deal.getPrice()) == 0)) {
                         continue;
                     }

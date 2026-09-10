@@ -147,6 +147,8 @@ final class VivoOutletMonitor {
                 }
                 for (VivoOutletProduct product : products) {
                     if (!OfferTextParser.matchesInterest(product.getName(), interest.getTerm())
+                            || !OfferTextParser.isPlausiblePriceForInterest(
+                                    product.getPixPrice(), interest.getTerm())
                             || product.getPixPrice() > interest.getMaximumPrice()) {
                         continue;
                     }

@@ -15,8 +15,11 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.text.Editable;
 import android.text.InputType;
+import android.text.SpannableString;
+import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.text.style.ForegroundColorSpan;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
@@ -413,9 +416,10 @@ public class AlertsActivity extends AlertouActivity {
 
         if (interest.isCoupon()) {
             TextView label = createInterestText();
-            label.setText(getString(
+            String amount = amountFormat.format(interest.getMaximumPrice());
+            label.setText(withValueGreen(getString(
                     R.string.coupon_interest_single_line,
-                    amountFormat.format(interest.getMaximumPrice())));
+                    amount), amount));
             label.setEllipsize(TextUtils.TruncateAt.END);
             row.addView(label, new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
@@ -430,13 +434,14 @@ public class AlertsActivity extends AlertouActivity {
             textContainer.addView(title);
 
             TextView subtitle = createInterestText();
-            subtitle.setText(getString(
+            String amount = amountFormat.format(interest.getMaximumPrice());
+            subtitle.setText(withValueGreen(getString(
                     R.string.property_interest_subtitle,
                     PropertyPageClient.getSourceName(interest.getTerm()),
                     formatArea(interest.getMinimumArea()),
                     formatArea(interest.getMaximumArea()),
-                    amountFormat.format(interest.getMaximumPrice())
-            ));
+                    amount
+            ), amount));
             subtitle.setTextColor(getColor(R.color.text_secondary));
             subtitle.setTextSize(12);
             subtitle.setEllipsize(TextUtils.TruncateAt.END);
@@ -459,6 +464,7 @@ public class AlertsActivity extends AlertouActivity {
             price.setText(getString(
                     R.string.price_interest_value,
                     amountFormat.format(interest.getMaximumPrice())));
+            price.setTextColor(getColor(R.color.action_green));
             textContainer.addView(price, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -476,6 +482,16 @@ public class AlertsActivity extends AlertouActivity {
         text.setSingleLine(true);
         text.setPadding(0, 0, dp(3), 0);
         return text;
+    }
+
+    private CharSequence withValueGreen(String text, String value) {
+        SpannableString styled = new SpannableString(text);
+        int start = text.lastIndexOf(value);
+        if (start >= 0) {
+            styled.setSpan(new ForegroundColorSpan(getColor(R.color.action_green)),
+                    start, start + value.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        return styled;
     }
 
     private String formatArea(double area) {

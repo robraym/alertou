@@ -171,6 +171,9 @@ final class OfferRepository {
                         || (propertyMarketReference && !PropertyMarketReferenceSettings.isEnabled(context))
                         || (!propertyMarketReference && !matchingInterest.isCoupon()
                         && offer.getPrice() > matchingInterest.getMaximumPrice())
+                        || (!propertyMarketReference && matchingInterest.isPrice()
+                        && !OfferTextParser.isPlausiblePriceForInterest(
+                        offer.getPrice(), matchingInterest.getTerm()))
                         || (matchingInterest.isCoupon()
                         && offer.getPrice() < matchingInterest.getMaximumPrice())
                         || !OfferEligibility.canDisplay(offer, now)) {

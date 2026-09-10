@@ -101,6 +101,8 @@ final class MotorolaOfferMonitor {
                     if (interestId != 0L && interest.getId() != interestId) continue;
                     if (!MonitorRunPolicy.isCurrent(context, interest)) return;
                     if (!interest.isPrice() || !OfferTextParser.matchesInterest(deal.getTitle(), interest.getTerm())
+                            || !OfferTextParser.isPlausiblePriceForInterest(
+                                    deal.getPrice(), interest.getTerm())
                             || deal.getPrice() > interest.getMaximumPrice()) continue;
                     String key = LAST_PRICE_PREFIX + interest.getId() + "_" + deal.getId();
                     boolean known = preferences.contains(key);

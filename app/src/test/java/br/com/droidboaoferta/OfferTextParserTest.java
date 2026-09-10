@@ -354,6 +354,8 @@ public class OfferTextParserTest {
     public void rejectsImplausibleMainDevicePrice() {
         assertTrue(!OfferTextParser.isPlausiblePriceForInterest(11.00, "iPhone 17"));
         assertTrue(!OfferTextParser.isPlausiblePriceForInterest(149.00, "Galaxy Watch Ultra"));
+        assertTrue(!OfferTextParser.isPlausiblePriceForInterest(85.47, "PS5 Pro"));
+        assertTrue(OfferTextParser.isPlausiblePriceForInterest(4799.00, "PS5 Pro"));
     }
 
     @Test

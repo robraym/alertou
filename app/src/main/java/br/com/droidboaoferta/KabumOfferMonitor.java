@@ -113,6 +113,8 @@ final class KabumOfferMonitor {
                     if (!MonitorRunPolicy.isCurrent(context, interest)) return;
                     if (!interest.isPrice()
                             || !OfferTextParser.matchesInterest(deal.getTitle(), interest.getTerm())
+                            || !OfferTextParser.isPlausiblePriceForInterest(
+                                    deal.getPrice(), interest.getTerm())
                             || deal.getPrice() > interest.getMaximumPrice()) {
                         continue;
                     }

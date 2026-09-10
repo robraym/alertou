@@ -31,6 +31,7 @@ final class PropertyPageMonitor {
     private Context appContext;
     private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
     private volatile boolean marketReferencesRunning;
+    private volatile long checkingMarketReferenceInterestId;
 
     private PropertyPageMonitor() {
     }
@@ -49,6 +50,10 @@ final class PropertyPageMonitor {
 
     boolean isCheckingMarketReferences() {
         return marketReferencesRunning;
+    }
+
+    long getCheckingMarketReferenceInterestId() {
+        return marketReferencesRunning ? checkingMarketReferenceInterestId : 0L;
     }
 
     synchronized void checkNow(Context context) {
@@ -132,8 +137,7 @@ final class PropertyPageMonitor {
         }
         if (includeMarketReferences) {
             marketReferencesRunning = true;
-            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
-                    .setPackage(context.getPackageName()));
+            checkingMarketReferenceInterestId = 0L;
         }
         try {
         for (Interest interest : orderPropertyInterests(
@@ -142,6 +146,9 @@ final class PropertyPageMonitor {
                 continue;
             }
             if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
+            if (includeMarketReferences) {
+                checkingMarketReferenceInterestId = interest.getId();
+            }
             SourceCheckStatus.begin(context, interest.getId());
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                     .setPackage(context.getPackageName()));
@@ -164,6 +171,7 @@ final class PropertyPageMonitor {
                 .setPackage(context.getPackageName()));
         } finally {
             if (includeMarketReferences) {
+                checkingMarketReferenceInterestId = 0L;
                 marketReferencesRunning = false;
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
@@ -463,7 +471,9 @@ final class PropertyPageMonitor {
             return repository.clearPropertyMarketReferences();
         }
         if (listing == null) {
-            return repository.clearPropertyMarketReferences(interest.getId());
+            // A consulta pode falhar parcialmente (por exemplo, sem metadados do anúncio).
+            // Preserve a última referência válida para não fazer um dos alertas sumir da lista.
+            return false;
         }
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
