@@ -87,15 +87,14 @@
 
     <TextView
         android:id="@+id/button_cancel_backup"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@null"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:background="@drawable/bg_icon_danger"
+        android:contentDescription="@string/profile_manual_backup_cancel_action"
         android:gravity="center"
-        android:paddingStart="8dp"
-        android:paddingEnd="8dp"
-        android:text="@string/profile_manual_backup_cancel_action"
+        android:text="@string/profile_manual_backup_cancel_symbol"
         android:textColor="@color/danger"
-        android:textSize="14sp"
+        android:textSize="21sp"
         android:visibility="gone" />
 
     <ImageView

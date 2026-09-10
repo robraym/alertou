@@ -221,7 +221,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         });
         findViewById(R.id.row_restore_backup).setOnClickListener(view -> {
             restoreSummary.setText(R.string.profile_manual_restore_pending);
-            restoreSizeSummary.setText(R.string.profile_restore_size_preparing);
+            restoreSizeSummary.setText(formatCalculatingSizeSummary(
+                    R.string.profile_restore_size_preparing));
             updateActionIconAnimation(restoreIcon, true, dp(4));
             clientManager.restoreCloudBackupNow();
         });
@@ -2272,6 +2273,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             updateActionIconAnimation(restoreIcon, true, dp(4));
             updateSyncIconAnimation(false);
             restoreSummary.setText(R.string.profile_manual_restore_pending);
+            restoreSizeSummary.setText(formatCalculatingSizeSummary(
+                    R.string.profile_restore_size_preparing));
             return;
         }
         if (backingUp) {
@@ -2281,7 +2284,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             backupSummary.setText(getString(R.string.profile_manual_backup_pending_format,
                     String.format(Locale.getDefault(), "%02d:%02d", elapsedSeconds / 60L,
                             elapsedSeconds % 60L)));
-            backupSizeSummary.setText(R.string.profile_backup_size_preparing);
+            backupSizeSummary.setText(formatCalculatingSizeSummary(
+                    R.string.profile_backup_size_preparing));
+            backupSizeSummary.setVisibility(View.VISIBLE);
             cancelBackupButton.setVisibility(View.VISIBLE);
             backupChevron.setVisibility(View.GONE);
             updateActionIconAnimation(backupIcon, true, -dp(4));
@@ -2291,6 +2296,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         cancelBackupButton.setVisibility(View.GONE);
         backupChevron.setVisibility(View.VISIBLE);
+        backupSizeSummary.setVisibility(View.VISIBLE);
         updateActionIconAnimation(backupIcon, false, -dp(4));
         updateActionIconAnimation(restoreIcon, false, dp(4));
         long lastBackupAt = Math.max(
@@ -2381,6 +2387,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         return sizeBytes > 0L
                 ? getString(R.string.profile_backup_size_format, formatBackupSize(sizeBytes))
                 : getString(R.string.profile_backup_size_unavailable);
+    }
+
+    private String formatCalculatingSizeSummary(int stringResource) {
+        int dotCount = (int) ((System.currentTimeMillis() / 1_000L) % 3L) + 1;
+        String dots = dotCount == 1 ? "." : dotCount == 2 ? ".." : "...";
+        return getString(stringResource, dots);
     }
 
     private String formatRestoreSummary(long timestamp) {
