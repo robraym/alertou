@@ -248,13 +248,10 @@ public class AlertsActivity extends AlertouActivity {
             return;
         }
 
-        NumberFormat amountFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
-        amountFormat.setMinimumFractionDigits(2);
-        amountFormat.setMaximumFractionDigits(2);
         NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         for (int index = 0; index < interests.size(); index++) {
             Interest interest = interests.get(index);
-            LinearLayout row = createInterestRow(interest, amountFormat, currencyFormat);
+            LinearLayout row = createInterestRow(interest, currencyFormat);
             ImageButton edit = createEditInterestButton();
             edit.setOnClickListener(view -> {
                 if (interest.isProperty()) {
@@ -407,8 +404,7 @@ public class AlertsActivity extends AlertouActivity {
                 .show();
     }
 
-    private LinearLayout createInterestRow(Interest interest, NumberFormat amountFormat,
-                                           NumberFormat currencyFormat) {
+    private LinearLayout createInterestRow(Interest interest, NumberFormat currencyFormat) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -418,7 +414,7 @@ public class AlertsActivity extends AlertouActivity {
 
         if (interest.isCoupon()) {
             TextView label = createInterestText();
-            String amount = amountFormat.format(interest.getMaximumPrice());
+            String amount = currencyFormat.format(interest.getMaximumPrice());
             label.setText(withValuePrimary(getString(
                     R.string.coupon_interest_single_line,
                     amount), amount));

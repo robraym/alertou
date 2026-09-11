@@ -473,14 +473,14 @@
     <string name="interest_dialog_edit_title">Editar alerta de preço</string>
     <string name="interest_dialog_summary">Informe o produto e o valor máximo para receber aviso.</string>
     <string name="interest_term_hint">Produto ou palavra-chave</string>
-    <string name="interest_price_hint">Preço máximo em reais</string>
+    <string name="interest_price_hint">Preço máximo</string>
     <string name="interest_term_required">Informe o que você procura</string>
     <string name="interest_price_required">Informe um preço máximo válido</string>
     <string name="coupon_dialog_title">Novo alerta de cupom</string>
     <string name="coupon_dialog_edit_title">Editar alerta de cupom</string>
     <string name="coupon_dialog_summary">Página monitorada e valor mínimo para avisar.</string>
     <string name="coupon_url_hint">Link da página de cupons</string>
-    <string name="coupon_minimum_value_hint">Valor mínimo do cupom em reais</string>
+    <string name="coupon_minimum_value_hint">Valor mínimo do cupom</string>
     <string name="coupon_url_required">Informe o link da página de cupons</string>
     <string name="coupon_url_unsupported">No momento, use a página oficial de cupons da Motorola</string>
     <string name="coupon_value_required">Informe um valor mínimo válido</string>
