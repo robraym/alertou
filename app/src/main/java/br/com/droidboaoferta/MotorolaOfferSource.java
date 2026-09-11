@@ -64,6 +64,10 @@ final class MotorolaOfferSource {
         return preferences(context).getLong(KEY_LAST_SUCCESS, 0L);
     }
 
+    static long getLastFailedCheckAt(Context context) {
+        return preferences(context).getLong(KEY_LAST_FAILURE, 0L);
+    }
+
     static int getCheckIntervalMinutes(Context context) {
         return getCheckIntervalSeconds(context) / 60;
     }

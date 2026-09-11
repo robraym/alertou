@@ -529,7 +529,7 @@ public class AlertsActivity extends AlertouActivity {
         button.setScaleType(ImageView.ScaleType.CENTER);
         button.setPadding(dp(6), dp(6), dp(6), dp(6));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(28), dp(28));
-        params.leftMargin = dp(2);
+        params.leftMargin = dp(8);
         params.rightMargin = dp(8);
         button.setLayoutParams(params);
         return button;

@@ -41,9 +41,14 @@ final class PelandoMonitor {
     synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean started = scheduler.isStarted();
-        start(context);
-        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, () -> checkAllSafely(true));
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                    PelandoSource.getCheckIntervalSeconds(appContext)), () -> checkAllSafely(true));
+            return;
+        }
+        scheduler.request(0, () -> checkAllSafely(true));
     }
 
     synchronized void checkInterestNow(Context context, long interestId) {
@@ -88,6 +93,7 @@ final class PelandoMonitor {
         if (!MonitorRunPolicy.canRun(context) || !PelandoSource.isConfigured(context)) {
             return;
         }
+        StoreSourceCheckStatus.begin(context, R.string.pelando_source_title);
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         FeedRetryState retry = new FeedRetryState(preferences);
         boolean retryDetails = retry.needsRetry();
@@ -174,6 +180,7 @@ final class PelandoMonitor {
         } catch (Exception ignored) {
             PelandoSource.markFailedCheck(context);
         } finally {
+            StoreSourceCheckStatus.finish(context, R.string.pelando_source_title);
             context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
                     .setPackage(context.getPackageName()));
         }

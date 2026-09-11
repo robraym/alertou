@@ -42,9 +42,14 @@ final class KabumOfferMonitor {
     synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean started = scheduler.isStarted();
-        start(context);
-        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, () -> checkAllSafely(true));
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                    KabumOfferSource.getCheckIntervalSeconds(appContext)), () -> checkAllSafely(true));
+            return;
+        }
+        scheduler.request(0, () -> checkAllSafely(true));
     }
 
     synchronized void checkInterestNow(Context context, long interestId) {
@@ -89,6 +94,7 @@ final class KabumOfferMonitor {
         if (!MonitorRunPolicy.canRun(context) || !KabumOfferSource.isConfigured(context)) {
             return;
         }
+        StoreSourceCheckStatus.begin(context, R.string.kabum_offer_source_title);
         try {
             List<ExternalProductDeal> deals = KabumOfferClient.fetchOffers(
                     KabumOfferSource.getUrl(context)
@@ -152,6 +158,7 @@ final class KabumOfferMonitor {
         } catch (Exception ignored) {
             KabumOfferSource.markFailedCheck(context);
         } finally {
+            StoreSourceCheckStatus.finish(context, R.string.kabum_offer_source_title);
             context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
                     .setPackage(context.getPackageName()));
         }

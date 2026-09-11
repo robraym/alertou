@@ -207,12 +207,13 @@
             android:paddingEnd="0dp"
             android:paddingBottom="3dp">
 
-            <ImageView
+            <ImageButton
+                android:id="@+id/image_store_sources"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_marginEnd="8dp"
                 android:background="@drawable/bg_icon_circle"
-                android:contentDescription="@string/vivo_outlet_sources_title"
+                android:contentDescription="@string/action_refresh_store_sources"
                 android:padding="7dp"
                 android:src="@drawable/ic_offer_tag" />
 
@@ -254,6 +255,16 @@
                         android:visibility="gone" />
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/text_store_sources_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="2"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11.5sp"
+                    android:visibility="gone" />
+
             </LinearLayout>
 
             <ImageButton
@@ -287,7 +298,7 @@
                 android:id="@+id/button_vivo_outlet_edit"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/vivo_outlet_edit_link"
                 android:padding="6dp"
@@ -361,7 +372,7 @@
                 android:id="@+id/button_vivo_madrugada_edit"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/vivo_madrugada_edit_link"
                 android:padding="6dp"
@@ -435,7 +446,7 @@
                 android:id="@+id/button_pelando_edit"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/pelando_edit_link"
                 android:padding="6dp"
@@ -509,7 +520,7 @@
                 android:id="@+id/button_promobit_edit"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/promobit_edit_link"
                 android:padding="6dp"
@@ -583,7 +594,7 @@
                 android:id="@+id/button_kabum_offer_edit"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/kabum_offer_edit_link"
                 android:padding="6dp"
@@ -657,7 +668,7 @@
                 android:id="@+id/button_motorola_offer_open"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:layout_marginStart="2dp"
+                android:layout_marginStart="8dp"
                 android:background="@android:color/transparent"
                 android:contentDescription="@string/motorola_offer_open_link"
                 android:padding="6dp"

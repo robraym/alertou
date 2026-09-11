@@ -106,6 +106,10 @@ final class VivoMadrugadaSource {
         return preferences(context).getLong(LAST_SUCCESS, 0L);
     }
 
+    static long getLastFailedCheckAt(Context context) {
+        return preferences(context).getLong(LAST_FAILURE, 0L);
+    }
+
     static long getLastCheckAt(Context context) {
         SharedPreferences preferences = preferences(context);
         return Math.max(preferences.getLong(LAST_SUCCESS, 0L),

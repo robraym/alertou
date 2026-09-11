@@ -27,6 +27,8 @@
     <string name="telegram_groups_card_title">Telegram</string>
     <string name="vivo_outlet_source_title">Outlet Vivo</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
+    <string name="store_sources_checking">Atualizando %1$s…</string>
+    <string name="store_sources_failed">%1$s falhou em %2$s\nÚltima válida: %3$s</string>
     <string name="source_status_dot">●</string>
     <string name="source_status_dot_online">● %1$d Online</string>
     <string name="source_status_dot_offline">● %1$d Offline</string>
@@ -269,6 +271,9 @@
     <string name="property_market_reference_source">%1$s • %2$s m²</string>
     <string name="property_market_reference_content_description">Imóveis em oferta, não são alertas</string>
     <string name="property_market_reference_section_summary">Atualizado %1$s, %2$s</string>
+    <string name="check_duration_append">%1$s · %2$s</string>
+    <string name="check_duration_seconds">%1$d s</string>
+    <string name="check_duration_minutes_seconds">%1$d min %2$d s</string>
     <string name="property_market_reference_section_updating">Atualizando imóveis agora…</string>
     <string name="property_market_reference_section_updating_property">Atualizando %1$s · %2$s…</string>
     <string name="profile_check_interval_summary">Consulta a cada %1$s</string>
@@ -279,6 +284,7 @@
     <string name="profile_check_interval_hours">%1$d horas</string>
     <string name="property_market_reference_price_updating">Atualizando</string>
     <string name="action_refresh_property_market_prices">Atualizar preços dos imóveis</string>
+    <string name="action_refresh_store_sources">Atualizar lojas agora</string>
     <string name="alert_sound_dialog_title">Som dos alertas</string>
     <string name="alert_sound_custom_section">Seus sons</string>
     <string name="alert_sound_builtin_section">Sons do Alertou</string>

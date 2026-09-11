@@ -581,11 +581,13 @@ public class MainActivity extends AlertouActivity {
         sectionAction.setPadding(dp(7), dp(7), dp(7), dp(7));
         sectionAction.setScaleType(ImageView.ScaleType.CENTER);
         if (propertyMarketSection) {
-            sectionAction.setImageResource(R.drawable.ic_sync);
+            boolean updatingPropertyMarket = isPropertyMarketUpdating();
+            sectionAction.setImageResource(updatingPropertyMarket
+                    ? R.drawable.ic_sync : R.drawable.ic_property_alert);
             sectionAction.setBackgroundResource(R.drawable.bg_icon_circle);
             sectionAction.setContentDescription(getString(R.string.action_refresh_property_market_prices));
             sectionAction.setOnClickListener(view -> refreshPropertyMarketPrices());
-            if (isPropertyMarketUpdating()) {
+            if (updatingPropertyMarket) {
                 animatePropertyMarketRefreshIcon(sectionAction);
             }
         } else {
@@ -802,11 +804,21 @@ public class MainActivity extends AlertouActivity {
         for (ObservedOffer offer : offers) {
             lastCheck = Math.max(lastCheck, offer.getObservedAt());
         }
-        return lastCheck > 0L
-                ? getString(R.string.property_market_reference_section_summary,
-                        OfferDateFormatter.formatGroupLabel(this, lastCheck),
-                        OfferDateFormatter.formatTime(lastCheck))
-                : "";
+        if (lastCheck <= 0L) return "";
+        String summary = getString(R.string.property_market_reference_section_summary,
+                OfferDateFormatter.formatGroupLabel(this, lastCheck),
+                OfferDateFormatter.formatTime(lastCheck));
+        return appendCheckDuration(summary,
+                PropertyPageMonitor.getLastMarketCheckDurationMillis(this));
+    }
+
+    private String appendCheckDuration(String summary, long durationMillis) {
+        if (durationMillis <= 0L) return summary;
+        long seconds = Math.max(1L, Math.round(durationMillis / 1000d));
+        String duration = seconds < 60L
+                ? getString(R.string.check_duration_seconds, seconds)
+                : getString(R.string.check_duration_minutes_seconds, seconds / 60L, seconds % 60L);
+        return getString(R.string.check_duration_append, summary, duration);
     }
 
     private String getPropertyMarketUpdatingSummary(List<ObservedOffer> offers,

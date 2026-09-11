@@ -79,6 +79,10 @@ final class KabumOfferSource {
         return preferences(context).getLong(KEY_LAST_SUCCESS, 0L);
     }
 
+    static long getLastFailedCheckAt(Context context) {
+        return preferences(context).getLong(KEY_LAST_FAILURE, 0L);
+    }
+
     static int getCheckIntervalSeconds(Context context) {
         int saved = preferences(context).getInt(
                 KEY_CHECK_INTERVAL_SECONDS,

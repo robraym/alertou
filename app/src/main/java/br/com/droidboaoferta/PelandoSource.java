@@ -83,6 +83,10 @@ final class PelandoSource {
         return preferences(context).getLong(KEY_LAST_SUCCESS, 0L);
     }
 
+    static long getLastFailedCheckAt(Context context) {
+        return preferences(context).getLong(KEY_LAST_FAILURE, 0L);
+    }
+
     static String getLastModified(Context context) {
         return preferences(context).getString(KEY_LAST_MODIFIED, "");
     }

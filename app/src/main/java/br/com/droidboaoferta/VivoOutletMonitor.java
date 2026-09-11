@@ -41,11 +41,14 @@ final class VivoOutletMonitor {
     synchronized void stop() { scheduler.stop(); }
 
     synchronized void checkNow(Context context) {
-        boolean started = scheduler.isStarted();
-        start(context);
-        if (started && MonitorRunPolicy.canRun(context)) {
-            scheduler.request(0, () -> checkSafely(0L, true));
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely, TimeUnit.SECONDS.toMillis(
+                    getShortestCheckIntervalSeconds(appContext)), () -> checkSafely(0L, true));
+            return;
         }
+        scheduler.request(0, () -> checkSafely(0L, true));
     }
 
     synchronized void checkInterestNow(Context context, long interestId) {
@@ -127,6 +130,9 @@ final class VivoOutletMonitor {
     private boolean checkSource(Context context, String sourceUrl, String preferencePrefix,
                                 String offerPrefix, int sourceResource, boolean outlet,
                                 long interestId) {
+        int sourceTitle = outlet ? R.string.vivo_outlet_source_title
+                : R.string.vivo_madrugada_source_title;
+        StoreSourceCheckStatus.begin(context, sourceTitle);
         try {
             List<VivoOutletProduct> products = VivoOutletClient.fetchProducts(sourceUrl);
             if (products.isEmpty()) {
@@ -185,6 +191,8 @@ final class VivoOutletMonitor {
             else VivoMadrugadaSource.markFailedCheck(context);
             // Mantém a última leitura válida se a loja estiver indisponível temporariamente.
             return false;
+        } finally {
+            StoreSourceCheckStatus.finish(context, sourceTitle);
         }
     }
 

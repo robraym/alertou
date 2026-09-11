@@ -43,9 +43,14 @@ final class MotorolaOfferMonitor {
     }
 
     synchronized void checkNow(Context context) {
-        boolean started = scheduler.isStarted();
-        start(context);
-        if (started && MonitorRunPolicy.canRun(context)) scheduler.request(0, () -> checkAllSafely(true));
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        if (!scheduler.isStarted()) {
+            scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                    MotorolaOfferSource.getCheckIntervalSeconds(appContext)), () -> checkAllSafely(true));
+            return;
+        }
+        scheduler.request(0, () -> checkAllSafely(true));
     }
 
     synchronized void checkInterestNow(Context context, long interestId) {
@@ -84,6 +89,7 @@ final class MotorolaOfferMonitor {
     private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context) || !MotorolaOfferSource.isConfigured(context)) return;
+        StoreSourceCheckStatus.begin(context, R.string.motorola_offer_source_title);
         try {
             List<ExternalProductDeal> deals = MotorolaOfferClient.fetchOffers();
             if (deals.isEmpty()) throw new IllegalStateException("No Motorola offers");
@@ -124,6 +130,7 @@ final class MotorolaOfferMonitor {
         } catch (Exception ignored) {
             MotorolaOfferSource.markFailedCheck(context);
         } finally {
+            StoreSourceCheckStatus.finish(context, R.string.motorola_offer_source_title);
             context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED).setPackage(context.getPackageName()));
         }
     }

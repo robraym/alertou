@@ -5,6 +5,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.SystemClock;
+import android.content.SharedPreferences;
 import android.net.Uri;
 
 import androidx.core.app.NotificationCompat;
@@ -23,6 +25,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 final class PropertyPageMonitor {
+    private static final String STATUS_PREFS = "property_market_check_status";
+    private static final String KEY_LAST_DURATION = "last_duration";
     private static final String PREFS = "property_page_monitor";
     private static final String NOTIFIED_PRICES_PREFIX = "notified_prices_";
     private static final double PRICE_VERIFICATION_MARGIN = 1.10d;
@@ -135,6 +139,7 @@ final class PropertyPageMonitor {
         if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
+        long marketCheckStartedAt = includeMarketReferences ? SystemClock.elapsedRealtime() : 0L;
         if (includeMarketReferences) {
             marketReferencesRunning = true;
             checkingMarketReferenceInterestId = 0L;
@@ -171,12 +176,24 @@ final class PropertyPageMonitor {
                 .setPackage(context.getPackageName()));
         } finally {
             if (includeMarketReferences) {
+                saveLastMarketCheckDuration(context,
+                        Math.max(0L, SystemClock.elapsedRealtime() - marketCheckStartedAt));
                 checkingMarketReferenceInterestId = 0L;
                 marketReferencesRunning = false;
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
             }
         }
+    }
+
+    static long getLastMarketCheckDurationMillis(Context context) {
+        return context.getApplicationContext().getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
+                .getLong(KEY_LAST_DURATION, 0L);
+    }
+
+    private static void saveLastMarketCheckDuration(Context context, long durationMillis) {
+        context.getApplicationContext().getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
+                .edit().putLong(KEY_LAST_DURATION, durationMillis).apply();
     }
 
     private List<Interest> orderPropertyInterests(List<Interest> interests,

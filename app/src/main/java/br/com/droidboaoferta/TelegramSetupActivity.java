@@ -1,5 +1,6 @@
 package br.com.droidboaoferta;
 
+import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.app.Dialog;
@@ -33,6 +34,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.LinearInterpolator;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
@@ -40,6 +42,7 @@ import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -117,6 +120,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private ImageButton storeSourcesToggle;
     private TextView storeSourcesOnlineText;
     private TextView storeSourcesOfflineText;
+    private TextView storeSourcesSummaryText;
+    private ImageView storeSourcesIcon;
+    private ObjectAnimator storeSourcesRefreshAnimator;
+    private final List<String> manualStoreRefreshQueue = new ArrayList<>();
+    private String manualStoreRefreshAction;
     private ImageButton telegramGroupsToggle;
     private TextView vivoOutletSourceRow;
     private TextView vivoOutletSourceState;
@@ -177,6 +185,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             renderPromobitSource();
             renderKabumOfferSource();
             renderMotorolaOfferSource();
+            finishManualStoreStep(intent == null ? null : intent.getAction());
         }
     };
     private final BroadcastReceiver smsVerificationReceiver = new BroadcastReceiver() {
@@ -238,6 +247,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         storeSourcesToggle = findViewById(R.id.button_toggle_store_sources);
         storeSourcesOnlineText = findViewById(R.id.text_store_sources_online);
         storeSourcesOfflineText = findViewById(R.id.text_store_sources_offline);
+        storeSourcesSummaryText = findViewById(R.id.text_store_sources_summary);
+        storeSourcesIcon = findViewById(R.id.image_store_sources);
         telegramGroupsToggle = findViewById(R.id.button_toggle_telegram_groups);
         vivoOutletSourceRow = findViewById(R.id.text_vivo_outlet_source_row);
         vivoOutletSourceState = findViewById(R.id.text_vivo_outlet_source_state);
@@ -271,6 +282,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 storeSourcesContainer,
                 PREF_STORE_SOURCES_EXPANDED
         );
+        storeSourcesIcon.setOnClickListener(view -> refreshStoreSources());
         View.OnClickListener groupsToggleListener = view -> toggleTelegramGroupsSection();
         findViewById(R.id.header_telegram_groups).setOnClickListener(groupsToggleListener);
         telegramGroupsToggle.setOnClickListener(groupsToggleListener);
@@ -407,6 +419,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             sourceStatusFilter.addAction(PromobitMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(KabumOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(MotorolaOfferMonitor.ACTION_STATUS_CHANGED);
+            sourceStatusFilter.addAction(StoreSourceCheckStatus.ACTION_CHANGED);
             ContextCompat.registerReceiver(
                     this,
                     cloudSyncReceiver,
@@ -948,6 +961,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             });
             boolean hasAward = groupAwards != null && groupAwards.getChampionships() > 0;
             LinearLayout.LayoutParams checkBoxParams = new LinearLayout.LayoutParams(dp(32), dp(32));
+            checkBoxParams.leftMargin = dp(14);
             checkBoxParams.topMargin = dp(3);
             row.addView(checkBox, checkBoxParams);
             LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
@@ -1470,7 +1484,19 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     }
 
     private void renderStoreSourcesStatus() {
-        if (storeSourcesOnlineText == null || storeSourcesOfflineText == null) {
+        if (storeSourcesOnlineText == null || storeSourcesOfflineText == null
+                || storeSourcesSummaryText == null) {
+            return;
+        }
+        int checkingSource = StoreSourceCheckStatus.getCurrentSourceTitleResource();
+        renderStoreSourcesIcon(checkingSource != 0);
+        if (checkingSource != 0) {
+            storeSourcesOnlineText.setVisibility(View.GONE);
+            storeSourcesOfflineText.setVisibility(View.GONE);
+            storeSourcesSummaryText.setText(getString(R.string.store_sources_checking,
+                    getString(checkingSource)));
+            storeSourcesSummaryText.setTextColor(getColor(R.color.action));
+            storeSourcesSummaryText.setVisibility(View.VISIBLE);
             return;
         }
         boolean outletConfigured = VivoOutletSource.isConfigured(this);
@@ -1494,6 +1520,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 MotorolaOfferSource.hasSuccessfulCheck(this), MotorolaOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
         storeSourcesOnlineText.setText(getString(R.string.source_status_dot_online, online));
         storeSourcesOnlineText.setTextColor(getColor(R.color.action));
+        storeSourcesOnlineText.setVisibility(View.VISIBLE);
         int offline = 6 - online;
         if (offline > 0) {
             storeSourcesOfflineText.setText(getString(R.string.source_status_dot_offline, offline));
@@ -1502,10 +1529,132 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);
         }
+        StoreSourceFailure failure = getLatestStoreSourceFailure();
+        if (failure == null) {
+            storeSourcesSummaryText.setVisibility(View.GONE);
+        } else {
+            storeSourcesSummaryText.setText(getString(R.string.store_sources_failed,
+                    getString(failure.sourceTitleResource),
+                    formatSourceCheckTime(failure.failedAt),
+                    formatSourceCheckTime(failure.lastSuccessfulAt)));
+            storeSourcesSummaryText.setTextColor(getColor(R.color.danger));
+            storeSourcesSummaryText.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private StoreSourceFailure getLatestStoreSourceFailure() {
+        StoreSourceFailure latest = null;
+        latest = newestStoreSourceFailure(latest, R.string.vivo_outlet_source_title,
+                VivoOutletSource.isConfigured(this) && VivoOutletSource.hasLastCheckFailed(this),
+                VivoOutletSource.getLastFailedCheckAt(this),
+                VivoOutletSource.getLastSuccessfulCheckAt(this));
+        latest = newestStoreSourceFailure(latest, R.string.vivo_madrugada_source_title,
+                VivoMadrugadaSource.isConfigured(this) && VivoMadrugadaSource.hasLastCheckFailed(this),
+                VivoMadrugadaSource.getLastFailedCheckAt(this),
+                VivoMadrugadaSource.getLastSuccessfulCheckAt(this));
+        latest = newestStoreSourceFailure(latest, R.string.pelando_source_title,
+                PelandoSource.isConfigured(this) && PelandoSource.hasLastCheckFailed(this),
+                PelandoSource.getLastFailedCheckAt(this),
+                PelandoSource.getLastSuccessfulCheckAt(this));
+        latest = newestStoreSourceFailure(latest, R.string.promobit_source_title,
+                PromobitSource.isConfigured(this) && PromobitSource.hasLastCheckFailed(this),
+                PromobitSource.getLastFailedCheckAt(this),
+                PromobitSource.getLastSuccessfulCheckAt(this));
+        latest = newestStoreSourceFailure(latest, R.string.kabum_offer_source_title,
+                KabumOfferSource.isConfigured(this) && KabumOfferSource.hasLastCheckFailed(this),
+                KabumOfferSource.getLastFailedCheckAt(this),
+                KabumOfferSource.getLastSuccessfulCheckAt(this));
+        return newestStoreSourceFailure(latest, R.string.motorola_offer_source_title,
+                MotorolaOfferSource.hasLastCheckFailed(this), MotorolaOfferSource.getLastFailedCheckAt(this),
+                MotorolaOfferSource.getLastSuccessfulCheckAt(this));
+    }
+
+    private StoreSourceFailure newestStoreSourceFailure(StoreSourceFailure current,
+                                                         int sourceTitleResource, boolean failed,
+                                                         long failedAt, long lastSuccessfulAt) {
+        if (!failed || failedAt <= 0L || current != null && current.failedAt >= failedAt) {
+            return current;
+        }
+        return new StoreSourceFailure(sourceTitleResource, failedAt, lastSuccessfulAt);
+    }
+
+    private static final class StoreSourceFailure {
+        final int sourceTitleResource;
+        final long failedAt;
+        final long lastSuccessfulAt;
+
+        StoreSourceFailure(int sourceTitleResource, long failedAt, long lastSuccessfulAt) {
+            this.sourceTitleResource = sourceTitleResource;
+            this.failedAt = failedAt;
+            this.lastSuccessfulAt = lastSuccessfulAt;
+        }
     }
 
     private boolean isSourceOnline(boolean configured, boolean hasSuccessfulCheck, boolean failed) {
         return configured && hasSuccessfulCheck && !failed;
+    }
+
+    private void renderStoreSourcesIcon(boolean checking) {
+        if (storeSourcesIcon == null) return;
+        if (!checking) {
+            if (storeSourcesRefreshAnimator != null) storeSourcesRefreshAnimator.cancel();
+            storeSourcesIcon.setRotation(0f);
+            storeSourcesIcon.setImageResource(R.drawable.ic_offer_tag);
+            return;
+        }
+        storeSourcesIcon.setImageResource(R.drawable.ic_sync);
+        if (storeSourcesRefreshAnimator != null && storeSourcesRefreshAnimator.isRunning()) return;
+        storeSourcesIcon.setRotation(0f);
+        storeSourcesRefreshAnimator = ObjectAnimator.ofFloat(
+                storeSourcesIcon, View.ROTATION, 0f, 360f
+        );
+        storeSourcesRefreshAnimator.setDuration(900L);
+        storeSourcesRefreshAnimator.setInterpolator(new LinearInterpolator());
+        storeSourcesRefreshAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        storeSourcesRefreshAnimator.start();
+    }
+
+    private void refreshStoreSources() {
+        if (manualStoreRefreshAction != null || !MonitorRunPolicy.canRun(this)) return;
+        manualStoreRefreshQueue.clear();
+        if (VivoOutletSource.isConfigured(this) || VivoMadrugadaSource.isConfigured(this)) {
+            manualStoreRefreshQueue.add(VivoOutletMonitor.ACTION_STATUS_CHANGED);
+        }
+        if (PelandoSource.isConfigured(this)) {
+            manualStoreRefreshQueue.add(PelandoMonitor.ACTION_STATUS_CHANGED);
+        }
+        if (PromobitSource.isConfigured(this)) {
+            manualStoreRefreshQueue.add(PromobitMonitor.ACTION_STATUS_CHANGED);
+        }
+        if (KabumOfferSource.isConfigured(this)) {
+            manualStoreRefreshQueue.add(KabumOfferMonitor.ACTION_STATUS_CHANGED);
+        }
+        if (MotorolaOfferSource.isConfigured(this)) {
+            manualStoreRefreshQueue.add(MotorolaOfferMonitor.ACTION_STATUS_CHANGED);
+        }
+        startNextManualStoreStep();
+    }
+
+    private void finishManualStoreStep(String completedAction) {
+        if (manualStoreRefreshAction == null || !manualStoreRefreshAction.equals(completedAction)) return;
+        manualStoreRefreshAction = null;
+        startNextManualStoreStep();
+    }
+
+    private void startNextManualStoreStep() {
+        if (manualStoreRefreshAction != null || manualStoreRefreshQueue.isEmpty()) return;
+        manualStoreRefreshAction = manualStoreRefreshQueue.remove(0);
+        if (VivoOutletMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
+            VivoOutletMonitor.getInstance().checkNow(this);
+        } else if (PelandoMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
+            PelandoMonitor.getInstance().checkNow(this);
+        } else if (PromobitMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
+            PromobitMonitor.getInstance().checkNow(this);
+        } else if (KabumOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
+            KabumOfferMonitor.getInstance().checkNow(this);
+        } else if (MotorolaOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
+            MotorolaOfferMonitor.getInstance().checkNow(this);
+        }
     }
 
     private void applyStatusChip(TextView view, boolean online) {
@@ -1984,12 +2133,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.vivo_outlet_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.vivo_outlet_source_check_pending)));
-        vivoOutletSourceRow.setText(sourceStatus);
+        vivoOutletSourceRow.setText(appendStoreCheckDuration(sourceStatus,
+                R.string.vivo_outlet_source_title));
         renderSourceState(vivoOutletSourceState, configured,
                 VivoOutletSource.hasSuccessfulCheck(this), offline);
         vivoOutletEditButton.setContentDescription(getString(configured
                 ? R.string.vivo_outlet_edit_link
                 : R.string.vivo_outlet_add_link));
+        renderStoreSourceRowState(vivoOutletSourceRow, R.string.vivo_outlet_source_title, offline);
         renderStoreSourcesStatus();
     }
 
@@ -1997,16 +2148,19 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         boolean configured = VivoMadrugadaSource.isConfigured(this);
         boolean offline = VivoMadrugadaSource.hasLastCheckFailed(this);
         long lastSuccessfulCheck = VivoMadrugadaSource.getLastSuccessfulCheckAt(this);
-        vivoMadrugadaSourceRow.setText(offline
+        vivoMadrugadaSourceRow.setText(appendStoreCheckDuration(offline
                 ? getString(R.string.vivo_madrugada_source_check_failed,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : (VivoMadrugadaSource.hasSuccessfulCheck(this)
                 ? getString(R.string.vivo_madrugada_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
-                : getString(R.string.vivo_madrugada_source_check_pending)));
+                : getString(R.string.vivo_madrugada_source_check_pending)),
+                R.string.vivo_madrugada_source_title));
         renderSourceState(vivoMadrugadaSourceState, configured,
                 VivoMadrugadaSource.hasSuccessfulCheck(this), offline);
         vivoMadrugadaEditButton.setContentDescription(getString(R.string.vivo_madrugada_edit_link));
+        renderStoreSourceRowState(vivoMadrugadaSourceRow,
+                R.string.vivo_madrugada_source_title, offline);
         renderStoreSourcesStatus();
     }
 
@@ -2024,12 +2178,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.pelando_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.pelando_source_check_pending)));
-        pelandoSourceRow.setText(sourceStatus);
+        pelandoSourceRow.setText(appendStoreCheckDuration(sourceStatus,
+                R.string.pelando_source_title));
         renderSourceState(pelandoSourceState, configured,
                 PelandoSource.hasSuccessfulCheck(this), offline);
         pelandoEditButton.setContentDescription(getString(configured
                 ? R.string.pelando_edit_link
                 : R.string.pelando_add_link));
+        renderStoreSourceRowState(pelandoSourceRow, R.string.pelando_source_title, offline);
         renderStoreSourcesStatus();
     }
 
@@ -2047,12 +2203,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.promobit_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.promobit_source_check_pending)));
-        promobitSourceRow.setText(sourceStatus);
+        promobitSourceRow.setText(appendStoreCheckDuration(sourceStatus,
+                R.string.promobit_source_title));
         renderSourceState(promobitSourceState, configured,
                 PromobitSource.hasSuccessfulCheck(this), offline);
         promobitEditButton.setContentDescription(getString(configured
                 ? R.string.promobit_edit_link
                 : R.string.promobit_add_link));
+        renderStoreSourceRowState(promobitSourceRow, R.string.promobit_source_title, offline);
         renderStoreSourcesStatus();
     }
 
@@ -2070,12 +2228,15 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.kabum_offer_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.kabum_offer_source_check_pending)));
-        kabumOfferSourceRow.setText(sourceStatus);
+        kabumOfferSourceRow.setText(appendStoreCheckDuration(sourceStatus,
+                R.string.kabum_offer_source_title));
         renderSourceState(kabumOfferSourceState, configured,
                 KabumOfferSource.hasSuccessfulCheck(this), offline);
         kabumOfferEditButton.setContentDescription(getString(configured
                 ? R.string.kabum_offer_edit_link
                 : R.string.kabum_offer_add_link));
+        renderStoreSourceRowState(kabumOfferSourceRow,
+                R.string.kabum_offer_source_title, offline);
         renderStoreSourcesStatus();
     }
 
@@ -2089,10 +2250,13 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.motorola_offer_source_check_succeeded,
                 formatSourceCheckTime(lastSuccessfulCheck))
                 : getString(R.string.motorola_offer_source_check_pending));
-        motorolaOfferSourceRow.setText(sourceStatus);
+        motorolaOfferSourceRow.setText(appendStoreCheckDuration(sourceStatus,
+                R.string.motorola_offer_source_title));
         renderSourceState(motorolaOfferSourceState, true,
                 MotorolaOfferSource.hasSuccessfulCheck(this), offline);
         motorolaOfferOpenButton.setContentDescription(getString(R.string.motorola_offer_open_link));
+        renderStoreSourceRowState(motorolaOfferSourceRow,
+                R.string.motorola_offer_source_title, offline);
         renderStoreSourcesStatus();
     }
 
@@ -2100,6 +2264,30 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                                    boolean hasSuccessfulCheck, boolean offline) {
         boolean online = configured && !offline && hasSuccessfulCheck;
         applyStatusDot(view, online);
+    }
+
+    private String appendStoreCheckDuration(String status, int sourceTitleResource) {
+        long durationMillis = StoreSourceCheckStatus.getLastDurationMillis(this, sourceTitleResource);
+        if (durationMillis <= 0L || status.startsWith(getString(R.string.vivo_outlet_source_check_pending))) {
+            return status;
+        }
+        long seconds = Math.max(1L, Math.round(durationMillis / 1000d));
+        String duration = seconds < 60L
+                ? getString(R.string.check_duration_seconds, seconds)
+                : getString(R.string.check_duration_minutes_seconds, seconds / 60L, seconds % 60L);
+        return getString(R.string.check_duration_append, status, duration);
+    }
+
+    private void renderStoreSourceRowState(TextView summary, int sourceTitleResource,
+                                           boolean failed) {
+        boolean checking = StoreSourceCheckStatus.isCurrent(sourceTitleResource);
+        if (!checking) {
+            summary.setTextColor(getColor(failed ? R.color.danger : R.color.text_secondary));
+            return;
+        }
+        summary.setText(getString(R.string.store_sources_checking,
+                getString(sourceTitleResource)));
+        summary.setTextColor(getColor(R.color.action));
     }
 
     private void applyStatusDot(TextView view, boolean online) {
