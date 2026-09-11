@@ -24,7 +24,7 @@
     <string name="app_status_last_check">Última consulta: %1$s</string>
     <string name="app_status_scope">Fontes usadas pelos seus alertas. Sites são consultados em intervalos; o status considera a última consulta.</string>
     <string name="telegram_setup_screen_title">Fontes</string>
-    <string name="telegram_groups_card_title">Grupos do Telegram</string>
+    <string name="telegram_groups_card_title">Telegram</string>
     <string name="vivo_outlet_source_title">Outlet Vivo</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
     <string name="source_status_dot">●</string>
@@ -132,7 +132,7 @@
     <string name="telegram_password_hint">Senha do Telegram</string>
     <string name="telegram_status_connected">Telegram conectado</string>
     <string name="telegram_groups_message">Escolha os grupos e canais de promoções que o Alertou poderá acompanhar.</string>
-    <string name="telegram_groups_refreshing">Atualizando grupos do Telegram...</string>
+    <string name="telegram_groups_refreshing">Atualizando telegram...</string>
     <string name="telegram_no_groups">Nenhum grupo ou canal foi encontrado na lista principal.</string>
     <string name="telegram_status_disconnected">Telegram desconectado</string>
     <string name="telegram_disconnected_message">A sessão foi encerrada. Abra esta tela novamente para reconectar. Seus dados locais continuam guardados.</string>
@@ -206,7 +206,7 @@
     <string name="coupon_alerts_list_title">Cupons</string>
     <string name="product_alerts_list_title">Produtos</string>
     <string name="property_alerts_list_title">Imóveis</string>
-    <string name="property_market_alerts_list_title">Imóveis em destaque</string>
+    <string name="property_market_alerts_list_title">Imóveis</string>
     <string name="coupon_alerts_registered_count_empty">• nenhum cadastrado</string>
     <string name="price_alerts_registered_count_empty">• nenhum cadastrado</string>
     <string name="property_alerts_registered_count_empty">• nenhum cadastrado</string>

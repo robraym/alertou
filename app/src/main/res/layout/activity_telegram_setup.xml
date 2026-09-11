@@ -812,7 +812,7 @@
                             android:layout_marginTop="2dp"
                             android:text="@string/telegram_groups_count_empty"
                             android:textColor="@color/text_secondary"
-                            android:textSize="14sp" />
+                            android:textSize="11.5sp" />
 
                         <TextView
                             android:id="@+id/text_groups_evaluation"
