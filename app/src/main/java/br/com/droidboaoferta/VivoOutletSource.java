@@ -13,7 +13,9 @@ final class VivoOutletSource {
     private static final String KEY_LAST_SUCCESS = "vivo_outlet_last_success";
     private static final String KEY_LAST_FAILURE = "vivo_outlet_last_failure";
     private static final String KEY_CHECK_INTERVAL_MINUTES = "vivo_outlet_check_interval_minutes";
+    private static final String KEY_CHECK_INTERVAL_SECONDS = "vivo_outlet_check_interval_seconds";
     static final int DEFAULT_CHECK_INTERVAL_MINUTES = 15;
+    static final int DEFAULT_CHECK_INTERVAL_SECONDS = DEFAULT_CHECK_INTERVAL_MINUTES * 60;
 
     private VivoOutletSource() {
     }
@@ -109,9 +111,7 @@ final class VivoOutletSource {
     }
 
     static int getCheckIntervalMinutes(Context context) {
-        int saved = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getInt(KEY_CHECK_INTERVAL_MINUTES, DEFAULT_CHECK_INTERVAL_MINUTES);
-        return isSupportedCheckInterval(saved) ? saved : DEFAULT_CHECK_INTERVAL_MINUTES;
+        return getCheckIntervalSeconds(context) / 60;
     }
 
     static void saveCheckIntervalMinutes(Context context, int minutes) {
@@ -125,7 +125,35 @@ final class VivoOutletSource {
         SettingsBackup.changed(context);
     }
 
+    static int getCheckIntervalSeconds(Context context) {
+        SharedPreferences preferences = context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        int seconds = preferences.getInt(KEY_CHECK_INTERVAL_SECONDS, 0);
+        if (isSupportedCheckIntervalSeconds(seconds)) return seconds;
+        int legacyMinutes = preferences.getInt(KEY_CHECK_INTERVAL_MINUTES,
+                DEFAULT_CHECK_INTERVAL_MINUTES);
+        int migratedSeconds = legacyMinutes * 60;
+        return isSupportedCheckIntervalSeconds(migratedSeconds)
+                ? migratedSeconds : DEFAULT_CHECK_INTERVAL_SECONDS;
+    }
+
+    static void saveCheckIntervalSeconds(Context context, int seconds) {
+        if (!isSupportedCheckIntervalSeconds(seconds)) {
+            throw new IllegalArgumentException("Unsupported Vivo outlet check interval");
+        }
+        context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit().putInt(KEY_CHECK_INTERVAL_SECONDS, seconds).apply();
+        SettingsBackup.changed(context);
+    }
+
     static boolean isSupportedCheckInterval(int minutes) {
-        return minutes == 5 || minutes == 15 || minutes == 30 || minutes == 60;
+        return minutes == 5 || minutes == 15 || minutes == 30 || minutes == 60
+                || minutes == 360 || minutes == 720 || minutes == 1440;
+    }
+
+    static boolean isSupportedCheckIntervalSeconds(int seconds) {
+        return seconds == 30 || seconds == 60 || seconds == 120 || seconds == 300
+                || seconds == 900 || seconds == 1800 || seconds == 3600
+                || seconds == 21600 || seconds == 43200 || seconds == 86400;
     }
 }

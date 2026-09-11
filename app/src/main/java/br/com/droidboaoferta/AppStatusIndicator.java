@@ -81,7 +81,7 @@ final class AppStatusIndicator {
         }
         if (VivoOutletSource.isConfigured(activity)) addSite(rows, R.string.vivo_outlet_source_title,
                 VivoOutletSource.getLastSuccessfulCheckAt(activity), VivoOutletSource.hasLastCheckFailed(activity),
-                VivoOutletSource.getCheckIntervalMinutes(activity) * 60000L, price, running, monitorText);
+                VivoOutletSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
         if (PelandoSource.isConfigured(activity)) addSite(rows, R.string.pelando_source_title,
                 PelandoSource.getLastSuccessfulCheckAt(activity), PelandoSource.hasLastCheckFailed(activity),
                 PelandoSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
@@ -93,7 +93,7 @@ final class AppStatusIndicator {
                 KabumOfferSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
         if (MotorolaOfferSource.isConfigured(activity)) addSite(rows, R.string.motorola_offer_source_title,
                 MotorolaOfferSource.getLastSuccessfulCheckAt(activity), MotorolaOfferSource.hasLastCheckFailed(activity),
-                MotorolaOfferSource.getCheckIntervalMinutes(activity) * 60000L, price, running, monitorText);
+                MotorolaOfferSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
         SharedPreferences checks = activity.getSharedPreferences("source_check_status", Context.MODE_PRIVATE);
         for (Interest interest : interests) {
             if (!interest.isProperty() && !interest.isCoupon()) continue;

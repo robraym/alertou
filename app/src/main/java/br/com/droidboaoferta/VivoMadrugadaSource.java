@@ -12,7 +12,9 @@ final class VivoMadrugadaSource {
     private static final String LAST_SUCCESS = "vivo_madrugada_last_success";
     private static final String LAST_FAILURE = "vivo_madrugada_last_failure";
     private static final String KEY_CHECK_INTERVAL_MINUTES = "vivo_madrugada_check_interval_minutes";
+    private static final String KEY_CHECK_INTERVAL_SECONDS = "vivo_madrugada_check_interval_seconds";
     private static final int DEFAULT_CHECK_INTERVAL_MINUTES = 15;
+    private static final int DEFAULT_CHECK_INTERVAL_SECONDS = DEFAULT_CHECK_INTERVAL_MINUTES * 60;
 
     private VivoMadrugadaSource() { }
 
@@ -50,9 +52,7 @@ final class VivoMadrugadaSource {
     }
 
     static int getCheckIntervalMinutes(Context context) {
-        int interval = preferences(context).getInt(KEY_CHECK_INTERVAL_MINUTES,
-                DEFAULT_CHECK_INTERVAL_MINUTES);
-        return isSupportedCheckInterval(interval) ? interval : DEFAULT_CHECK_INTERVAL_MINUTES;
+        return getCheckIntervalSeconds(context) / 60;
     }
 
     static void saveCheckIntervalMinutes(Context context, int interval) {
@@ -63,8 +63,34 @@ final class VivoMadrugadaSource {
         SettingsBackup.changed(context);
     }
 
+    static int getCheckIntervalSeconds(Context context) {
+        SharedPreferences preferences = preferences(context);
+        int seconds = preferences.getInt(KEY_CHECK_INTERVAL_SECONDS, 0);
+        if (isSupportedCheckIntervalSeconds(seconds)) return seconds;
+        int legacyMinutes = preferences.getInt(KEY_CHECK_INTERVAL_MINUTES,
+                DEFAULT_CHECK_INTERVAL_MINUTES);
+        int migratedSeconds = legacyMinutes * 60;
+        return isSupportedCheckIntervalSeconds(migratedSeconds)
+                ? migratedSeconds : DEFAULT_CHECK_INTERVAL_SECONDS;
+    }
+
+    static void saveCheckIntervalSeconds(Context context, int seconds) {
+        if (!isSupportedCheckIntervalSeconds(seconds)) {
+            throw new IllegalArgumentException("Intervalo de consulta da Madrugada Vivo inválido.");
+        }
+        preferences(context).edit().putInt(KEY_CHECK_INTERVAL_SECONDS, seconds).apply();
+        SettingsBackup.changed(context);
+    }
+
     static boolean isSupportedCheckInterval(int interval) {
-        return interval == 5 || interval == 15 || interval == 30 || interval == 60;
+        return interval == 5 || interval == 15 || interval == 30 || interval == 60
+                || interval == 360 || interval == 720 || interval == 1440;
+    }
+
+    static boolean isSupportedCheckIntervalSeconds(int seconds) {
+        return seconds == 30 || seconds == 60 || seconds == 120 || seconds == 300
+                || seconds == 900 || seconds == 1800 || seconds == 3600
+                || seconds == 21600 || seconds == 43200 || seconds == 86400;
     }
 
     static boolean hasLastCheckFailed(Context context) {

@@ -50,6 +50,9 @@ import java.util.Locale;
 public class ProfileActivity extends AlertouActivity implements TelegramClientManager.Listener {
     private static final String OFFER_PREFS = "offer_preferences";
     private static final String MONITOR_ENABLED = "monitor_enabled";
+    private static final int[] STANDARD_CHECK_INTERVAL_SECONDS = {
+            30, 60, 120, 300, 900, 1800, 3600, 21600, 43200, 86400
+    };
 
     private final BroadcastReceiver statusReceiver = new BroadcastReceiver() {
         @Override
@@ -333,23 +336,20 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         propertyMarketReferenceSummary.setText(
                 PropertyMarketReferenceSettings.getSummaryResource(this)
         );
-        propertyIntervalSummary.setText(getString(R.string.property_interval_summary,
-                PropertyMarketReferenceSettings.getCheckIntervalMinutes(this)));
-        vivoOutletIntervalSummary.setText(getString(R.string.vivo_outlet_interval_summary,
-                VivoOutletSource.getCheckIntervalMinutes(this)));
-        vivoMadrugadaIntervalSummary.setText(getString(R.string.vivo_madrugada_interval_summary,
-                VivoMadrugadaSource.getCheckIntervalMinutes(this)));
-        pelandoIntervalSummary.setText(formatPelandoInterval(
-                PelandoSource.getCheckIntervalSeconds(this)
-        ));
-        promobitIntervalSummary.setText(formatShortInterval(
-                PromobitSource.getCheckIntervalSeconds(this)
-        ));
-        kabumOfferIntervalSummary.setText(formatShortInterval(
-                KabumOfferSource.getCheckIntervalSeconds(this)
-        ));
-        motorolaOfferIntervalSummary.setText(getString(R.string.motorola_offer_interval_summary,
-                MotorolaOfferSource.getCheckIntervalMinutes(this)));
+        propertyIntervalSummary.setText(formatCheckIntervalSeconds(
+                PropertyMarketReferenceSettings.getCheckIntervalSeconds(this)));
+        vivoOutletIntervalSummary.setText(formatCheckIntervalSeconds(
+                VivoOutletSource.getCheckIntervalSeconds(this)));
+        vivoMadrugadaIntervalSummary.setText(formatCheckIntervalSeconds(
+                VivoMadrugadaSource.getCheckIntervalSeconds(this)));
+        pelandoIntervalSummary.setText(formatCheckIntervalSeconds(
+                PelandoSource.getCheckIntervalSeconds(this)));
+        promobitIntervalSummary.setText(formatCheckIntervalSeconds(
+                PromobitSource.getCheckIntervalSeconds(this)));
+        kabumOfferIntervalSummary.setText(formatCheckIntervalSeconds(
+                KabumOfferSource.getCheckIntervalSeconds(this)));
+        motorolaOfferIntervalSummary.setText(formatCheckIntervalSeconds(
+                MotorolaOfferSource.getCheckIntervalSeconds(this)));
         backupScheduleSummary.setText(getBackupScheduleSummary());
     }
 
@@ -505,24 +505,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         title.setTextSize(21);
         content.addView(title);
 
-        int savedInterval = PropertyMarketReferenceSettings.getCheckIntervalMinutes(this);
-        int[] intervals = {5, 15, 30, 60};
-        int[] labels = {
-                R.string.vivo_outlet_interval_five,
-                R.string.vivo_outlet_interval_fifteen,
-                R.string.vivo_outlet_interval_thirty,
-                R.string.vivo_outlet_interval_sixty
-        };
+        int savedInterval = PropertyMarketReferenceSettings.getCheckIntervalSeconds(this);
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
-                PropertyMarketReferenceSettings.saveCheckIntervalMinutes(this, interval);
-                propertyIntervalSummary.setText(getString(R.string.property_interval_summary,
-                        interval));
+                PropertyMarketReferenceSettings.saveCheckIntervalSeconds(this, interval);
+                propertyIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -553,24 +545,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         title.setTextSize(21);
         content.addView(title);
 
-        int savedInterval = VivoOutletSource.getCheckIntervalMinutes(this);
-        int[] intervals = {5, 15, 30, 60};
-        int[] labels = {
-                R.string.vivo_outlet_interval_five,
-                R.string.vivo_outlet_interval_fifteen,
-                R.string.vivo_outlet_interval_thirty,
-                R.string.vivo_outlet_interval_sixty
-        };
+        int savedInterval = VivoOutletSource.getCheckIntervalSeconds(this);
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
-                VivoOutletSource.saveCheckIntervalMinutes(this, interval);
-                vivoOutletIntervalSummary.setText(getString(R.string.vivo_outlet_interval_summary,
-                        interval));
+                VivoOutletSource.saveCheckIntervalSeconds(this, interval);
+                vivoOutletIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 VivoOutletMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -617,24 +601,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         title.setTextSize(21);
         content.addView(title);
 
-        int savedInterval = VivoMadrugadaSource.getCheckIntervalMinutes(this);
-        int[] intervals = {5, 15, 30, 60};
-        int[] labels = {
-                R.string.vivo_outlet_interval_five,
-                R.string.vivo_outlet_interval_fifteen,
-                R.string.vivo_outlet_interval_thirty,
-                R.string.vivo_outlet_interval_sixty
-        };
+        int savedInterval = VivoMadrugadaSource.getCheckIntervalSeconds(this);
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
-                VivoMadrugadaSource.saveCheckIntervalMinutes(this, interval);
-                vivoMadrugadaIntervalSummary.setText(getString(
-                        R.string.vivo_madrugada_interval_summary, interval));
+                VivoMadrugadaSource.saveCheckIntervalSeconds(this, interval);
+                vivoMadrugadaIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 VivoOutletMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -666,22 +642,15 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         content.addView(title);
 
         int savedInterval = PelandoSource.getCheckIntervalSeconds(this);
-        int[] intervals = {30, 60, 120, 300};
-        int[] labels = {
-                R.string.pelando_interval_thirty_seconds,
-                R.string.pelando_interval_one_minute,
-                R.string.pelando_interval_two_minutes,
-                R.string.pelando_interval_five_minutes
-        };
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
                 PelandoSource.saveCheckIntervalSeconds(this, interval);
-                pelandoIntervalSummary.setText(formatPelandoInterval(interval));
+                pelandoIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 PelandoMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -715,10 +684,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
     }
 
-    private String formatPelandoInterval(int seconds) {
-        return formatShortInterval(seconds);
-    }
-
     private void showPromobitIntervalDialog() {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
@@ -733,22 +698,15 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         content.addView(title);
 
         int savedInterval = PromobitSource.getCheckIntervalSeconds(this);
-        int[] intervals = {30, 60, 120, 300};
-        int[] labels = {
-                R.string.pelando_interval_thirty_seconds,
-                R.string.pelando_interval_one_minute,
-                R.string.pelando_interval_two_minutes,
-                R.string.pelando_interval_five_minutes
-        };
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
                 PromobitSource.saveCheckIntervalSeconds(this, interval);
-                promobitIntervalSummary.setText(formatShortInterval(interval));
+                promobitIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 PromobitMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -796,22 +754,15 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         content.addView(title);
 
         int savedInterval = KabumOfferSource.getCheckIntervalSeconds(this);
-        int[] intervals = {60, 120, 300, 900};
-        int[] labels = {
-                R.string.pelando_interval_one_minute,
-                R.string.pelando_interval_two_minutes,
-                R.string.pelando_interval_five_minutes,
-                R.string.vivo_outlet_interval_fifteen
-        };
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
                 KabumOfferSource.saveCheckIntervalSeconds(this, interval);
-                kabumOfferIntervalSummary.setText(formatShortInterval(interval));
+                kabumOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 KabumOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -858,24 +809,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         title.setTextSize(21);
         content.addView(title);
 
-        int savedInterval = MotorolaOfferSource.getCheckIntervalMinutes(this);
-        int[] intervals = {5, 15, 30, 60};
-        int[] labels = {
-                R.string.vivo_outlet_interval_five,
-                R.string.vivo_outlet_interval_fifteen,
-                R.string.vivo_outlet_interval_thirty,
-                R.string.vivo_outlet_interval_sixty
-        };
+        int savedInterval = MotorolaOfferSource.getCheckIntervalSeconds(this);
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
             option.setOnClickListener(view -> {
-                MotorolaOfferSource.saveCheckIntervalMinutes(this, interval);
-                motorolaOfferIntervalSummary.setText(getString(
-                        R.string.motorola_offer_interval_summary, interval));
+                MotorolaOfferSource.saveCheckIntervalSeconds(this, interval);
+                motorolaOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
                 MotorolaOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
@@ -892,11 +835,30 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         showCompactDialog(dialog, content);
     }
 
-    private String formatShortInterval(int seconds) {
-        if (seconds < 60) {
-            return getString(R.string.pelando_interval_summary_seconds, seconds);
+    private String formatCheckIntervalMinutes(int minutes) {
+        return formatCheckIntervalSeconds(minutes * 60);
+    }
+
+    private String formatCheckIntervalSeconds(int seconds) {
+        return getString(R.string.profile_check_interval_summary,
+                formatCheckIntervalDuration(seconds));
+    }
+
+    private String getCheckIntervalOptionLabel(int seconds) {
+        return getString(R.string.profile_check_interval_option,
+                formatCheckIntervalDuration(seconds));
+    }
+
+    private String formatCheckIntervalDuration(int seconds) {
+        if (seconds >= 3600 && seconds % 3600 == 0) {
+            int hours = seconds / 3600;
+            return hours == 1 ? getString(R.string.profile_check_interval_one_hour)
+                    : getString(R.string.profile_check_interval_hours, hours);
         }
-        return getString(R.string.pelando_interval_summary_minutes, seconds / 60);
+        if (seconds >= 60 && seconds % 60 == 0) {
+            return getString(R.string.profile_check_interval_minutes, seconds / 60);
+        }
+        return getString(R.string.profile_check_interval_seconds, seconds);
     }
 
     private void showCompactDialog(Dialog dialog, View content) {
@@ -985,10 +947,14 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     }
 
     private TextView createThemeOption(int textResource, boolean selected) {
+        return createThemeOption(getString(textResource), selected);
+    }
+
+    private TextView createThemeOption(String text, boolean selected) {
         TextView option = new TextView(this);
         option.setText(selected
-                ? getString(R.string.theme_selected_format, getString(textResource))
-                : getString(textResource));
+                ? getString(R.string.theme_selected_format, text)
+                : text);
         option.setTextColor(getColor(selected ? R.color.action : R.color.text_primary));
         option.setTextSize(16);
         option.setGravity(Gravity.CENTER_VERTICAL);

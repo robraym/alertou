@@ -652,7 +652,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         priceView.setText(PropertyOfferDisplay.formatPrice(this, offer,
                 new PropertyHistoryRepository(this).getForOffer(offer),
                 NumberFormat.getCurrencyInstance(new Locale("pt", "BR"))));
-        priceView.setTextColor(getColor(R.color.action));
+        priceView.setTextColor(getColor(R.color.text_primary));
         priceView.setTextSize(14);
         priceView.setSingleLine(true);
         priceView.setPadding(dp(6), 0, 0, 0);

@@ -34,8 +34,8 @@ final class VivoOutletMonitor {
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
-        scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(
-                getShortestCheckIntervalMinutes(appContext)));
+        scheduler.start(this::checkAllSafely, TimeUnit.SECONDS.toMillis(
+                getShortestCheckIntervalSeconds(appContext)));
     }
 
     synchronized void stop() { scheduler.stop(); }
@@ -52,8 +52,8 @@ final class VivoOutletMonitor {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
         if (!scheduler.isStarted()) {
-            scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(
-                    getShortestCheckIntervalMinutes(appContext)),
+            scheduler.start(this::checkAllSafely, TimeUnit.SECONDS.toMillis(
+                    getShortestCheckIntervalSeconds(appContext)),
                     () -> checkInterestSafely(interestId));
             return;
         }
@@ -97,12 +97,12 @@ final class VivoOutletMonitor {
         boolean found = false;
         if (VivoOutletSource.isConfigured(context)
                 && (force || isDue(VivoOutletSource.getLastCheckAt(context),
-                VivoOutletSource.getCheckIntervalMinutes(context)))) {
+                VivoOutletSource.getCheckIntervalSeconds(context)))) {
             found |= checkSource(context, VivoOutletSource.getUrl(context), "vivo_outlet_",
                     "vivo|", R.string.vivo_outlet_offer_source, true, interestId);
         }
         if (force || isDue(VivoMadrugadaSource.getLastCheckAt(context),
-                VivoMadrugadaSource.getCheckIntervalMinutes(context))) {
+                VivoMadrugadaSource.getCheckIntervalSeconds(context))) {
             found |= checkSource(context, VivoMadrugadaSource.getUrl(context), "vivo_madrugada_",
                     "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false, interestId);
         }
@@ -114,14 +114,14 @@ final class VivoOutletMonitor {
                 .setPackage(context.getPackageName()));
     }
 
-    private int getShortestCheckIntervalMinutes(Context context) {
-        return Math.min(VivoOutletSource.getCheckIntervalMinutes(context),
-                VivoMadrugadaSource.getCheckIntervalMinutes(context));
+    private int getShortestCheckIntervalSeconds(Context context) {
+        return Math.min(VivoOutletSource.getCheckIntervalSeconds(context),
+                VivoMadrugadaSource.getCheckIntervalSeconds(context));
     }
 
-    private boolean isDue(long lastCheck, int intervalMinutes) {
+    private boolean isDue(long lastCheck, int intervalSeconds) {
         return lastCheck <= 0L || System.currentTimeMillis() - lastCheck
-                >= TimeUnit.MINUTES.toMillis(intervalMinutes);
+                >= TimeUnit.SECONDS.toMillis(intervalSeconds);
     }
 
     private boolean checkSource(Context context, String sourceUrl, String preferencePrefix,

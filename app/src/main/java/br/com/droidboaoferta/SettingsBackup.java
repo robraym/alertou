@@ -10,9 +10,11 @@ final class SettingsBackup {
     static final String KEY = "source_settings";
     private static final String META = "source_settings_sync";
     private static final String[] EXTERNAL_KEYS = {"vivo_outlet_url", "pelando_url", "promobit_url",
-            "kabum_offer_url", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes", "pelando_check_interval_seconds",
+            "kabum_offer_url", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes",
+            "vivo_outlet_check_interval_seconds", "vivo_madrugada_check_interval_seconds",
+            "motorola_offer_check_interval_seconds", "pelando_check_interval_seconds",
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds"};
-    private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes"};
+    private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes", "check_interval_seconds"};
 
     private SettingsBackup() { }
 
@@ -116,8 +118,12 @@ final class SettingsBackup {
         if (interval != ((Number) value).doubleValue()) return false;
         switch (key) {
             case "check_interval_minutes": return PropertyMarketReferenceSettings.isSupportedCheckInterval(interval);
+            case "check_interval_seconds": return PropertyMarketReferenceSettings.isSupportedCheckIntervalSeconds(interval);
             case "vivo_outlet_check_interval_minutes": return VivoOutletSource.isSupportedCheckInterval(interval);
             case "vivo_madrugada_check_interval_minutes": return VivoMadrugadaSource.isSupportedCheckInterval(interval);
+            case "vivo_outlet_check_interval_seconds": return VivoOutletSource.isSupportedCheckIntervalSeconds(interval);
+            case "vivo_madrugada_check_interval_seconds": return VivoMadrugadaSource.isSupportedCheckIntervalSeconds(interval);
+            case "motorola_offer_check_interval_seconds": return MotorolaOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "pelando_check_interval_seconds": return PelandoSource.isSupportedCheckInterval(interval);
             case "promobit_check_interval_seconds": return PromobitSource.isSupportedCheckInterval(interval);
             case "kabum_offer_check_interval_seconds": return KabumOfferSource.isSupportedCheckInterval(interval);

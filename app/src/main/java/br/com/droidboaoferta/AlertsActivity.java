@@ -251,9 +251,10 @@ public class AlertsActivity extends AlertouActivity {
         NumberFormat amountFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         amountFormat.setMinimumFractionDigits(2);
         amountFormat.setMaximumFractionDigits(2);
+        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         for (int index = 0; index < interests.size(); index++) {
             Interest interest = interests.get(index);
-            LinearLayout row = createInterestRow(interest, amountFormat);
+            LinearLayout row = createInterestRow(interest, amountFormat, currencyFormat);
             ImageButton edit = createEditInterestButton();
             edit.setOnClickListener(view -> {
                 if (interest.isProperty()) {
@@ -406,7 +407,8 @@ public class AlertsActivity extends AlertouActivity {
                 .show();
     }
 
-    private LinearLayout createInterestRow(Interest interest, NumberFormat amountFormat) {
+    private LinearLayout createInterestRow(Interest interest, NumberFormat amountFormat,
+                                           NumberFormat currencyFormat) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -417,7 +419,7 @@ public class AlertsActivity extends AlertouActivity {
         if (interest.isCoupon()) {
             TextView label = createInterestText();
             String amount = amountFormat.format(interest.getMaximumPrice());
-            label.setText(withValueGreen(getString(
+            label.setText(withValuePrimary(getString(
                     R.string.coupon_interest_single_line,
                     amount), amount));
             label.setEllipsize(TextUtils.TruncateAt.END);
@@ -434,8 +436,8 @@ public class AlertsActivity extends AlertouActivity {
             textContainer.addView(title);
 
             TextView subtitle = createInterestText();
-            String amount = amountFormat.format(interest.getMaximumPrice());
-            subtitle.setText(withValueGreen(getString(
+            String amount = currencyFormat.format(interest.getMaximumPrice());
+            subtitle.setText(withValuePrimary(getString(
                     R.string.property_interest_subtitle,
                     PropertyPageClient.getSourceName(interest.getTerm()),
                     formatArea(interest.getMinimumArea()),
@@ -463,8 +465,8 @@ public class AlertsActivity extends AlertouActivity {
             TextView price = createInterestText();
             price.setText(getString(
                     R.string.price_interest_value,
-                    amountFormat.format(interest.getMaximumPrice())));
-            price.setTextColor(getColor(R.color.action_green));
+                    currencyFormat.format(interest.getMaximumPrice())));
+            price.setTextColor(getColor(R.color.text_primary));
             textContainer.addView(price, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -484,11 +486,11 @@ public class AlertsActivity extends AlertouActivity {
         return text;
     }
 
-    private CharSequence withValueGreen(String text, String value) {
+    private CharSequence withValuePrimary(String text, String value) {
         SpannableString styled = new SpannableString(text);
         int start = text.lastIndexOf(value);
         if (start >= 0) {
-            styled.setSpan(new ForegroundColorSpan(getColor(R.color.action_green)),
+            styled.setSpan(new ForegroundColorSpan(getColor(R.color.text_primary)),
                     start, start + value.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         }
         return styled;

@@ -34,8 +34,8 @@ final class MotorolaOfferMonitor {
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
-        scheduler.start(() -> checkAllSafely(false), TimeUnit.MINUTES.toMillis(
-                MotorolaOfferSource.getCheckIntervalMinutes(appContext)));
+        scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                MotorolaOfferSource.getCheckIntervalSeconds(appContext)));
     }
 
     synchronized void stop() {
@@ -52,8 +52,8 @@ final class MotorolaOfferMonitor {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
         if (!scheduler.isStarted()) {
-            scheduler.start(() -> checkAllSafely(false), TimeUnit.MINUTES.toMillis(
-                    MotorolaOfferSource.getCheckIntervalMinutes(appContext)),
+            scheduler.start(() -> checkAllSafely(false), TimeUnit.SECONDS.toMillis(
+                    MotorolaOfferSource.getCheckIntervalSeconds(appContext)),
                     () -> checkAllSafely(true, interestId));
             return;
         }

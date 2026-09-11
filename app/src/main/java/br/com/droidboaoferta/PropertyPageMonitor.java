@@ -43,7 +43,7 @@ final class PropertyPageMonitor {
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
-        scheduler.start(this::checkAllSafely, TimeUnit.MINUTES.toMillis(PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)));
+        scheduler.start(this::checkAllSafely, TimeUnit.SECONDS.toMillis(PropertyMarketReferenceSettings.getCheckIntervalSeconds(appContext)));
     }
 
     synchronized void stop() { scheduler.stop(); }
@@ -69,8 +69,8 @@ final class PropertyPageMonitor {
         Runnable requestedCheck = () -> checkAllSafely(order);
         if (!scheduler.isStarted()) {
             scheduler.start(this::checkAllSafely,
-                    TimeUnit.MINUTES.toMillis(
-                            PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)),
+                    TimeUnit.SECONDS.toMillis(
+                            PropertyMarketReferenceSettings.getCheckIntervalSeconds(appContext)),
                     requestedCheck);
             return;
         }
@@ -82,8 +82,8 @@ final class PropertyPageMonitor {
         if (!MonitorRunPolicy.canRun(appContext)) return;
         if (!scheduler.isStarted()) {
             scheduler.start(this::checkAllSafely,
-                    TimeUnit.MINUTES.toMillis(
-                            PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)),
+                    TimeUnit.SECONDS.toMillis(
+                            PropertyMarketReferenceSettings.getCheckIntervalSeconds(appContext)),
                     () -> checkAllSafely(false));
             return;
         }
@@ -95,8 +95,8 @@ final class PropertyPageMonitor {
         if (!MonitorRunPolicy.canRun(appContext)) return;
         if (!scheduler.isStarted()) {
             scheduler.start(this::checkAllSafely,
-                    TimeUnit.MINUTES.toMillis(
-                            PropertyMarketReferenceSettings.getCheckIntervalMinutes(appContext)),
+                    TimeUnit.SECONDS.toMillis(
+                            PropertyMarketReferenceSettings.getCheckIntervalSeconds(appContext)),
                     () -> checkInterestSafely(interestId));
             return;
         }
@@ -159,7 +159,7 @@ final class PropertyPageMonitor {
             } finally {
                 if (MonitorRunPolicy.isCurrent(context, interest)) {
                     SourceCheckStatus.finish(context, interest.getId(),
-                            TimeUnit.MINUTES.toMillis(PropertyMarketReferenceSettings.getCheckIntervalMinutes(context)));
+                            TimeUnit.SECONDS.toMillis(PropertyMarketReferenceSettings.getCheckIntervalSeconds(context)));
                 } else {
                     SourceCheckStatus.cancel(context, interest.getId());
                 }
@@ -270,8 +270,8 @@ final class PropertyPageMonitor {
             } finally {
                 if (MonitorRunPolicy.isCurrent(context, interest)) {
                     SourceCheckStatus.finish(context, interest.getId(),
-                            TimeUnit.MINUTES.toMillis(
-                                    PropertyMarketReferenceSettings.getCheckIntervalMinutes(context)));
+                            TimeUnit.SECONDS.toMillis(
+                                    PropertyMarketReferenceSettings.getCheckIntervalSeconds(context)));
                 } else {
                     SourceCheckStatus.cancel(context, interest.getId());
                 }

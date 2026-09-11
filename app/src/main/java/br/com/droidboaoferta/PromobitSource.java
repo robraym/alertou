@@ -96,7 +96,9 @@ final class PromobitSource {
     }
 
     static boolean isSupportedCheckInterval(int seconds) {
-        return seconds == 30 || seconds == 60 || seconds == 120 || seconds == 300;
+        return seconds == 30 || seconds == 60 || seconds == 120 || seconds == 300
+                || seconds == 900 || seconds == 1800 || seconds == 3600
+                || seconds == 21600 || seconds == 43200 || seconds == 86400;
     }
 
     private static SharedPreferences preferences(Context context) {

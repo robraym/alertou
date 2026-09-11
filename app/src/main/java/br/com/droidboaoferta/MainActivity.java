@@ -23,6 +23,7 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -42,6 +43,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
+import androidx.core.widget.TextViewCompat;
 
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -604,6 +606,7 @@ public class MainActivity extends AlertouActivity {
         LinearLayout titleLine = new LinearLayout(this);
         titleLine.setGravity(Gravity.CENTER_VERTICAL);
         titleLine.setOrientation(LinearLayout.HORIZONTAL);
+        titleLine.setBaselineAligned(false);
 
         TextView title = new TextView(this);
         title.setText(titleResource);
@@ -612,8 +615,9 @@ public class MainActivity extends AlertouActivity {
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
         titleLine.addView(title, new LinearLayout.LayoutParams(
+                0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                1
         ));
 
         TextView count = new TextView(this);
@@ -623,10 +627,16 @@ public class MainActivity extends AlertouActivity {
                 offers.size()
         ));
         count.setTextColor(getColor(R.color.text_secondary));
-        count.setTextSize(14);
+        count.setTextSize(12);
+        count.setGravity(Gravity.CENTER);
+        count.setIncludeFontPadding(false);
+        count.setTranslationY(dp(4));
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(
+                count, 10, 12, 1, TypedValue.COMPLEX_UNIT_SP
+        );
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                dp(24)
         );
         countParams.leftMargin = dp(6);
         titleLine.addView(count, countParams);
@@ -1090,7 +1100,7 @@ public class MainActivity extends AlertouActivity {
         } else {
             TextView priceView = new TextView(this);
             priceView.setText(price);
-            priceView.setTextColor(getColor(R.color.action));
+            priceView.setTextColor(getColor(R.color.text_primary));
             priceView.setTextSize(14);
             priceView.setSingleLine(true);
             priceView.setPadding(dp(6), 0, 0, 0);
