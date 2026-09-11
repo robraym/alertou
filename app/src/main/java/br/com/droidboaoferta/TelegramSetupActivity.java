@@ -2285,9 +2285,42 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             summary.setTextColor(getColor(failed ? R.color.danger : R.color.text_secondary));
             return;
         }
-        summary.setText(getString(R.string.store_sources_checking,
-                getString(sourceTitleResource)));
-        summary.setTextColor(getColor(R.color.action));
+        if (summary instanceof RollingStatusTextView) {
+            ((RollingStatusTextView) summary).showRollingValue(
+                    getString(R.string.store_source_last_check_prefix),
+                    getStoreSourceCheckValue(sourceTitleResource));
+        }
+    }
+
+    private String getStoreSourceCheckValue(int sourceTitleResource) {
+        long lastSuccessfulCheck;
+        if (sourceTitleResource == R.string.vivo_outlet_source_title) {
+            lastSuccessfulCheck = VivoOutletSource.getLastSuccessfulCheckAt(this);
+        } else if (sourceTitleResource == R.string.vivo_madrugada_source_title) {
+            lastSuccessfulCheck = VivoMadrugadaSource.getLastSuccessfulCheckAt(this);
+        } else if (sourceTitleResource == R.string.pelando_source_title) {
+            lastSuccessfulCheck = PelandoSource.getLastSuccessfulCheckAt(this);
+        } else if (sourceTitleResource == R.string.promobit_source_title) {
+            lastSuccessfulCheck = PromobitSource.getLastSuccessfulCheckAt(this);
+        } else if (sourceTitleResource == R.string.kabum_offer_source_title) {
+            lastSuccessfulCheck = KabumOfferSource.getLastSuccessfulCheckAt(this);
+        } else {
+            lastSuccessfulCheck = MotorolaOfferSource.getLastSuccessfulCheckAt(this);
+        }
+        if (lastSuccessfulCheck <= 0L) {
+            return getString(R.string.store_source_last_check_placeholder);
+        }
+        long duration = StoreSourceCheckStatus.getLastDurationMillis(this, sourceTitleResource);
+        return " " + formatSourceCheckTime(lastSuccessfulCheck) + " · "
+                + formatStoreCheckDuration(duration);
+    }
+
+    private String formatStoreCheckDuration(long durationMillis) {
+        if (durationMillis <= 0L) return "-- s";
+        long seconds = Math.max(1L, Math.round(durationMillis / 1000d));
+        return seconds < 60L ? getString(R.string.check_duration_seconds, seconds)
+                : getString(R.string.check_duration_minutes_seconds,
+                seconds / 60L, seconds % 60L);
     }
 
     private void applyStatusDot(TextView view, boolean online) {

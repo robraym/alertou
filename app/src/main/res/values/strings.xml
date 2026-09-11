@@ -28,6 +28,8 @@
     <string name="vivo_outlet_source_title">Outlet Vivo</string>
     <string name="vivo_outlet_sources_title">Lojas</string>
     <string name="store_sources_checking">Atualizando %1$s…</string>
+    <string name="store_source_last_check_prefix">Última consulta: </string>
+    <string name="store_source_last_check_placeholder">--/-- --:-- · -- s</string>
     <string name="store_sources_failed">%1$s falhou em %2$s\nÚltima válida: %3$s</string>
     <string name="source_status_dot">●</string>
     <string name="source_status_dot_online">● %1$d Online</string>

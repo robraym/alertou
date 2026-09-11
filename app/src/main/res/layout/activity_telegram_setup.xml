@@ -340,7 +340,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
+                <br.com.droidboaoferta.RollingStatusTextView
                     android:id="@+id/text_vivo_outlet_source_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -414,7 +414,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
+                <br.com.droidboaoferta.RollingStatusTextView
                     android:id="@+id/text_vivo_madrugada_source_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -488,7 +488,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
+                <br.com.droidboaoferta.RollingStatusTextView
                     android:id="@+id/text_pelando_source_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -562,7 +562,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
+                <br.com.droidboaoferta.RollingStatusTextView
                     android:id="@+id/text_promobit_source_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -636,7 +636,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
+                <br.com.droidboaoferta.RollingStatusTextView
                     android:id="@+id/text_kabum_offer_source_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -710,7 +710,7 @@
                         android:textSize="11sp" />
                 </LinearLayout>
 
-                <TextView
+                <br.com.droidboaoferta.RollingStatusTextView
                     android:id="@+id/text_motorola_offer_source_row"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
