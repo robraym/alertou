@@ -17,6 +17,7 @@ final class StoreSourceCheckStatus {
     private static final String PREFS = "store_source_check_status";
     private static final String KEY_LAST_BATCH_COMPLETED_AT = "last_batch_completed_at";
     private static final String KEY_LAST_BATCH_DURATION = "last_batch_duration";
+    private static final String KEY_LAST_AUTOMATIC_SOURCE_TITLE = "last_automatic_source_title";
     private static final long AUTOMATIC_BATCH_START_WINDOW_MS = 5_000L;
     private static final Object BATCH_LOCK = new Object();
     private static final Set<Integer> AUTOMATIC_BATCH_EXPECTED = new LinkedHashSet<>();
@@ -40,6 +41,7 @@ final class StoreSourceCheckStatus {
     }
 
     static void finish(Context context, int sourceTitleResource) {
+        boolean automatic = !isManualBatchActive();
         synchronized (RUNNING_SOURCE_TITLES) {
             RUNNING_SOURCE_TITLES.remove(sourceTitleResource);
         }
@@ -52,6 +54,9 @@ final class StoreSourceCheckStatus {
                     .apply();
         }
         trackAutomaticBatchFinish(context, sourceTitleResource);
+        if (automatic) {
+            prefs(context).edit().putInt(KEY_LAST_AUTOMATIC_SOURCE_TITLE, sourceTitleResource).apply();
+        }
         notifyChanged(context, sourceTitleResource, false);
     }
 
@@ -82,6 +87,10 @@ final class StoreSourceCheckStatus {
 
     static long getLastDurationMillis(Context context, int sourceTitleResource) {
         return prefs(context).getLong(durationKey(sourceTitleResource), 0L);
+    }
+
+    static int getLastAutomaticSourceTitleResource(Context context) {
+        return prefs(context).getInt(KEY_LAST_AUTOMATIC_SOURCE_TITLE, 0);
     }
 
     static int getCurrentSourceTitleResource() {
@@ -162,6 +171,12 @@ final class StoreSourceCheckStatus {
         AUTOMATIC_BATCH_FINISHED.clear();
         automaticBatchStartedAt = 0L;
         automaticBatchQualified = false;
+    }
+
+    private static boolean isManualBatchActive() {
+        synchronized (BATCH_LOCK) {
+            return manualBatchActive;
+        }
     }
 
     private static void notifyChanged(Context context, int sourceTitleResource, boolean checking) {

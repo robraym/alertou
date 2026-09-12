@@ -130,6 +130,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private final List<String> manualStoreRefreshQueue = new ArrayList<>();
     private String manualStoreRefreshAction;
     private boolean storeRefreshProgressActive;
+    private boolean lastStoreRefreshWasManual;
     private final Set<Integer> completedStoreRefreshSources = new HashSet<>();
     private ImageButton telegramGroupsToggle;
     private TextView vivoOutletSourceRow;
@@ -1637,6 +1638,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             return;
         }
         int checkingSource = StoreSourceCheckStatus.getCurrentSourceTitleResource();
+        if (checkingSource != 0 && !storeRefreshProgressActive) {
+            lastStoreRefreshWasManual = false;
+        }
         renderStoreSourcesIcon(checkingSource != 0);
         boolean outletConfigured = VivoOutletSource.isConfigured(this);
         boolean madrugadaConfigured = VivoMadrugadaSource.isConfigured(this);
@@ -1710,6 +1714,25 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 storeSourcesSummaryText.setTextColor(getColor(R.color.danger));
                 storeSourcesSummaryText.setVisibility(View.VISIBLE);
             } else {
+                int lastAutomaticSource = lastStoreRefreshWasManual ? 0
+                        : StoreSourceCheckStatus.getLastAutomaticSourceTitleResource(this);
+                if (lastAutomaticSource != 0) {
+                    long checkedAt = getStoreSourceLastCheckAt(lastAutomaticSource);
+                    String checkedTime = DateUtils.isToday(checkedAt)
+                            ? new SimpleDateFormat("HH:mm", new Locale("pt", "BR"))
+                            .format(new java.util.Date(checkedAt))
+                            : formatSourceCheckTime(checkedAt);
+                    storeSourcesSummaryText.setText(getString(DateUtils.isToday(checkedAt)
+                                    ? R.string.store_sources_updated_source_today
+                                    : R.string.store_sources_updated_source_at,
+                            getString(lastAutomaticSource),
+                            checkedTime,
+                            formatStoreCheckDuration(StoreSourceCheckStatus.getLastDurationMillis(
+                                    this, lastAutomaticSource))));
+                    storeSourcesSummaryText.setTextColor(getColor(R.color.text_secondary));
+                    storeSourcesSummaryText.setVisibility(View.VISIBLE);
+                    return;
+                }
                 long completedAt = StoreSourceCheckStatus.getLastBatchCompletedAt(this);
                 long duration = StoreSourceCheckStatus.getLastBatchDurationMillis(this);
                 if (completedAt <= 0L) {
@@ -1925,6 +1948,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private void refreshStoreSources() {
         if (manualStoreRefreshAction != null || !MonitorRunPolicy.canRun(this)) return;
         storeRefreshProgressActive = true;
+        lastStoreRefreshWasManual = true;
         completedStoreRefreshSources.clear();
         manualStoreRefreshQueue.clear();
         manualStoreRefreshQueue.addAll(getDisplayedStoreRefreshOrder());
