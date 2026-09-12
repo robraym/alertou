@@ -9,12 +9,23 @@ import java.util.Iterator;
 final class SettingsBackup {
     static final String KEY = "source_settings";
     private static final String META = "source_settings_sync";
-    private static final String[] EXTERNAL_KEYS = {"vivo_outlet_url", "pelando_url", "promobit_url",
-            "kabum_offer_url", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes",
+    private static final String[] EXTERNAL_KEYS = {"vivo_outlet_url", "vivo_madrugada_url", "pelando_url",
+            "promobit_url", "kabum_offer_url", "motorola_offer_url", "motorola_offer_title",
+            "samsung_offer_url", "samsung_offer_title", "samsung_discount_offer_url",
+            "samsung_discount_offer_title", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes",
             "vivo_outlet_check_interval_seconds", "vivo_madrugada_check_interval_seconds",
             "motorola_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
-            "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds"};
+            "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds",
+            "samsung_discount_offer_check_interval_seconds"};
     private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes", "check_interval_seconds"};
+    private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
+    private static final String[] STORE_DISPLAY_KEYS = {
+            "title_" + R.string.vivo_outlet_source_title,
+            "title_" + R.string.vivo_madrugada_source_title,
+            "title_" + R.string.pelando_source_title,
+            "title_" + R.string.promobit_source_title,
+            "title_" + R.string.kabum_offer_source_title
+    };
 
     private SettingsBackup() { }
 
@@ -38,6 +49,8 @@ final class SettingsBackup {
         try {
             capture(files, result, old, "external_offer_sources", EXTERNAL_KEYS);
             capture(files, result, old, "property_market_reference", PROPERTY_KEYS);
+            capture(files, result, old, "telegram_preferences", TELEGRAM_KEYS);
+            capture(files, result, old, "store_display_names", STORE_DISPLAY_KEYS);
             metadata.edit().putString("snapshot", result.toString()).apply();
             return result;
         } catch (Exception exception) {
@@ -73,6 +86,8 @@ final class SettingsBackup {
         if (merged.toString().equals(local.toString())) return false;
         apply(files, merged, "external_offer_sources", EXTERNAL_KEYS);
         apply(files, merged, "property_market_reference", PROPERTY_KEYS);
+        apply(files, merged, "telegram_preferences", TELEGRAM_KEYS);
+        apply(files, merged, "store_display_names", STORE_DISPLAY_KEYS);
         files.get(META).edit()
                 .putString("snapshot", merged.toString()).apply();
         return true;
@@ -96,20 +111,41 @@ final class SettingsBackup {
     private static boolean valid(String id, Object value) {
         boolean external = id.startsWith("external_offer_sources/");
         boolean property = id.startsWith("property_market_reference/");
+        boolean telegram = id.startsWith("telegram_preferences/");
+        boolean display = id.startsWith("store_display_names/");
         String key = id.substring(id.indexOf('/') + 1);
         if (!(external && java.util.Arrays.asList(EXTERNAL_KEYS).contains(key))
-                && !(property && java.util.Arrays.asList(PROPERTY_KEYS).contains(key))) return false;
+                && !(property && java.util.Arrays.asList(PROPERTY_KEYS).contains(key))
+                && !(telegram && java.util.Arrays.asList(TELEGRAM_KEYS).contains(key))
+                && !(display && java.util.Arrays.asList(STORE_DISPLAY_KEYS).contains(key))) return false;
         if (value == JSONObject.NULL) return true;
+        if (display) {
+            return value instanceof String && !((String) value).trim().isEmpty()
+                    && ((String) value).trim().length() <= 40;
+        }
+        if (telegram) {
+            return value instanceof Number && ((Number) value).intValue() >= 0
+                    && ((Number) value).intValue() <= 2
+                    && ((Number) value).intValue() == ((Number) value).doubleValue();
+        }
         if (key.equals("enabled")) return value instanceof Boolean;
+        if (key.endsWith("_title")) {
+            return value instanceof String && !((String) value).trim().isEmpty()
+                    && ((String) value).trim().length() <= 40;
+        }
         if (key.endsWith("_url")) {
             if (!(value instanceof String)) return false;
             String url = (String) value;
             if (url.isEmpty()) return true;
             switch (key) {
                 case "vivo_outlet_url": return VivoOutletSource.normalizeUrl(url) != null;
+                case "vivo_madrugada_url": return VivoMadrugadaSource.normalizeUrl(url) != null;
                 case "pelando_url": return PelandoSource.normalizeUrl(url) != null;
                 case "promobit_url": return PromobitSource.normalizeUrl(url) != null;
                 case "kabum_offer_url": return KabumOfferSource.normalizeUrl(url) != null;
+                case "motorola_offer_url": return MotorolaOfferSource.normalizeUrl(url) != null;
+                case "samsung_offer_url": return SamsungOfferSource.normalizeUrl(url) != null;
+                case "samsung_discount_offer_url": return SamsungDiscountOfferSource.normalizeUrl(url) != null;
                 default: return false;
             }
         }
@@ -125,6 +161,7 @@ final class SettingsBackup {
             case "vivo_madrugada_check_interval_seconds": return VivoMadrugadaSource.isSupportedCheckIntervalSeconds(interval);
             case "motorola_offer_check_interval_seconds": return MotorolaOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "samsung_offer_check_interval_seconds": return SamsungOfferSource.isSupportedCheckIntervalSeconds(interval);
+            case "samsung_discount_offer_check_interval_seconds": return SamsungOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "pelando_check_interval_seconds": return PelandoSource.isSupportedCheckInterval(interval);
             case "promobit_check_interval_seconds": return PromobitSource.isSupportedCheckInterval(interval);
             case "kabum_offer_check_interval_seconds": return KabumOfferSource.isSupportedCheckInterval(interval);

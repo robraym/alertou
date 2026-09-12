@@ -38,6 +38,35 @@ public class SettingsBackupTest {
         assertFalse(SettingsBackup.restore(files, null, true));
         assertTrue(files.get("property_market_reference").getBoolean("enabled", false));
     }
+    @Test public void roundTripRestoresStoreOrderingAndSamsungRegistration() {
+        SettingsBackup.Preferences source = files();
+        source.get("external_offer_sources").edit()
+                .putString("samsung_offer_url", SamsungOfferSource.DEFAULT_URL)
+                .putString("samsung_offer_title", "Samsung Promo")
+                .putInt("samsung_offer_check_interval_seconds", 900)
+                .putString("samsung_discount_offer_url", SamsungDiscountOfferSource.DEFAULT_URL)
+                .putString("samsung_discount_offer_title", "Samsung Desconto")
+                .putInt("samsung_discount_offer_check_interval_seconds", 1800)
+                .apply();
+        source.get("store_display_names").edit()
+                .putString("title_" + R.string.pelando_source_title, "Pelando Oficial")
+                .apply();
+        source.get("telegram_preferences").edit().putInt("groups_sort_order", 2).apply();
+
+        SettingsBackup.Preferences destination = files();
+        assertTrue(SettingsBackup.restore(destination, SettingsBackup.export(source), true));
+        SharedPreferences external = destination.get("external_offer_sources");
+        assertEquals(SamsungOfferSource.DEFAULT_URL, external.getString("samsung_offer_url", ""));
+        assertEquals("Samsung Promo", external.getString("samsung_offer_title", ""));
+        assertEquals(900, external.getInt("samsung_offer_check_interval_seconds", 0));
+        assertEquals(SamsungDiscountOfferSource.DEFAULT_URL,
+                external.getString("samsung_discount_offer_url", ""));
+        assertEquals("Samsung Desconto", external.getString("samsung_discount_offer_title", ""));
+        assertEquals(1800, external.getInt("samsung_discount_offer_check_interval_seconds", 0));
+        assertEquals("Pelando Oficial", destination.get("store_display_names")
+                .getString("title_" + R.string.pelando_source_title, ""));
+        assertEquals(2, destination.get("telegram_preferences").getInt("groups_sort_order", -1));
+    }
     @Test public void newerLocalValueWinsUnlessRestoreWasExplicit() throws Exception {
         String key = "property_market_reference/enabled";
         JSONObject local = new JSONObject().put(key, new JSONObject().put("value", true).put("updated_at", 200));

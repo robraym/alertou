@@ -1073,6 +1073,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                             .putInt(PREF_GROUPS_SORT_ORDER, which)
                             .apply();
+                    SettingsBackup.changed(this);
                     dialog.dismiss();
                     renderGroups(availableGroups, showingCachedGroups);
                     sortStoreSources();

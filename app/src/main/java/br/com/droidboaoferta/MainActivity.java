@@ -646,6 +646,7 @@ public class MainActivity extends AlertouActivity {
             summary.setTextColor(getColor(propertyMarketSection && isPropertyMarketUpdating()
                     ? R.color.action_green : R.color.text_secondary));
             summary.setTextSize(11.5f);
+            summary.setIncludeFontPadding(false);
             summary.setSingleLine(true);
             summary.setEllipsize(TextUtils.TruncateAt.END);
             summaryLine.addView(summary, new LinearLayout.LayoutParams(
@@ -655,7 +656,7 @@ public class MainActivity extends AlertouActivity {
             ));
             LinearLayout.LayoutParams summaryLineParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(15)
+                    dp(18)
             );
             summaryLineParams.topMargin = dp(2);
             headerText.addView(summaryLine, summaryLineParams);
