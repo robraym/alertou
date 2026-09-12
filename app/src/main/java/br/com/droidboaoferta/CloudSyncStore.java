@@ -167,13 +167,13 @@ final class CloudSyncStore {
         }
         SharedPreferences preferences = syncPrefs(context);
         long now = System.currentTimeMillis();
-        boolean wasPending = preferences.getBoolean(PENDING_PUSH, false);
         preferences.edit()
                 .putLong(LAST_LOCAL_CHANGE, now)
                 .putBoolean(PENDING_PUSH, true)
                 .putBoolean(PENDING_RANKING_ONLY, false)
-                .putLong(PENDING_STARTED_AT, wasPending
-                        ? preferences.getLong(PENDING_STARTED_AT, now) : now)
+                // Um backup iniciado pelo usuário sempre mede a partir deste toque,
+                // mesmo que exista uma alteração automática pendente mais antiga.
+                .putLong(PENDING_STARTED_AT, now)
                 .apply();
     }
 
