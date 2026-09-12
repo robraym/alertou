@@ -36,6 +36,8 @@ final class PropertyPageMonitor {
     private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
     private volatile boolean marketReferencesRunning;
     private volatile long checkingMarketReferenceInterestId;
+    private volatile int checkingMarketReferencePosition;
+    private volatile int checkingMarketReferenceTotal;
 
     private PropertyPageMonitor() {
     }
@@ -58,6 +60,14 @@ final class PropertyPageMonitor {
 
     long getCheckingMarketReferenceInterestId() {
         return marketReferencesRunning ? checkingMarketReferenceInterestId : 0L;
+    }
+
+    int getCheckingMarketReferencePosition() {
+        return marketReferencesRunning ? checkingMarketReferencePosition : 0;
+    }
+
+    int getCheckingMarketReferenceTotal() {
+        return marketReferencesRunning ? checkingMarketReferenceTotal : 0;
     }
 
     synchronized void checkNow(Context context) {
@@ -140,19 +150,23 @@ final class PropertyPageMonitor {
             return;
         }
         long marketCheckStartedAt = includeMarketReferences ? SystemClock.elapsedRealtime() : 0L;
+        List<Interest> orderedInterests = orderPropertyInterests(
+                new InterestRepository(context).getAll(), preferredInterestOrder);
         if (includeMarketReferences) {
             marketReferencesRunning = true;
             checkingMarketReferenceInterestId = 0L;
+            checkingMarketReferencePosition = 0;
+            checkingMarketReferenceTotal = countCurrentPropertyInterests(context, orderedInterests);
         }
         try {
-        for (Interest interest : orderPropertyInterests(
-                new InterestRepository(context).getAll(), preferredInterestOrder)) {
+        for (Interest interest : orderedInterests) {
             if (!interest.isProperty()) {
                 continue;
             }
             if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
             if (includeMarketReferences) {
                 checkingMarketReferenceInterestId = interest.getId();
+                checkingMarketReferencePosition++;
             }
             SourceCheckStatus.begin(context, interest.getId());
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
@@ -179,11 +193,23 @@ final class PropertyPageMonitor {
                 saveLastMarketCheckDuration(context,
                         Math.max(0L, SystemClock.elapsedRealtime() - marketCheckStartedAt));
                 checkingMarketReferenceInterestId = 0L;
+                checkingMarketReferencePosition = 0;
+                checkingMarketReferenceTotal = 0;
                 marketReferencesRunning = false;
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
             }
         }
+    }
+
+    private int countCurrentPropertyInterests(Context context, List<Interest> interests) {
+        int total = 0;
+        for (Interest interest : interests) {
+            if (interest.isProperty() && MonitorRunPolicy.isCurrent(context, interest)) {
+                total++;
+            }
+        }
+        return total;
     }
 
     static long getLastMarketCheckDurationMillis(Context context) {

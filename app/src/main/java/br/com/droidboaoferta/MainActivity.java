@@ -619,11 +619,25 @@ public class MainActivity extends AlertouActivity {
         ));
 
         TextView count = new TextView(this);
-        count.setText(getResources().getQuantityString(
-                R.plurals.dashboard_offer_section_count,
-                offers.size(),
-                offers.size()
-        ));
+        int checkingPosition = propertyMarketSection
+                ? PropertyPageMonitor.getInstance().getCheckingMarketReferencePosition() : 0;
+        int checkingTotal = propertyMarketSection
+                ? PropertyPageMonitor.getInstance().getCheckingMarketReferenceTotal() : 0;
+        if (propertyMarketSection && isPropertyMarketUpdating()
+                && checkingPosition > 0 && checkingTotal > 0) {
+            count.setText(getResources().getQuantityString(
+                    R.plurals.property_market_reference_section_progress,
+                    checkingTotal,
+                    checkingPosition,
+                    checkingTotal
+            ));
+        } else {
+            count.setText(getResources().getQuantityString(
+                    R.plurals.dashboard_offer_section_count,
+                    offers.size(),
+                    offers.size()
+            ));
+        }
         count.setTextColor(getColor(R.color.action));
         count.setTextSize(14);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(

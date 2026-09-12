@@ -51,6 +51,26 @@ final class VivoOutletMonitor {
         scheduler.request(0, () -> checkSafely(0L, true));
     }
 
+    synchronized void checkOutletNow(Context context) {
+        checkSingleSourceNow(context, true);
+    }
+
+    synchronized void checkMadrugadaNow(Context context) {
+        checkSingleSourceNow(context, false);
+    }
+
+    private void checkSingleSourceNow(Context context, boolean outlet) {
+        appContext = context.getApplicationContext();
+        if (!MonitorRunPolicy.canRun(appContext)) return;
+        Runnable requestedCheck = () -> checkSingleSourceSafely(outlet);
+        if (!scheduler.isStarted()) {
+            scheduler.start(this::checkAllSafely, TimeUnit.SECONDS.toMillis(
+                    getShortestCheckIntervalSeconds(appContext)), requestedCheck);
+            return;
+        }
+        scheduler.request(0, requestedCheck);
+    }
+
     synchronized void checkInterestNow(Context context, long interestId) {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
@@ -112,6 +132,22 @@ final class VivoOutletMonitor {
         if (found) {
             context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                     .setPackage(context.getPackageName()));
+        }
+        context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
+                .setPackage(context.getPackageName()));
+    }
+
+    private void checkSingleSourceSafely(boolean outlet) {
+        Context context = appContext;
+        if (!MonitorRunPolicy.canRun(context)) return;
+        boolean configured = outlet ? VivoOutletSource.isConfigured(context)
+                : VivoMadrugadaSource.isConfigured(context);
+        if (configured) {
+            String url = outlet ? VivoOutletSource.getUrl(context) : VivoMadrugadaSource.getUrl(context);
+            checkSource(context, url, outlet ? "vivo_outlet_" : "vivo_madrugada_",
+                    outlet ? "vivo|" : "vivo_madrugada|",
+                    outlet ? R.string.vivo_outlet_offer_source : R.string.vivo_madrugada_offer_source,
+                    outlet, 0L);
         }
         context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
                 .setPackage(context.getPackageName()));

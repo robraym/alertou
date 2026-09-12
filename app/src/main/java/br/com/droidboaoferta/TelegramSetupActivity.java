@@ -99,6 +99,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private static final int GROUPS_SORT_RELEVANCE = 0;
     private static final int GROUPS_SORT_RECENT = 1;
     private static final int GROUPS_SORT_NAME = 2;
+    private static final String MANUAL_VIVO_OUTLET = "manual_vivo_outlet";
+    private static final String MANUAL_VIVO_MADRUGADA = "manual_vivo_madrugada";
 
     private TelegramClientManager clientManager;
     private TextView statusText;
@@ -1644,8 +1646,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         boolean motorolaConfigured = MotorolaOfferSource.isConfigured(this);
         boolean samsungConfigured = SamsungOfferSource.isConfigured(this);
         boolean samsungDiscountConfigured = SamsungDiscountOfferSource.isConfigured(this);
+        boolean showingProgress = storeRefreshProgressActive || checkingSource != 0;
         int online = storeRefreshProgressActive ? countCompletedOnlineStoreSources() : 0;
-        if (!storeRefreshProgressActive) {
+        if (!showingProgress) {
             online += isSourceOnline(outletConfigured,
                     VivoOutletSource.hasSuccessfulCheck(this), VivoOutletSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(madrugadaConfigured,
@@ -1663,18 +1666,28 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             online += isSourceOnline(samsungDiscountConfigured,
                     SamsungDiscountOfferSource.hasSuccessfulCheck(this), SamsungDiscountOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
         }
-        storeSourcesOnlineText.setText(getString(R.string.source_status_dot_online, online));
+        int offline = storeRefreshProgressActive ? countCompletedOfflineStoreSources() : 0;
+        if (!storeRefreshProgressActive) {
+            offline += outletConfigured && VivoOutletSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += madrugadaConfigured && VivoMadrugadaSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += pelandoConfigured && PelandoSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += promobitConfigured && PromobitSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += kabumConfigured && KabumOfferSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += motorolaConfigured && MotorolaOfferSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += samsungConfigured && SamsungOfferSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += samsungDiscountConfigured && SamsungDiscountOfferSource.hasLastCheckFailed(this) ? 1 : 0;
+        }
+        if (checkingSource != 0) {
+            // A posição visível é a referência do usuário, tanto no ciclo manual quanto no automático.
+            online = getDisplayedStoreSourcePosition(checkingSource);
+        }
+        int onlineTotal = showingProgress
+                ? Math.max(0, countConfiguredStoreSources() - offline) : 0;
+        storeSourcesOnlineText.setText(showingProgress
+                ? getString(R.string.source_status_dot_online_progress, online, onlineTotal)
+                : getString(R.string.source_status_dot_online, online));
         storeSourcesOnlineText.setTextColor(getColor(R.color.action));
         storeSourcesOnlineText.setVisibility(View.VISIBLE);
-        int offline = 0;
-        offline += outletConfigured && VivoOutletSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += madrugadaConfigured && VivoMadrugadaSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += pelandoConfigured && PelandoSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += promobitConfigured && PromobitSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += kabumConfigured && KabumOfferSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += motorolaConfigured && MotorolaOfferSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += samsungConfigured && SamsungOfferSource.hasLastCheckFailed(this) ? 1 : 0;
-        offline += samsungDiscountConfigured && SamsungDiscountOfferSource.hasLastCheckFailed(this) ? 1 : 0;
         if (offline > 0) {
             storeSourcesOfflineText.setText(getString(R.string.source_status_dot_offline, offline));
             storeSourcesOfflineText.setTextColor(getColor(R.color.danger));
@@ -1732,6 +1745,69 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             if (sourceTitle != null && isStoreSourceOnline(sourceTitle)) online++;
         }
         return online;
+    }
+
+    private int countCompletedOfflineStoreSources() {
+        int offline = 0;
+        for (Integer sourceTitle : completedStoreRefreshSources) {
+            if (sourceTitle != null && !isStoreSourceOnline(sourceTitle)) offline++;
+        }
+        return offline;
+    }
+
+    private int countConfiguredStoreSources() {
+        int total = 0;
+        total += VivoOutletSource.isConfigured(this) ? 1 : 0;
+        total += VivoMadrugadaSource.isConfigured(this) ? 1 : 0;
+        total += PelandoSource.isConfigured(this) ? 1 : 0;
+        total += PromobitSource.isConfigured(this) ? 1 : 0;
+        total += KabumOfferSource.isConfigured(this) ? 1 : 0;
+        total += MotorolaOfferSource.isConfigured(this) ? 1 : 0;
+        total += SamsungOfferSource.isConfigured(this) ? 1 : 0;
+        total += SamsungDiscountOfferSource.isConfigured(this) ? 1 : 0;
+        return total;
+    }
+
+    private int getDisplayedStoreSourcePosition(int sourceTitleResource) {
+        if (storeSourcesContainer == null || sourceTitleResource == 0) return 0;
+        int position = 0;
+        for (int index = 0; index < storeSourcesContainer.getChildCount(); index++) {
+            View row = storeSourcesContainer.getChildAt(index);
+            int rowSource = getStoreSourceTitleResource(row);
+            if (rowSource == 0) continue;
+            position++;
+            if (rowSource == sourceTitleResource) return position;
+        }
+        return 0;
+    }
+
+    private int getStoreSourceTitleResource(View row) {
+        if (row == null) return 0;
+        if (row.findViewById(R.id.text_vivo_outlet_source_title) != null) {
+            return R.string.vivo_outlet_source_title;
+        }
+        if (row.findViewById(R.id.text_vivo_madrugada_source_title) != null) {
+            return R.string.vivo_madrugada_source_title;
+        }
+        if (row.findViewById(R.id.text_pelando_source_title) != null) {
+            return R.string.pelando_source_title;
+        }
+        if (row.findViewById(R.id.text_promobit_source_title) != null) {
+            return R.string.promobit_source_title;
+        }
+        if (row.findViewById(R.id.text_kabum_offer_source_title) != null) {
+            return R.string.kabum_offer_source_title;
+        }
+        if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
+            return R.string.motorola_offer_source_title;
+        }
+        if (row.findViewById(R.id.text_samsung_offer_source_title) != null) {
+            return R.string.samsung_offer_source_title;
+        }
+        if (row.findViewById(R.id.text_samsung_discount_offer_source_title) != null) {
+            return R.string.samsung_discount_offer_source_title;
+        }
+        return 0;
     }
 
     private boolean isStoreSourceOnline(int sourceTitleResource) {
@@ -1851,27 +1927,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         storeRefreshProgressActive = true;
         completedStoreRefreshSources.clear();
         manualStoreRefreshQueue.clear();
-        if (VivoOutletSource.isConfigured(this) || VivoMadrugadaSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(VivoOutletMonitor.ACTION_STATUS_CHANGED);
-        }
-        if (PelandoSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(PelandoMonitor.ACTION_STATUS_CHANGED);
-        }
-        if (PromobitSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(PromobitMonitor.ACTION_STATUS_CHANGED);
-        }
-        if (KabumOfferSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(KabumOfferMonitor.ACTION_STATUS_CHANGED);
-        }
-        if (MotorolaOfferSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(MotorolaOfferMonitor.ACTION_STATUS_CHANGED);
-        }
-        if (SamsungOfferSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(SamsungOfferMonitor.ACTION_STATUS_CHANGED);
-        }
-        if (SamsungDiscountOfferSource.isConfigured(this)) {
-            manualStoreRefreshQueue.add(SamsungDiscountOfferMonitor.ACTION_STATUS_CHANGED);
-        }
+        manualStoreRefreshQueue.addAll(getDisplayedStoreRefreshOrder());
         if (manualStoreRefreshQueue.isEmpty()) {
             storeRefreshProgressActive = false;
             renderStoreSourcesStatus();
@@ -1881,8 +1937,48 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         startNextManualStoreStep();
     }
 
+    private List<String> getDisplayedStoreRefreshOrder() {
+        List<String> actions = new ArrayList<>();
+        if (storeSourcesContainer == null) return actions;
+        for (int index = 0; index < storeSourcesContainer.getChildCount(); index++) {
+            String action = getStoreRefreshAction(storeSourcesContainer.getChildAt(index));
+            if (action != null && !actions.contains(action)) actions.add(action);
+        }
+        return actions;
+    }
+
+    private String getStoreRefreshAction(View row) {
+        if (row == null) return null;
+        if (row.findViewById(R.id.text_vivo_outlet_source_title) != null) {
+            return VivoOutletSource.isConfigured(this) ? MANUAL_VIVO_OUTLET : null;
+        }
+        if (row.findViewById(R.id.text_vivo_madrugada_source_title) != null) {
+            return VivoMadrugadaSource.isConfigured(this) ? MANUAL_VIVO_MADRUGADA : null;
+        }
+        if (row.findViewById(R.id.text_pelando_source_title) != null) {
+            return PelandoSource.isConfigured(this) ? PelandoMonitor.ACTION_STATUS_CHANGED : null;
+        }
+        if (row.findViewById(R.id.text_promobit_source_title) != null) {
+            return PromobitSource.isConfigured(this) ? PromobitMonitor.ACTION_STATUS_CHANGED : null;
+        }
+        if (row.findViewById(R.id.text_kabum_offer_source_title) != null) {
+            return KabumOfferSource.isConfigured(this) ? KabumOfferMonitor.ACTION_STATUS_CHANGED : null;
+        }
+        if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
+            return MotorolaOfferSource.isConfigured(this) ? MotorolaOfferMonitor.ACTION_STATUS_CHANGED : null;
+        }
+        if (row.findViewById(R.id.text_samsung_offer_source_title) != null) {
+            return SamsungOfferSource.isConfigured(this) ? SamsungOfferMonitor.ACTION_STATUS_CHANGED : null;
+        }
+        if (row.findViewById(R.id.text_samsung_discount_offer_source_title) != null) {
+            return SamsungDiscountOfferSource.isConfigured(this)
+                    ? SamsungDiscountOfferMonitor.ACTION_STATUS_CHANGED : null;
+        }
+        return null;
+    }
+
     private void finishManualStoreStep(String completedAction) {
-        if (manualStoreRefreshAction == null || !manualStoreRefreshAction.equals(completedAction)) return;
+        if (!isCurrentManualStoreStepCompleted(completedAction)) return;
         manualStoreRefreshAction = null;
         if (manualStoreRefreshQueue.isEmpty()) {
             storeRefreshProgressActive = false;
@@ -1892,11 +1988,22 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         startNextManualStoreStep();
     }
 
+    private boolean isCurrentManualStoreStepCompleted(String completedAction) {
+        if (manualStoreRefreshAction == null) return false;
+        if (MANUAL_VIVO_OUTLET.equals(manualStoreRefreshAction)
+                || MANUAL_VIVO_MADRUGADA.equals(manualStoreRefreshAction)) {
+            return VivoOutletMonitor.ACTION_STATUS_CHANGED.equals(completedAction);
+        }
+        return manualStoreRefreshAction.equals(completedAction);
+    }
+
     private void startNextManualStoreStep() {
         if (manualStoreRefreshAction != null || manualStoreRefreshQueue.isEmpty()) return;
         manualStoreRefreshAction = manualStoreRefreshQueue.remove(0);
-        if (VivoOutletMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
-            VivoOutletMonitor.getInstance().checkNow(this);
+        if (MANUAL_VIVO_OUTLET.equals(manualStoreRefreshAction)) {
+            VivoOutletMonitor.getInstance().checkOutletNow(this);
+        } else if (MANUAL_VIVO_MADRUGADA.equals(manualStoreRefreshAction)) {
+            VivoOutletMonitor.getInstance().checkMadrugadaNow(this);
         } else if (PelandoMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
             PelandoMonitor.getInstance().checkNow(this);
         } else if (PromobitMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
