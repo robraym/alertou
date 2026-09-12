@@ -42,6 +42,16 @@ public class CouponPageParserTest {
     }
 
     @Test
+    public void acceptsOfficialSamsungDiscountAndLiveShopPages() {
+        assertEquals(CouponPageClient.SAMSUNG_DISCOUNTS_URL,
+                CouponPageClient.normalizeSupportedUrl(
+                        "https://shop.samsung.com/br/desconto-samsung/"));
+        assertEquals(CouponPageClient.SAMSUNG_LIVE_SHOP_URL,
+                CouponPageClient.normalizeSupportedUrl("https://shop.samsung.com/br/live"));
+        assertTrue(CouponPageClient.isSamsung(CouponPageClient.SAMSUNG_LIVE_SHOP_URL));
+    }
+
+    @Test
     public void ordersEveryParsedCouponFromLargestToSmallest() {
         List<CouponPageCoupon> coupons = CouponPageParser.parse(
                 "Cupom de R$ 80 de desconto. Use o cupom OITENTA80. "
@@ -50,5 +60,31 @@ public class CouponPageParserTest {
 
         assertEquals(2, coupons.size());
         assertEquals(1200.50d, coupons.get(0).getValue(), 0.001d);
+    }
+
+    @Test
+    public void findsHighestPercentageOnSamsungCouponCards() {
+        String html = "<div class=\"ft25-flip-card__eyebrow-text\">EXCLUSIVOAPP</div>"
+                + "<div class=\"ft25-flip-card__card-description\">Até 10% Off no app</div>"
+                + "<div class=\"ft25-flip-card__eyebrow-text\">LIVESHOP</div>"
+                + "<div class=\"ft25-flip-card__card-description\">Até 60% Off</div>";
+
+        CouponPageCoupon coupon = CouponPageParser.findHighestSamsungCoupon(html);
+
+        assertEquals("LIVESHOP", coupon.getCode());
+        assertEquals(60d, coupon.getValue(), 0.001d);
+        assertTrue(coupon.hasPercentageValue());
+    }
+
+    @Test
+    public void findsCodeOnSamsungLiveCopyButton() {
+        String html = "<h1 class=\"cupomTitle\">Aproveite as ofertas</h1>"
+                + "<button class=\"copyButton\">LIVE0909<p>Copiar</p></button>";
+
+        CouponPageCoupon coupon = CouponPageParser.findSamsungLiveCoupon(html);
+
+        assertEquals("LIVE0909", coupon.getCode());
+        assertTrue(!coupon.hasMonetaryValue());
+        assertTrue(!coupon.hasPercentageValue());
     }
 }

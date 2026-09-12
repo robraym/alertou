@@ -125,7 +125,8 @@ final class CouponPageMonitor {
 
     private void checkInterest(Context context, Interest interest) throws Exception {
         CouponPageCoupon highest = CouponPageClient.fetchHighest(interest.getTerm());
-        if (!MonitorRunPolicy.isCurrent(context, interest) || highest == null) {
+        if (!MonitorRunPolicy.isCurrent(context, interest) || highest == null
+                || !highest.hasMonetaryValue()) {
             return;
         }
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -152,13 +153,15 @@ final class CouponPageMonitor {
 
         long observedAt = System.currentTimeMillis();
         String canonicalUrl = CouponPageClient.normalizeSupportedUrl(interest.getTerm());
+        String brand = context.getString(CouponPageClient.isSamsung(canonicalUrl)
+                ? R.string.coupon_brand_samsung : R.string.coupon_brand_motorola);
         String offerId = "coupon|" + interest.getId() + "|" + highest.getCode()
                 + "|" + Double.doubleToLongBits(highest.getValue());
         ObservedOffer offer = new ObservedOffer(
                 offerId,
                 interest.getId(),
-                context.getString(R.string.motorola_coupon_offer_title),
-                context.getString(R.string.motorola_coupon_source, highest.getCode()),
+                context.getString(R.string.coupon_offer_title, brand),
+                context.getString(R.string.coupon_source, brand, highest.getCode()),
                 highest.getValue(),
                 interest.getMaximumPrice(),
                 observedAt,
@@ -166,13 +169,13 @@ final class CouponPageMonitor {
                 ""
         );
         new OfferRepository(context).add(offer);
-        showNotification(context, interest, highest, offer.getLink());
+        showNotification(context, interest, highest, offer.getLink(), brand);
         context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                 .setPackage(context.getPackageName()));
     }
 
     private void showNotification(Context context, Interest interest, CouponPageCoupon coupon,
-                                  String pageUrl) {
+                                  String pageUrl, String brand) {
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(pageUrl));
         PendingIntent pendingIntent = PendingIntent.getActivity(
@@ -184,11 +187,12 @@ final class CouponPageMonitor {
         NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         String title = context.getString(
                 R.string.coupon_notification_title,
+                brand,
                 currency.format(coupon.getValue())
         );
         String explanation = context.getString(
                 R.string.coupon_notification_explanation,
-                coupon.getCode()
+                coupon.getCode(), brand
         );
         AlertSoundController.configureNotificationChannel(context);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(

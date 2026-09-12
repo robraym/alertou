@@ -12,7 +12,7 @@ final class SettingsBackup {
     private static final String[] EXTERNAL_KEYS = {"vivo_outlet_url", "pelando_url", "promobit_url",
             "kabum_offer_url", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes",
             "vivo_outlet_check_interval_seconds", "vivo_madrugada_check_interval_seconds",
-            "motorola_offer_check_interval_seconds", "pelando_check_interval_seconds",
+            "motorola_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds"};
     private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes", "check_interval_seconds"};
 
@@ -124,6 +124,7 @@ final class SettingsBackup {
             case "vivo_outlet_check_interval_seconds": return VivoOutletSource.isSupportedCheckIntervalSeconds(interval);
             case "vivo_madrugada_check_interval_seconds": return VivoMadrugadaSource.isSupportedCheckIntervalSeconds(interval);
             case "motorola_offer_check_interval_seconds": return MotorolaOfferSource.isSupportedCheckIntervalSeconds(interval);
+            case "samsung_offer_check_interval_seconds": return SamsungOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "pelando_check_interval_seconds": return PelandoSource.isSupportedCheckInterval(interval);
             case "promobit_check_interval_seconds": return PromobitSource.isSupportedCheckInterval(interval);
             case "kabum_offer_check_interval_seconds": return KabumOfferSource.isSupportedCheckInterval(interval);

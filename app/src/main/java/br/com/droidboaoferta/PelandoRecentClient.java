@@ -22,7 +22,7 @@ final class PelandoRecentClient {
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
     );
     private static final Pattern PRICE_IN_TITLE = Pattern.compile(
-            "Por\\s+R\\$\\s*([0-9.]+,[0-9]{2})",
+            "Por\\s+R\\$\\s*([0-9.]+(?:,[0-9]{1,2})?)",
             Pattern.CASE_INSENSITIVE
     );
 

@@ -98,6 +98,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView promobitIntervalSummary;
     private TextView kabumOfferIntervalSummary;
     private TextView motorolaOfferIntervalSummary;
+    private TextView samsungOfferIntervalSummary;
+    private TextView samsungDiscountOfferIntervalSummary;
     private LinearLayout accountCard;
     private LinearLayout syncRow;
     private View accountChevron;
@@ -140,6 +142,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         promobitIntervalSummary = findViewById(R.id.text_promobit_interval_summary);
         kabumOfferIntervalSummary = findViewById(R.id.text_kabum_offer_interval_summary);
         motorolaOfferIntervalSummary = findViewById(R.id.text_motorola_offer_interval_summary);
+        samsungOfferIntervalSummary = findViewById(R.id.text_samsung_offer_interval_summary);
+        samsungDiscountOfferIntervalSummary = findViewById(R.id.text_samsung_discount_offer_interval_summary);
         accountCard = findViewById(R.id.card_telegram_account);
         syncRow = findViewById(R.id.row_sync);
         accountChevron = findViewById(R.id.image_account_chevron);
@@ -216,6 +220,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         );
         findViewById(R.id.row_motorola_offer_interval).setOnClickListener(
                 view -> showMotorolaOfferIntervalDialog()
+        );
+        findViewById(R.id.row_samsung_offer_interval).setOnClickListener(
+                view -> showSamsungOfferIntervalDialog()
+        );
+        findViewById(R.id.row_samsung_discount_offer_interval).setOnClickListener(
+                view -> showSamsungDiscountOfferIntervalDialog()
         );
         findViewById(R.id.row_backup).setOnClickListener(view -> clientManager.backupCloudNow());
         findViewById(R.id.row_backup).setOnLongClickListener(view -> {
@@ -350,6 +360,26 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 KabumOfferSource.getCheckIntervalSeconds(this)));
         motorolaOfferIntervalSummary.setText(formatCheckIntervalSeconds(
                 MotorolaOfferSource.getCheckIntervalSeconds(this)));
+        samsungOfferIntervalSummary.setText(formatCheckIntervalSeconds(
+                SamsungOfferSource.getCheckIntervalSeconds(this)));
+        samsungDiscountOfferIntervalSummary.setText(formatCheckIntervalSeconds(
+                SamsungDiscountOfferSource.getCheckIntervalSeconds(this)));
+        ((TextView) findViewById(R.id.text_motorola_offer_interval_title)).setText(
+                MotorolaOfferSource.getTitle(this));
+        ((TextView) findViewById(R.id.text_samsung_offer_interval_title)).setText(
+                SamsungOfferSource.getTitle(this));
+        ((TextView) findViewById(R.id.text_samsung_discount_offer_interval_title)).setText(
+                SamsungDiscountOfferSource.getTitle(this));
+        ((TextView) findViewById(R.id.text_vivo_outlet_interval_title)).setText(
+                StoreDisplayName.get(this, R.string.vivo_outlet_source_title));
+        ((TextView) findViewById(R.id.text_vivo_madrugada_interval_title)).setText(
+                StoreDisplayName.get(this, R.string.vivo_madrugada_source_title));
+        ((TextView) findViewById(R.id.text_pelando_interval_title)).setText(
+                StoreDisplayName.get(this, R.string.pelando_source_title));
+        ((TextView) findViewById(R.id.text_promobit_interval_title)).setText(
+                StoreDisplayName.get(this, R.string.promobit_source_title));
+        ((TextView) findViewById(R.id.text_kabum_offer_interval_title)).setText(
+                StoreDisplayName.get(this, R.string.kabum_offer_source_title));
         backupScheduleSummary.setText(getBackupScheduleSummary());
     }
 
@@ -826,6 +856,81 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         content.addView(options);
 
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
+    }
+
+    private void showSamsungOfferIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.samsung_offer_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = SamsungOfferSource.getCheckIntervalSeconds(this);
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
+            option.setOnClickListener(view -> {
+                SamsungOfferSource.saveCheckIntervalSeconds(this, interval);
+                samsungOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                SamsungOfferMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
+    }
+
+    private void showSamsungDiscountOfferIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        TextView title = new TextView(this);
+        title.setText(R.string.samsung_discount_offer_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+        int savedInterval = SamsungDiscountOfferSource.getCheckIntervalSeconds(this);
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
+            option.setOnClickListener(view -> {
+                SamsungDiscountOfferSource.saveCheckIntervalSeconds(this, interval);
+                samsungDiscountOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                SamsungDiscountOfferMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
         TextView close = createDialogAction(R.string.action_close);

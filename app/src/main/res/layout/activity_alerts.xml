@@ -137,7 +137,7 @@
                         android:layout_marginStart="6dp"
                         android:singleLine="true"
                         android:text="@string/coupon_alerts_registered_count_empty"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="@color/action"
                     android:textSize="14sp" />
                 </LinearLayout>
 
@@ -145,7 +145,6 @@
                     android:id="@+id/button_toggle_coupon_alerts"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/alerts_section_collapse"
                     android:padding="7dp"
@@ -220,7 +219,7 @@
                         android:layout_marginStart="6dp"
                         android:singleLine="true"
                         android:text="@string/property_alerts_registered_count_empty"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="@color/action"
                     android:textSize="14sp" />
                 </LinearLayout>
 
@@ -228,7 +227,6 @@
                     android:id="@+id/button_toggle_property_alerts"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/alerts_section_collapse"
                     android:padding="7dp"
@@ -303,7 +301,7 @@
                         android:layout_marginStart="6dp"
                         android:singleLine="true"
                         android:text="@string/price_alerts_registered_count_empty"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="@color/action"
                     android:textSize="14sp" />
                 </LinearLayout>
 
@@ -311,7 +309,6 @@
                     android:id="@+id/button_toggle_price_alerts"
                     android:layout_width="32dp"
                     android:layout_height="32dp"
-                    android:layout_marginEnd="2dp"
                     android:background="@drawable/bg_icon_circle"
                     android:contentDescription="@string/alerts_section_collapse"
                     android:padding="7dp"

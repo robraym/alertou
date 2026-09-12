@@ -16,6 +16,9 @@ import java.util.concurrent.Executors;
 final class CouponPageClient {
     static final String MOTOROLA_COUPONS_URL =
             "https://www.motorola.com.br/cupons-de-desconto-motorola";
+    static final String SAMSUNG_DISCOUNTS_URL = "https://shop.samsung.com/br/desconto-samsung";
+    static final String SAMSUNG_COUPONS_URL = "https://www.samsung.com/br/offer/coupons/";
+    static final String SAMSUNG_LIVE_SHOP_URL = "https://shop.samsung.com/br/live";
     private static final int MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
     private static final ExecutorService REQUEST_EXECUTOR = Executors.newCachedThreadPool();
 
@@ -42,15 +45,32 @@ final class CouponPageClient {
             while (path.endsWith("/") && path.length() > 1) {
                 path = path.substring(0, path.length() - 1);
             }
-            if (!"https".equals(scheme)
-                    || !("motorola.com.br".equals(host) || "www.motorola.com.br".equals(host))
-                    || !"/cupons-de-desconto-motorola".equals(path)) {
-                return null;
+            if (!"https".equals(scheme)) return null;
+            if (("motorola.com.br".equals(host) || "www.motorola.com.br".equals(host))
+                    && "/cupons-de-desconto-motorola".equals(path)) return MOTOROLA_COUPONS_URL;
+            if ("shop.samsung.com".equals(host) && "/br/desconto-samsung".equals(path)) {
+                return SAMSUNG_DISCOUNTS_URL;
             }
-            return MOTOROLA_COUPONS_URL;
+            if ("www.samsung.com".equals(host) && "/br/offer/coupons".equals(path)) {
+                return SAMSUNG_COUPONS_URL;
+            }
+            if ("shop.samsung.com".equals(host) && "/br/live".equals(path)) {
+                return SAMSUNG_LIVE_SHOP_URL;
+            }
+            return null;
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    static boolean isSamsung(String rawUrl) {
+        String normalized = normalizeSupportedUrl(rawUrl);
+        return SAMSUNG_DISCOUNTS_URL.equals(normalized) || SAMSUNG_COUPONS_URL.equals(normalized)
+                || SAMSUNG_LIVE_SHOP_URL.equals(normalized);
+    }
+
+    static boolean usesPercentageValue(String rawUrl) {
+        return SAMSUNG_COUPONS_URL.equals(normalizeSupportedUrl(rawUrl));
     }
 
     static void fetchHighestAsync(String rawUrl, Callback callback) {
@@ -87,7 +107,14 @@ final class CouponPageClient {
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException("HTTP " + status);
             }
-            return CouponPageParser.findHighest(readResponse(connection.getInputStream()));
+            String page = readResponse(connection.getInputStream());
+            if (SAMSUNG_COUPONS_URL.equals(normalizedUrl)) {
+                return CouponPageParser.findHighestSamsungCoupon(page);
+            }
+            if (SAMSUNG_LIVE_SHOP_URL.equals(normalizedUrl)) {
+                return CouponPageParser.findSamsungLiveCoupon(page);
+            }
+            return CouponPageParser.findHighest(page);
         } finally {
             connection.disconnect();
         }

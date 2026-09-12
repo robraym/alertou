@@ -6,20 +6,20 @@ import android.content.SharedPreferences;
 import java.net.URI;
 import java.util.Locale;
 
-/** Official Motorola Brazil offers catalog. */
-final class MotorolaOfferSource {
-    static final String DEFAULT_URL = "https://www.motorola.com.br/ofertas";
+/** Official Samsung Brazil offers catalog. */
+final class SamsungOfferSource {
+    static final String DEFAULT_URL = "https://www.samsung.com/br/offer/";
     private static final String PREFS = "external_offer_sources";
-    private static final String KEY_URL = "motorola_offer_url";
-    private static final String KEY_TITLE = "motorola_offer_title";
-    private static final String KEY_LAST_SUCCESS = "motorola_offer_last_success";
-    private static final String KEY_LAST_FAILURE = "motorola_offer_last_failure";
-    private static final String KEY_CHECK_INTERVAL_MINUTES = "motorola_offer_check_interval_minutes";
-    private static final String KEY_CHECK_INTERVAL_SECONDS = "motorola_offer_check_interval_seconds";
+    private static final String KEY_URL = "samsung_offer_url";
+    private static final String KEY_TITLE = "samsung_offer_title";
+    private static final String KEY_LAST_SUCCESS = "samsung_offer_last_success";
+    private static final String KEY_LAST_FAILURE = "samsung_offer_last_failure";
+    private static final String KEY_CHECK_INTERVAL_MINUTES = "samsung_offer_check_interval_minutes";
+    private static final String KEY_CHECK_INTERVAL_SECONDS = "samsung_offer_check_interval_seconds";
     static final int DEFAULT_CHECK_INTERVAL_MINUTES = 15;
     static final int DEFAULT_CHECK_INTERVAL_SECONDS = DEFAULT_CHECK_INTERVAL_MINUTES * 60;
 
-    private MotorolaOfferSource() {
+    private SamsungOfferSource() {
     }
 
     static String getUrl(Context context) {
@@ -27,13 +27,13 @@ final class MotorolaOfferSource {
     }
 
     static String getTitle(Context context) {
-        return preferences(context).getString(KEY_TITLE, "Motorola");
+        return preferences(context).getString(KEY_TITLE, "Samsung Ofertas");
     }
 
     static void saveTitle(Context context, String title) {
         String value = title == null ? "" : title.trim().replaceAll("\\s+", " ");
         preferences(context).edit().putString(KEY_TITLE,
-                value.isEmpty() ? "Motorola" : value.substring(0, Math.min(40, value.length()))).apply();
+                value.isEmpty() ? "Samsung Ofertas" : value.substring(0, Math.min(40, value.length()))).apply();
         SettingsBackup.changed(context);
     }
 
@@ -43,7 +43,7 @@ final class MotorolaOfferSource {
 
     static void save(Context context, String rawUrl) {
         String normalized = normalizeUrl(rawUrl);
-        if (normalized == null) throw new IllegalArgumentException("Unsupported Motorola URL");
+        if (normalized == null) throw new IllegalArgumentException("Unsupported Samsung URL");
         preferences(context).edit().putString(KEY_URL, normalized).apply();
         SettingsBackup.changed(context);
     }
@@ -55,8 +55,8 @@ final class MotorolaOfferSource {
             String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
             String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
             String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            return "https".equals(scheme) && "www.motorola.com.br".equals(host)
-                    && "/ofertas".equals(path) ? DEFAULT_URL : null;
+            return "https".equals(scheme) && "www.samsung.com".equals(host)
+                    && "/br/offer".equals(path) ? DEFAULT_URL : null;
         } catch (IllegalArgumentException ignored) {
             return null;
         }
@@ -94,7 +94,7 @@ final class MotorolaOfferSource {
 
     static void saveCheckIntervalMinutes(Context context, int minutes) {
         if (!isSupportedCheckInterval(minutes)) {
-            throw new IllegalArgumentException("Unsupported Motorola check interval");
+            throw new IllegalArgumentException("Unsupported Samsung check interval");
         }
         preferences(context).edit().putInt(KEY_CHECK_INTERVAL_MINUTES, minutes).apply();
         SettingsBackup.changed(context);
@@ -113,7 +113,7 @@ final class MotorolaOfferSource {
 
     static void saveCheckIntervalSeconds(Context context, int seconds) {
         if (!isSupportedCheckIntervalSeconds(seconds)) {
-            throw new IllegalArgumentException("Unsupported Motorola check interval");
+            throw new IllegalArgumentException("Unsupported Samsung check interval");
         }
         preferences(context).edit().putInt(KEY_CHECK_INTERVAL_SECONDS, seconds).apply();
         SettingsBackup.changed(context);

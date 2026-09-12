@@ -12,6 +12,7 @@ final class Interest {
     private final double minimumArea;
     private final double maximumArea;
     private final String propertyName;
+    private final String couponName;
 
     Interest(long id, String term, double maximumPrice) {
         this(id, term, maximumPrice, TYPE_PRICE);
@@ -28,6 +29,11 @@ final class Interest {
 
     Interest(long id, String term, double maximumPrice, String type,
              double minimumArea, double maximumArea, String propertyName) {
+        this(id, term, maximumPrice, type, minimumArea, maximumArea, propertyName, "");
+    }
+
+    Interest(long id, String term, double maximumPrice, String type,
+             double minimumArea, double maximumArea, String propertyName, String couponName) {
         this.id = id;
         this.term = term;
         this.maximumPrice = maximumPrice;
@@ -37,6 +43,7 @@ final class Interest {
         this.minimumArea = minimumArea;
         this.maximumArea = maximumArea;
         this.propertyName = propertyName == null ? "" : propertyName.trim();
+        this.couponName = couponName == null ? "" : couponName.trim();
     }
 
     long getId() {
@@ -77,5 +84,9 @@ final class Interest {
 
     String getPropertyName() {
         return propertyName;
+    }
+
+    String getCouponName() {
+        return couponName;
     }
 }

@@ -624,7 +624,7 @@ public class MainActivity extends AlertouActivity {
                 offers.size(),
                 offers.size()
         ));
-        count.setTextColor(getColor(R.color.text_secondary));
+        count.setTextColor(getColor(R.color.action));
         count.setTextSize(14);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -653,10 +653,12 @@ public class MainActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     1
             ));
-            headerText.addView(summaryLine, new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams summaryLineParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            ));
+                    dp(15)
+            );
+            summaryLineParams.topMargin = dp(2);
+            headerText.addView(summaryLine, summaryLineParams);
         }
 
         header.addView(headerText, new LinearLayout.LayoutParams(
@@ -1396,7 +1398,10 @@ public class MainActivity extends AlertouActivity {
         ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
         if (clipboard != null) {
             clipboard.setPrimaryClip(ClipData.newPlainText(
-                    getString(R.string.coupon_clipboard_label), couponCode));
+                    getString(R.string.coupon_clipboard_label,
+                            offer.getSource().startsWith("Samsung")
+                                    ? getString(R.string.coupon_brand_samsung)
+                                    : getString(R.string.coupon_brand_motorola)), couponCode));
         }
         Toast.makeText(
                 this,
@@ -1436,14 +1441,80 @@ public class MainActivity extends AlertouActivity {
             return;
         }
         NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat percentage = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        percentage.setMaximumFractionDigits(1);
         String wonAt = new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
                 .format(new java.util.Date(winner.wonAt));
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.property_new_lowest_dialog_title)
-                .setMessage(getString(R.string.property_new_lowest_dialog_message,
-                        wonAt, currency.format(winner.previousPrice), currency.format(offer.getPrice())))
-                .setPositiveButton(R.string.action_close, null)
-                .show();
+        String source = getPropertyMarketReferenceSource(offer);
+        String area = getPropertyMarketReferenceArea(offer);
+        double savings = Math.max(0d, winner.previousPrice - offer.getPrice());
+        double savingsPercentage = winner.previousPrice <= 0d ? 0d
+                : savings * 100d / winner.previousPrice;
+        Dialog dialog = new Dialog(this);
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        scroll.addView(content);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.property_price_dropped_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        NumberFormat compactCurrency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        compactCurrency.setMaximumFractionDigits(0);
+        TextView summary = new TextView(this);
+        summary.setText(getString(R.string.property_price_dropped_dialog_summary,
+                offer.getInterest(), compactCurrency.format(offer.getPrice()), source, area));
+        summary.setTextColor(getColor(R.color.text_secondary));
+        summary.setTextSize(14);
+        summary.setPadding(0, dp(6), 0, dp(10));
+        content.addView(summary);
+
+        TextView explanation = new TextView(this);
+        explanation.setText(R.string.property_price_dropped_dialog_explanation);
+        explanation.setTextColor(getColor(R.color.text_secondary));
+        explanation.setTextSize(13);
+        explanation.setPadding(0, 0, 0, dp(8));
+        content.addView(explanation);
+
+        content.addView(createPropertyHistoryFact(R.string.property_price_dropped_at, wonAt));
+        content.addView(createPropertyHistoryFact(R.string.property_price_dropped_previous,
+                currency.format(winner.previousPrice)));
+        content.addView(createPropertyHistoryFact(R.string.property_price_dropped_current,
+                currency.format(offer.getPrice())));
+        content.addView(createPropertyHistoryFact(R.string.property_price_dropped_savings,
+                currency.format(savings) + " (" + percentage.format(savingsPercentage) + "%)"));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        actions.setPadding(0, dp(12), 0, 0);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+
+        dialog.setContentView(scroll);
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(shownWindow.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.dimAmount = 0.38f;
+            shownWindow.setAttributes(params);
+            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        }
+    }
+
+    private String getPropertyMarketReferenceSource(ObservedOffer offer) {
+        String source = offer.getSource();
+        int separator = source.lastIndexOf(" • ");
+        return separator < 0 ? source : source.substring(0, separator).trim();
     }
 
     private void showPropertyHistoryDialog(ObservedOffer offer) {
@@ -1543,7 +1614,9 @@ public class MainActivity extends AlertouActivity {
             ));
         }
 
-        if (!entry.getPoints().isEmpty()) {
+        List<PropertyHistoryPoint> visibleHistoryPoints = getDistinctConsecutivePropertyHistoryPoints(
+                entry.getPoints());
+        if (!visibleHistoryPoints.isEmpty()) {
             TextView chartTitle = new TextView(this);
             chartTitle.setText(R.string.property_history_chart_title);
             chartTitle.setTextColor(getColor(R.color.text_primary));
@@ -1552,10 +1625,10 @@ public class MainActivity extends AlertouActivity {
             content.addView(chartTitle);
 
             PropertyPriceTrendView trendView = new PropertyPriceTrendView(this);
-            trendView.setPoints(entry.getPoints());
+            trendView.setPoints(visibleHistoryPoints);
             content.addView(trendView, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(entry.getPoints().size() <= 2 ? 120 : 180)
+                    dp(visibleHistoryPoints.size() <= 2 ? 120 : 180)
             ));
 
             TextView readingsTitle = new TextView(this);
@@ -1565,9 +1638,9 @@ public class MainActivity extends AlertouActivity {
             readingsTitle.setPadding(0, dp(8), 0, dp(4));
             content.addView(readingsTitle);
 
-            int firstIndex = Math.max(0, entry.getPoints().size() - 8);
-            for (int index = entry.getPoints().size() - 1; index >= firstIndex; index--) {
-                content.addView(createPropertyHistoryPointRow(entry.getPoints().get(index), currency));
+            int firstIndex = Math.max(0, visibleHistoryPoints.size() - 8);
+            for (int index = visibleHistoryPoints.size() - 1; index >= firstIndex; index--) {
+                content.addView(createPropertyHistoryPointRow(visibleHistoryPoints.get(index), currency));
             }
         } else {
             content.addView(createPropertyHistoryNotice(R.string.property_history_empty));
@@ -1677,6 +1750,25 @@ public class MainActivity extends AlertouActivity {
         return new SimpleDateFormat("dd/MM/yyyy", new Locale("pt", "BR"))
                 .format(new java.util.Date(timestamp))
                 .replace(".", "");
+    }
+
+    private List<PropertyHistoryPoint> getDistinctConsecutivePropertyHistoryPoints(
+            List<PropertyHistoryPoint> points) {
+        List<PropertyHistoryPoint> distinct = new java.util.ArrayList<>();
+        for (PropertyHistoryPoint point : points) {
+            if (distinct.isEmpty()) {
+                distinct.add(point);
+                continue;
+            }
+            int lastIndex = distinct.size() - 1;
+            if (Double.compare(distinct.get(lastIndex).getPrice(), point.getPrice()) == 0) {
+                // Preserve the newest reading while hiding an unchanged price.
+                distinct.set(lastIndex, point);
+            } else {
+                distinct.add(point);
+            }
+        }
+        return distinct;
     }
 
     private String formatPropertyMarketPublishedDate(long timestamp) {

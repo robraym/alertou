@@ -653,6 +653,10 @@ final class CloudSyncStore {
                     || !current.getPropertyName().equals(previous.getPropertyName())) {
                 fields.put("property_name", current.getPropertyName());
             }
+            if (previous == null
+                    || !current.getCouponName().equals(previous.getCouponName())) {
+                fields.put("coupon_name", current.getCouponName());
+            }
         } catch (Exception ignored) {
         }
         return fields;

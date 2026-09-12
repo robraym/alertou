@@ -249,6 +249,21 @@ public class CloudSyncStoreTest {
     }
 
     @Test
+    public void quickInterestDeltaSynchronizesOnlyTheCouponTitle() throws Exception {
+        Interest previous = new Interest(
+                200L, "https://shop.samsung.com/br/live", 10d,
+                Interest.TYPE_COUPON, 0d, 0d, "", "Samsung Live Shop");
+        Interest updated = new Interest(
+                200L, "https://shop.samsung.com/br/live", 10d,
+                Interest.TYPE_COUPON, 0d, 0d, "", "Live Samsung");
+
+        JSONObject fields = CloudSyncStore.changedInterestFields(previous, updated);
+
+        assertEquals(1, fields.length());
+        assertEquals("Live Samsung", fields.getString("coupon_name"));
+    }
+
+    @Test
     public void quickInterestDeltaUsesOneTelegramOrderPerAlert() throws Exception {
         JSONObject update = new JSONObject()
                 .put("type", "interest")

@@ -243,7 +243,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:textColor="@color/action"
-                        android:textSize="12sp" />
+                        android:textSize="14sp" />
 
                     <TextView
                         android:id="@+id/text_store_sources_offline"
@@ -251,19 +251,21 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
                         android:textColor="@color/danger"
-                        android:textSize="12sp"
+                        android:textSize="14sp"
                         android:visibility="gone" />
                 </LinearLayout>
 
                 <TextView
                     android:id="@+id/text_store_sources_summary"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="15dp"
                     android:layout_marginTop="2dp"
-                    android:maxLines="2"
+                    android:gravity="center_vertical"
+                    android:ellipsize="end"
+                    android:singleLine="true"
                     android:textColor="@color/text_secondary"
                     android:textSize="11.5sp"
-                    android:visibility="gone" />
+                    android:visibility="invisible" />
 
             </LinearLayout>
 
@@ -271,7 +273,6 @@
                 android:id="@+id/button_toggle_store_sources"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginEnd="2dp"
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@string/alerts_section_collapse"
                 android:padding="7dp"
@@ -320,6 +321,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/text_vivo_outlet_source_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/vivo_outlet_source_title"
@@ -394,6 +396,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/text_vivo_madrugada_source_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/vivo_madrugada_source_title"
@@ -468,6 +471,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/text_pelando_source_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/pelando_source_title"
@@ -542,6 +546,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/text_promobit_source_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/promobit_source_title"
@@ -616,6 +621,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/text_kabum_offer_source_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/kabum_offer_source_title"
@@ -690,6 +696,7 @@
                     android:orientation="horizontal">
 
                     <TextView
+                        android:id="@+id/text_motorola_offer_source_title"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/motorola_offer_source_title"
@@ -720,6 +727,155 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="11.5sp" />
 
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="@color/divider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <ImageButton
+                android:id="@+id/button_samsung_offer_open"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="8dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/samsung_offer_open_link"
+                android:padding="6dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/action" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/text_samsung_offer_source_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/samsung_offer_source_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/text_samsung_offer_source_state"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:paddingStart="7dp"
+                        android:paddingTop="2dp"
+                        android:paddingEnd="7dp"
+                        android:paddingBottom="2dp"
+                        android:text="@string/vivo_outlet_source_offline"
+                        android:textColor="@color/danger"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <br.com.droidboaoferta.RollingStatusTextView
+                    android:id="@+id/text_samsung_offer_source_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="@string/samsung_offer_source_check_pending"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11.5sp" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginStart="44dp"
+            android:layout_marginEnd="8dp"
+            android:background="@color/divider" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:minHeight="48dp"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <ImageButton
+                android:id="@+id/button_samsung_discount_offer_open"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginStart="8dp"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/samsung_discount_offer_open_link"
+                android:padding="6dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_edit"
+                app:tint="@color/action" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/text_samsung_discount_offer_source_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/samsung_discount_offer_source_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/text_samsung_discount_offer_source_state"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:paddingStart="7dp"
+                        android:paddingTop="2dp"
+                        android:paddingEnd="7dp"
+                        android:paddingBottom="2dp"
+                        android:text="@string/vivo_outlet_source_offline"
+                        android:textColor="@color/danger"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <br.com.droidboaoferta.RollingStatusTextView
+                    android:id="@+id/text_samsung_discount_offer_source_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="@string/samsung_discount_offer_source_check_pending"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="11.5sp" />
             </LinearLayout>
         </LinearLayout>
         </LinearLayout>
@@ -769,7 +925,7 @@
                     android:orientation="horizontal"
                     android:paddingStart="6dp"
                     android:paddingTop="5dp"
-                    android:paddingEnd="2dp"
+                    android:paddingEnd="0dp"
                     android:paddingBottom="5dp">
 
                     <ImageView
@@ -813,7 +969,7 @@
                                 android:singleLine="true"
                                 android:text="@string/vivo_outlet_source_offline"
                                 android:textColor="@color/danger"
-                                android:textSize="12sp" />
+                                android:textSize="14sp" />
                         </LinearLayout>
 
                         <TextView

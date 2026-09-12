@@ -72,6 +72,7 @@ final class HighestCouponSuggestionView extends LinearLayout {
         this.valueInput = valueInput;
         this.valueInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        updateActionLabel();
     }
 
     private void search() {
@@ -90,14 +91,24 @@ final class HighestCouponSuggestionView extends LinearLayout {
                 statusText.setText(errorMessageResource);
                 statusText.setTextColor(getContext().getColor(R.color.text_secondary));
             } else {
-                String editableValue = formatEditableValue(coupon.getValue());
-                valueInput.setText(editableValue);
-                valueInput.setSelection(editableValue.length());
-                statusText.setText(getContext().getString(
-                        R.string.highest_coupon_found_format,
-                        formatCurrency(coupon.getValue()),
-                        coupon.getCode()
-                ));
+                if (coupon.hasMonetaryValue()) {
+                    String editableValue = formatEditableValue(coupon.getValue());
+                    valueInput.setText(editableValue);
+                    valueInput.setSelection(editableValue.length());
+                    statusText.setText(getContext().getString(
+                            R.string.highest_coupon_found_format,
+                            formatCurrency(coupon.getValue()), coupon.getCode()));
+                } else if (coupon.hasPercentageValue()) {
+                    String editableValue = formatEditableValue(coupon.getValue());
+                    valueInput.setText(editableValue);
+                    valueInput.setSelection(editableValue.length());
+                    statusText.setText(getContext().getString(
+                            R.string.coupon_found_percentage_format,
+                            formatPercentage(coupon.getValue()), coupon.getCode()));
+                } else {
+                    statusText.setText(getContext().getString(
+                            R.string.coupon_found_code_format, coupon.getCode()));
+                }
                 statusText.setTextColor(getContext().getColor(R.color.action));
             }
             statusText.setVisibility(VISIBLE);
@@ -120,8 +131,14 @@ final class HighestCouponSuggestionView extends LinearLayout {
             rotation.cancel();
             actionIcon.setRotation(0f);
             actionIcon.setImageResource(R.drawable.ic_coupon_alert);
-            actionText.setText(R.string.highest_coupon_action);
+            updateActionLabel();
         }
+    }
+
+    private void updateActionLabel() {
+        String url = urlInput == null ? "" : urlInput.getText().toString();
+        actionText.setText(CouponPageClient.isSamsung(url)
+                ? R.string.coupon_search_action : R.string.highest_coupon_action);
     }
 
     private String formatEditableValue(double value) {
@@ -133,6 +150,11 @@ final class HighestCouponSuggestionView extends LinearLayout {
 
     private String formatCurrency(double value) {
         return NumberFormat.getCurrencyInstance(new Locale("pt", "BR")).format(value);
+    }
+
+    private String formatPercentage(double value) {
+        return value == Math.rint(value) ? String.valueOf((long) value) + "%"
+                : String.format(Locale.US, "%.2f", value).replace('.', ',') + "%";
     }
 
     private int dp(int value) {

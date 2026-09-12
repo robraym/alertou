@@ -54,6 +54,8 @@ public class OfferMonitorService extends Service {
         PromobitMonitor.getInstance().stop();
         KabumOfferMonitor.getInstance().stop();
         MotorolaOfferMonitor.getInstance().stop();
+        SamsungOfferMonitor.getInstance().stop();
+        SamsungDiscountOfferMonitor.getInstance().stop();
         MonitorStatusStore.setServiceRunning(this, false);
         super.onDestroy();
     }
@@ -107,6 +109,16 @@ public class OfferMonitorService extends Service {
             MotorolaOfferMonitor.getInstance().start(this);
         } else {
             MotorolaOfferMonitor.getInstance().stop();
+        }
+        if (hasPriceAlert && SamsungOfferSource.isConfigured(this)) {
+            SamsungOfferMonitor.getInstance().start(this);
+        } else {
+            SamsungOfferMonitor.getInstance().stop();
+        }
+        if (hasPriceAlert && SamsungDiscountOfferSource.isConfigured(this)) {
+            SamsungDiscountOfferMonitor.getInstance().start(this);
+        } else {
+            SamsungDiscountOfferMonitor.getInstance().stop();
         }
         if (hasCouponAlert) {
             CouponPageMonitor.getInstance().start(this);

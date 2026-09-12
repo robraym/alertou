@@ -37,7 +37,8 @@ final class InterestRepository {
                             item.optString("type", Interest.TYPE_PRICE),
                             item.optDouble("minimum_area", 0d),
                             item.optDouble("maximum_area", 0d),
-                            item.optString("property_name", "")
+                            item.optString("property_name", ""),
+                            item.optString("coupon_name", "")
                     ));
                 } catch (Exception ignored) {
                     // A corrupt synchronized item must not hide every valid alert.
@@ -55,7 +56,11 @@ final class InterestRepository {
     }
 
     long addCoupon(String pageUrl, double minimumCouponValue) {
-        return add(pageUrl, minimumCouponValue, Interest.TYPE_COUPON);
+        return addCoupon(pageUrl, minimumCouponValue, "");
+    }
+
+    long addCoupon(String pageUrl, double minimumCouponValue, String couponName) {
+        return add(pageUrl, minimumCouponValue, Interest.TYPE_COUPON, 0d, 0d, "", couponName);
     }
 
     long addProperty(String pageUrl, double minimumArea, double maximumArea,
@@ -65,16 +70,23 @@ final class InterestRepository {
     }
 
     private long add(String term, double maximumPrice, String type) {
-        return add(term, maximumPrice, type, 0d, 0d, "");
+        return add(term, maximumPrice, type, 0d, 0d, "", "");
     }
 
     private long add(String term, double maximumPrice, String type,
                      double minimumArea, double maximumArea, String propertyName) {
+        return add(term, maximumPrice, type, minimumArea, maximumArea, propertyName, "");
+    }
+
+    private long add(String term, double maximumPrice, String type,
+                     double minimumArea, double maximumArea, String propertyName,
+                     String couponName) {
         List<Interest> interests = new ArrayList<>(getAll());
         long now = System.currentTimeMillis();
         long id = now;
         Interest added = new Interest(
-                id, term.trim(), maximumPrice, type, minimumArea, maximumArea, propertyName);
+                id, term.trim(), maximumPrice, type, minimumArea, maximumArea, propertyName,
+                couponName);
         interests.add(0, added);
         CloudSyncStore.rememberInterestChanged(context, id, now);
         save(interests);
@@ -94,7 +106,7 @@ final class InterestRepository {
                 updated = new Interest(
                         id, term.trim(), maximumPrice, interest.getType(),
                         interest.getMinimumArea(), interest.getMaximumArea(),
-                        interest.getPropertyName());
+                        interest.getPropertyName(), interest.getCouponName());
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
                 break;
@@ -123,7 +135,8 @@ final class InterestRepository {
                         Interest.TYPE_PROPERTY,
                         minimumArea,
                         maximumArea,
-                        propertyName
+                        propertyName,
+                        interest.getCouponName()
                 );
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
@@ -152,7 +165,7 @@ final class InterestRepository {
                 updated = new Interest(
                         interest.getId(), interest.getTerm(), interest.getMaximumPrice(),
                         interest.getType(), interest.getMinimumArea(), interest.getMaximumArea(),
-                        propertyName);
+                        propertyName, interest.getCouponName());
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
                 break;
@@ -160,6 +173,28 @@ final class InterestRepository {
         }
         if (updated != null) {
             save(interests);
+            CloudSyncStore.syncInterestChanged(context, previous, updated, now);
+        }
+    }
+
+    void updateCoupon(long id, String pageUrl, double minimumCouponValue, String couponName) {
+        List<Interest> interests = new ArrayList<>(getAll());
+        long now = System.currentTimeMillis();
+        Interest previous = null;
+        Interest updated = null;
+        for (int index = 0; index < interests.size(); index++) {
+            Interest interest = interests.get(index);
+            if (interest.getId() == id) {
+                previous = interest;
+                updated = new Interest(id, pageUrl.trim(), minimumCouponValue,
+                        Interest.TYPE_COUPON, 0d, 0d, "", couponName);
+                interests.set(index, updated);
+                CloudSyncStore.rememberInterestChanged(context, id, now);
+                break;
+            }
+        }
+        save(interests);
+        if (updated != null) {
             CloudSyncStore.syncInterestChanged(context, previous, updated, now);
         }
     }
@@ -186,7 +221,8 @@ final class InterestRepository {
                         .put("type", interest.getType())
                         .put("minimum_area", interest.getMinimumArea())
                         .put("maximum_area", interest.getMaximumArea())
-                        .put("property_name", interest.getPropertyName()));
+                        .put("property_name", interest.getPropertyName())
+                        .put("coupon_name", interest.getCouponName()));
             }
             preferences.edit().putString(KEY_INTERESTS, array.toString()).apply();
         } catch (Exception ignored) {

@@ -352,7 +352,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         TextView count = new TextView(this);
         count.setText(getResources().getQuantityString(
                 R.plurals.dashboard_offer_section_count, offers.size(), offers.size()));
-        count.setTextColor(getColor(R.color.text_secondary));
+        count.setTextColor(getColor(R.color.action));
         count.setTextSize(14);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
