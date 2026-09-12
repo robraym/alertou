@@ -33,6 +33,7 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
+import android.view.ViewParent;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.LinearInterpolator;
@@ -200,6 +201,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             renderMotorolaOfferSource();
             renderSamsungOfferSource();
             renderSamsungDiscountOfferSource();
+            sortStoreSources();
             finishManualStoreStep(intent == null ? null : intent.getAction());
         }
     };
@@ -333,6 +335,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         renderMotorolaOfferSource();
         renderSamsungOfferSource();
         renderSamsungDiscountOfferSource();
+        sortStoreSources();
         continueButton.setOnClickListener(view -> submitAuthenticationValue());
         receiveSmsButton.setOnClickListener(view -> startSmsConsentListening(true));
         countryPickerButton.setOnClickListener(view -> showCountryPicker());
@@ -1072,8 +1075,121 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                             .apply();
                     dialog.dismiss();
                     renderGroups(availableGroups, showingCachedGroups);
+                    sortStoreSources();
                 })
                 .show();
+    }
+
+    private void sortStoreSources() {
+        if (storeSourcesContainer == null) return;
+        List<StoreSourceItem> sources = new ArrayList<>();
+        addStoreSourceItem(sources, R.id.text_vivo_outlet_source_title,
+                R.string.vivo_outlet_source_title);
+        addStoreSourceItem(sources, R.id.text_vivo_madrugada_source_title,
+                R.string.vivo_madrugada_source_title);
+        addStoreSourceItem(sources, R.id.text_pelando_source_title,
+                R.string.pelando_source_title);
+        addStoreSourceItem(sources, R.id.text_promobit_source_title,
+                R.string.promobit_source_title);
+        addStoreSourceItem(sources, R.id.text_kabum_offer_source_title,
+                R.string.kabum_offer_source_title);
+        addStoreSourceItem(sources, R.id.text_motorola_offer_source_title,
+                R.string.motorola_offer_source_title);
+        addStoreSourceItem(sources, R.id.text_samsung_offer_source_title,
+                R.string.samsung_offer_source_title);
+        addStoreSourceItem(sources, R.id.text_samsung_discount_offer_source_title,
+                R.string.samsung_discount_offer_source_title);
+        if (sources.size() < 2) return;
+
+        int sortOrder = getSharedPreferences(PREFS, MODE_PRIVATE)
+                .getInt(PREF_GROUPS_SORT_ORDER, GROUPS_SORT_RELEVANCE);
+        if (sortOrder == GROUPS_SORT_NAME) {
+            sources.sort((first, second) -> first.title.compareToIgnoreCase(second.title));
+        } else if (sortOrder == GROUPS_SORT_RECENT) {
+            sources.sort((first, second) -> {
+                int byLastCheck = Long.compare(second.lastCheckAt, first.lastCheckAt);
+                return byLastCheck != 0 ? byLastCheck
+                        : first.title.compareToIgnoreCase(second.title);
+            });
+        } else {
+            sources.sort((first, second) -> {
+                int byOnline = Boolean.compare(
+                        isStoreSourceOnline(second.sourceTitleResource),
+                        isStoreSourceOnline(first.sourceTitleResource));
+                if (byOnline != 0) return byOnline;
+                int byLastCheck = Long.compare(second.lastCheckAt, first.lastCheckAt);
+                return byLastCheck != 0 ? byLastCheck
+                        : first.title.compareToIgnoreCase(second.title);
+            });
+        }
+
+        storeSourcesContainer.removeAllViews();
+        for (int index = 0; index < sources.size(); index++) {
+            storeSourcesContainer.addView(sources.get(index).row);
+            if (index < sources.size() - 1) storeSourcesContainer.addView(createDivider());
+        }
+    }
+
+    private void addStoreSourceItem(List<StoreSourceItem> sources, int titleViewId,
+                                    int sourceTitleResource) {
+        TextView titleView = findViewById(titleViewId);
+        if (titleView == null) return;
+        View row = findStoreSourceRow(titleView);
+        if (row == null) return;
+        sources.add(new StoreSourceItem(row, titleView.getText().toString(),
+                sourceTitleResource, getStoreSourceLastCheckAt(sourceTitleResource)));
+    }
+
+    private View findStoreSourceRow(View child) {
+        View row = child;
+        ViewParent parent = row.getParent();
+        while (parent instanceof View && parent != storeSourcesContainer) {
+            row = (View) parent;
+            parent = row.getParent();
+        }
+        return parent == storeSourcesContainer ? row : null;
+    }
+
+    private long getStoreSourceLastCheckAt(int sourceTitleResource) {
+        if (sourceTitleResource == R.string.vivo_outlet_source_title) {
+            return VivoOutletSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.vivo_madrugada_source_title) {
+            return VivoMadrugadaSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.pelando_source_title) {
+            return PelandoSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.promobit_source_title) {
+            return PromobitSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.kabum_offer_source_title) {
+            return KabumOfferSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.motorola_offer_source_title) {
+            return MotorolaOfferSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.samsung_offer_source_title) {
+            return SamsungOfferSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.samsung_discount_offer_source_title) {
+            return SamsungDiscountOfferSource.getLastSuccessfulCheckAt(this);
+        }
+        return 0L;
+    }
+
+    private static final class StoreSourceItem {
+        final View row;
+        final String title;
+        final int sourceTitleResource;
+        final long lastCheckAt;
+
+        StoreSourceItem(View row, String title, int sourceTitleResource, long lastCheckAt) {
+            this.row = row;
+            this.title = title;
+            this.sourceTitleResource = sourceTitleResource;
+            this.lastCheckAt = lastCheckAt;
+        }
     }
 
     private void configureSourceSection(int headerId, ImageButton toggle,
