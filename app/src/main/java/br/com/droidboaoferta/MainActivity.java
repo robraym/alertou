@@ -1878,6 +1878,7 @@ public class MainActivity extends AlertouActivity {
         content.addView(invalidAction, invalidParams);
         invalidAction.setOnClickListener(view -> {
             speed.invalidateOffer(offer);
+            new OfferInvalidationRepository(this).markInvalid(offer);
             offerRepository.trash(offer.getId());
             dialog.dismiss();
             refreshDashboard();

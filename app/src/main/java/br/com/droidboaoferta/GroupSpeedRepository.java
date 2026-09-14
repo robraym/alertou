@@ -110,6 +110,19 @@ final class GroupSpeedRepository {
         return true;
     }
 
+    /**
+     * The same removal that excludes a post from the ranking also represents the user's
+     * decision that this exact Telegram publication is not a valid price reference.
+     */
+    synchronized boolean isOfferInvalidated(long chatId, String interest, long observedAt) {
+        return containsRemoval(
+                preferences.getString(KEY_REMOVALS, "[]"),
+                chatId,
+                signature(interest, 0.0d, ""),
+                observedAt
+        );
+    }
+
     private void record(long chatId, String title, String interest, long interestId, double price,
                         long observedAt, String link) {
         long startedAt = preferences.getLong(KEY_STARTED_AT, 0L);

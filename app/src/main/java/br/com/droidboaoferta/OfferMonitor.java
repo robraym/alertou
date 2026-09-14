@@ -195,6 +195,21 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                 || !OfferEligibility.hasUsableLink(offerLink)) {
             return;
         }
+        if (new GroupSpeedRepository(appContext).isOfferInvalidated(
+                chatId,
+                interest.getTerm(),
+                messageDate
+        )) {
+            return;
+        }
+        if (new OfferInvalidationRepository(appContext).isInvalidated(
+                interest.getTerm(),
+                sourceTitle,
+                price,
+                messageDate
+        )) {
+            return;
+        }
         final long token = session.token();
         String pendingKey = token + ":" + chatId + ":" + messageId + ":" + interest.getId();
         if (!pendingPublications.add(pendingKey)) return;

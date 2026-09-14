@@ -490,20 +490,31 @@ final class TelegramClientManager {
         }
         int publishedCount = 0;
         long now = System.currentTimeMillis();
+        GroupSpeedRepository speedRepository = new GroupSpeedRepository(appContext);
+        OfferInvalidationRepository invalidationRepository = new OfferInvalidationRepository(appContext);
         for (LowestPriceCandidate candidate : cached.candidates) {
+            JSONObject chat = chats.get(candidate.chatId);
+            String sourceTitle = chat == null
+                    ? appContext.getString(R.string.telegram_source_unknown)
+                    : chat.optString("title", appContext.getString(R.string.telegram_source_unknown));
             if (!OfferTextParser.isWithinValidatedRange(
                     candidate.price,
                     cached.lowestPlausiblePrice,
                     maximumPrice
             ) || !OfferEligibility.isRecent(candidate.messageDate, now)
+                    || speedRepository.isOfferInvalidated(
+                    candidate.chatId,
+                    term,
+                    candidate.messageDate)
+                    || invalidationRepository.isInvalidated(
+                    term,
+                    sourceTitle,
+                    candidate.price,
+                    candidate.messageDate)
                     || !OfferEligibility.hasUsableLink(
                     candidate.payload.findBestLink(term))) {
                 continue;
             }
-            JSONObject chat = chats.get(candidate.chatId);
-            String sourceTitle = chat == null
-                    ? appContext.getString(R.string.telegram_source_unknown)
-                    : chat.optString("title", appContext.getString(R.string.telegram_source_unknown));
             currentListener.onHistoricalMessage(
                     interestId,
                     candidate.chatId,
@@ -1169,6 +1180,8 @@ final class TelegramClientManager {
             return;
         }
         JSONArray messages = result.optJSONArray("messages");
+        GroupSpeedRepository speedRepository = new GroupSpeedRepository(appContext);
+        OfferInvalidationRepository invalidationRepository = new OfferInvalidationRepository(appContext);
         if (messages != null) {
             for (int index = 0; index < messages.length(); index++) {
                 JSONObject message = messages.optJSONObject(index);
@@ -1180,12 +1193,28 @@ final class TelegramClientManager {
                     continue;
                 }
                 if (!OfferEligibility.isRecent(messageDate, System.currentTimeMillis())
+                        || speedRepository.isOfferInvalidated(
+                        message.optLong("chat_id", 0L),
+                        search.batch.term,
+                        messageDate)
                         || !OfferEligibility.hasUsableLink(offerLink)) {
                     continue;
                 }
                 double price = OfferTextParser.extractPriceForInterest(text, search.batch.term);
                 if (!Double.isNaN(price)
                         && OfferTextParser.isPlausiblePriceForInterest(price, search.batch.term)) {
+                    JSONObject chat = chats.get(message.optLong("chat_id", 0L));
+                    String sourceTitle = chat == null
+                            ? appContext.getString(R.string.telegram_source_unknown)
+                            : chat.optString("title", appContext.getString(R.string.telegram_source_unknown));
+                    if (invalidationRepository.isInvalidated(
+                            search.batch.term,
+                            sourceTitle,
+                            price,
+                            messageDate
+                    )) {
+                        continue;
+                    }
                     search.batch.observedPrices.add(price);
                     search.batch.candidates.add(new LowestPriceCandidate(
                             message.optLong("chat_id", 0L),
