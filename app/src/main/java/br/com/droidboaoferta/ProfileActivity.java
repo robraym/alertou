@@ -50,6 +50,12 @@ import java.util.Locale;
 public class ProfileActivity extends AlertouActivity implements TelegramClientManager.Listener {
     private static final String OFFER_PREFS = "offer_preferences";
     private static final String MONITOR_ENABLED = "monitor_enabled";
+    private static final String PROFILE_PREFS = "profile_preferences";
+    private static final String PREF_APPEARANCE_EXPANDED = "appearance_expanded";
+    private static final String PREF_PROPERTIES_EXPANDED = "properties_expanded";
+    private static final String PREF_EXTERNAL_SOURCES_EXPANDED = "external_sources_expanded";
+    private static final String PREF_SYNC_EXPANDED = "sync_expanded";
+    private static final String PREF_INFO_EXPANDED = "info_expanded";
     private static final int[] STANDARD_CHECK_INTERVAL_SECONDS = {
             30, 60, 120, 300, 900, 1800, 3600, 21600, 43200, 86400
     };
@@ -246,6 +252,82 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         findViewById(R.id.row_source_diagnostics).setOnClickListener(view -> SourceDiagnosticsDialog.show(this));
         findViewById(R.id.row_ranking_rules).setOnClickListener(view -> showRankingRulesDialog());
         findViewById(R.id.row_terms).setOnClickListener(view -> showTermsDialog());
+
+        configureCollapsibleSection(
+                R.id.header_profile_appearance,
+                R.id.button_toggle_profile_appearance,
+                R.id.container_profile_appearance,
+                PREF_APPEARANCE_EXPANDED
+        );
+        configureCollapsibleSection(
+                R.id.header_profile_properties,
+                R.id.button_toggle_profile_properties,
+                R.id.container_profile_properties,
+                PREF_PROPERTIES_EXPANDED
+        );
+        configureCollapsibleSection(
+                R.id.header_profile_external_sources,
+                R.id.button_toggle_profile_external_sources,
+                R.id.container_profile_external_sources,
+                PREF_EXTERNAL_SOURCES_EXPANDED
+        );
+        configureCollapsibleSection(
+                R.id.header_profile_sync,
+                R.id.button_toggle_profile_sync,
+                R.id.container_profile_sync,
+                PREF_SYNC_EXPANDED
+        );
+        configureCollapsibleSection(
+                R.id.header_profile_info,
+                R.id.button_toggle_profile_info,
+                R.id.container_profile_info,
+                PREF_INFO_EXPANDED
+        );
+    }
+
+    private void configureCollapsibleSection(int headerId, int toggleId, int containerId,
+                                             String preferenceKey) {
+        View header = findViewById(headerId);
+        ImageButton toggle = findViewById(toggleId);
+        View container = findViewById(containerId);
+        boolean expanded = getSharedPreferences(PROFILE_PREFS, MODE_PRIVATE)
+                .getBoolean(preferenceKey, true);
+        applyCollapsibleSectionState(toggle, container, expanded, false);
+        View.OnClickListener listener = view -> {
+            boolean nextExpanded = !getSharedPreferences(PROFILE_PREFS, MODE_PRIVATE)
+                    .getBoolean(preferenceKey, true);
+            getSharedPreferences(PROFILE_PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(preferenceKey, nextExpanded)
+                    .apply();
+            applyCollapsibleSectionState(toggle, container, nextExpanded, true);
+        };
+        header.setOnClickListener(listener);
+        toggle.setOnClickListener(listener);
+    }
+
+    private void applyCollapsibleSectionState(ImageButton toggle, View container,
+                                              boolean expanded, boolean animate) {
+        toggle.animate().cancel();
+        container.animate().cancel();
+        toggle.setContentDescription(getString(expanded
+                ? R.string.alerts_section_collapse
+                : R.string.alerts_section_expand));
+        if (animate) {
+            toggle.animate().rotation(expanded ? 90f : 0f).setDuration(160L).start();
+            if (expanded) {
+                container.setVisibility(View.VISIBLE);
+                container.setAlpha(0f);
+                container.animate().alpha(1f).setDuration(140L).start();
+            } else {
+                container.animate().alpha(0f).setDuration(100L).withEndAction(
+                        () -> container.setVisibility(View.GONE)
+                ).start();
+            }
+            return;
+        }
+        toggle.setRotation(expanded ? 90f : 0f);
+        container.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        container.setAlpha(1f);
     }
 
     @Override

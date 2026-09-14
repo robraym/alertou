@@ -354,10 +354,15 @@
     <string name="alert_sound_custom_error">Não foi possível usar o som selecionado.</string>
     <string name="profile_screen_title">Perfil</string>
     <string name="profile_section_appearance">Aparência</string>
+    <string name="profile_section_appearance_summary">Tema, cor, som e transições</string>
     <string name="profile_section_properties">Imóveis</string>
+    <string name="profile_section_properties_summary">Referência de mercado e consultas</string>
     <string name="profile_section_external_sources">Lojas</string>
+    <string name="profile_section_external_sources_summary">Intervalos de consulta das lojas</string>
     <string name="profile_section_sync">Sincronização</string>
+    <string name="profile_section_sync_summary">Backup e restauração dos dados</string>
     <string name="profile_section_info">Informações</string>
+    <string name="profile_section_info_summary">Diagnóstico, ranking e privacidade</string>
     <string name="profile_telegram_connected">Telegram conectado</string>
     <string name="profile_telegram_account_summary">Conta conectada ao Telegram</string>
     <string name="profile_telegram_phone">+%1$s</string>
