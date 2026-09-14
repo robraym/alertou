@@ -34,7 +34,7 @@
             android:layout_height="wrap_content"
             android:text="@string/profile_sync_title"
             android:textColor="@color/text_primary"
-            android:textSize="15sp" />
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/text_sync_summary"

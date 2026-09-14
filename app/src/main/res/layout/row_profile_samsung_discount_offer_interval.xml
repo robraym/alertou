@@ -15,7 +15,7 @@
     <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="12dp"
         android:layout_weight="1" android:orientation="vertical">
         <TextView android:id="@+id/text_samsung_discount_offer_interval_title" android:layout_width="wrap_content" android:layout_height="wrap_content"
-            android:text="@string/samsung_discount_offer_interval_title" android:textColor="@color/text_primary" android:textSize="15sp" />
+            android:text="@string/samsung_discount_offer_interval_title" android:textColor="@color/text_primary" android:textSize="14sp" />
         <TextView android:id="@+id/text_samsung_discount_offer_interval_summary" android:layout_width="match_parent"
             android:layout_height="wrap_content" android:layout_marginTop="1dp" android:ellipsize="end" android:singleLine="true"
             android:text="@string/samsung_discount_offer_interval_default" android:textColor="@color/text_secondary" android:textSize="13sp" />

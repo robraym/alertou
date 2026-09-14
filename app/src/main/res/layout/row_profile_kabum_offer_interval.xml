@@ -32,7 +32,7 @@
             android:layout_height="wrap_content"
             android:text="@string/kabum_offer_interval_title"
             android:textColor="@color/text_primary"
-            android:textSize="15sp" />
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/text_kabum_offer_interval_summary"

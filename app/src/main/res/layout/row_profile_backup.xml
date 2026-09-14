@@ -50,7 +50,7 @@
             android:maxLines="1"
             android:text="@string/profile_manual_backup_title"
             android:textColor="@color/text_primary"
-            android:textSize="15sp" />
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/text_backup_summary"

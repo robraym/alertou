@@ -169,7 +169,7 @@
                     android:maxLines="1"
                     android:text="@string/profile_section_appearance_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <ImageButton
@@ -273,7 +273,7 @@
                     android:maxLines="1"
                     android:text="@string/profile_section_properties_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <ImageButton
@@ -359,7 +359,7 @@
                     android:maxLines="1"
                     android:text="@string/profile_section_external_sources_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <ImageButton
@@ -499,7 +499,7 @@
                     android:maxLines="1"
                     android:text="@string/profile_section_sync_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <ImageButton
@@ -594,7 +594,7 @@
                     android:maxLines="1"
                     android:text="@string/profile_section_info_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
 
             <ImageButton
