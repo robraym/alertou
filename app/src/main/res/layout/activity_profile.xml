@@ -121,7 +121,7 @@
             android:id="@+id/card_profile_appearance"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
             android:padding="6dp">
@@ -225,7 +225,7 @@
             android:id="@+id/card_profile_properties"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
             android:padding="6dp">
@@ -311,7 +311,7 @@
             android:id="@+id/card_profile_external_sources"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
             android:padding="6dp">
@@ -451,7 +451,7 @@
             android:id="@+id/card_profile_sync"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
             android:padding="6dp">
@@ -546,7 +546,7 @@
             android:id="@+id/card_profile_info"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="@dimen/screen_card_gap"
             android:background="@drawable/bg_card_compact"
             android:orientation="vertical"
             android:padding="6dp">
