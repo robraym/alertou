@@ -94,6 +94,9 @@ final class AppStatusIndicator {
         if (MotorolaOfferSource.isConfigured(activity)) addSite(rows, R.string.motorola_offer_source_title,
                 MotorolaOfferSource.getLastSuccessfulCheckAt(activity), MotorolaOfferSource.hasLastCheckFailed(activity),
                 MotorolaOfferSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
+        if (ClaroOfferSource.isConfigured(activity)) addSite(rows, R.string.claro_offer_source_title,
+                ClaroOfferSource.getLastSuccessfulCheckAt(activity), ClaroOfferSource.hasLastCheckFailed(activity),
+                ClaroOfferSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
         SharedPreferences checks = activity.getSharedPreferences("source_check_status", Context.MODE_PRIVATE);
         for (Interest interest : interests) {
             if (!interest.isProperty() && !interest.isCoupon()) continue;

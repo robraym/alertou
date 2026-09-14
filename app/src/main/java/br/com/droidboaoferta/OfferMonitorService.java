@@ -54,6 +54,7 @@ public class OfferMonitorService extends Service {
         PromobitMonitor.getInstance().stop();
         KabumOfferMonitor.getInstance().stop();
         MotorolaOfferMonitor.getInstance().stop();
+        ClaroOfferMonitor.getInstance().stop();
         SamsungOfferMonitor.getInstance().stop();
         SamsungDiscountOfferMonitor.getInstance().stop();
         MonitorStatusStore.setServiceRunning(this, false);
@@ -109,6 +110,11 @@ public class OfferMonitorService extends Service {
             MotorolaOfferMonitor.getInstance().start(this);
         } else {
             MotorolaOfferMonitor.getInstance().stop();
+        }
+        if (hasPriceAlert && ClaroOfferSource.isConfigured(this)) {
+            ClaroOfferMonitor.getInstance().start(this);
+        } else {
+            ClaroOfferMonitor.getInstance().stop();
         }
         if (hasPriceAlert && SamsungOfferSource.isConfigured(this)) {
             SamsungOfferMonitor.getInstance().start(this);

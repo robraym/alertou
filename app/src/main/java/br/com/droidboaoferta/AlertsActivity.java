@@ -1239,6 +1239,7 @@ public class AlertsActivity extends AlertouActivity {
                     PromobitMonitor.getInstance().clearState(this, interestToEdit.getId());
                     KabumOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     MotorolaOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
+                    ClaroOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     SamsungOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
                     if (!sameProduct) {
@@ -1412,6 +1413,7 @@ public class AlertsActivity extends AlertouActivity {
         if (PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkInterestNow(this, interestId);
         if (KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkInterestNow(this, interestId);
         if (MotorolaOfferSource.isConfigured(this)) MotorolaOfferMonitor.getInstance().checkInterestNow(this, interestId);
+        if (ClaroOfferSource.isConfigured(this)) ClaroOfferMonitor.getInstance().checkInterestNow(this, interestId);
         if (SamsungOfferSource.isConfigured(this)) SamsungOfferMonitor.getInstance().checkInterestNow(this, interestId);
     }
 

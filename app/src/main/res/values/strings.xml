@@ -106,6 +106,12 @@
     <string name="motorola_offer_source_check_failed">Última consulta válida: %1$s</string>
     <string name="motorola_offer_open_link">Abrir página</string>
     <string name="motorola_offer_source">Motorola • ofertas oficiais</string>
+    <string name="claro_offer_source_title">Claro</string>
+    <string name="claro_offer_source_check_pending">Aguardando primeira consulta</string>
+    <string name="claro_offer_source_check_succeeded">Última consulta: %1$s</string>
+    <string name="claro_offer_source_check_failed">Última consulta válida: %1$s</string>
+    <string name="claro_offer_open_link">Abrir página</string>
+    <string name="claro_offer_source">Claro • ofertas oficiais</string>
     <string name="samsung_offer_source_title">Samsung</string>
     <string name="samsung_offer_source_check_pending">Aguardando primeira consulta</string>
     <string name="samsung_offer_source_check_succeeded">Última consulta: %1$s</string>
@@ -294,6 +300,9 @@
     <string name="motorola_offer_interval_dialog_title">Intervalo de consulta da Motorola</string>
     <string name="motorola_offer_interval_summary">Consulta a cada %1$d minutos</string>
     <string name="motorola_offer_interval_default">A cada 15 minutos</string>
+    <string name="claro_offer_interval_title">Claro</string>
+    <string name="claro_offer_interval_dialog_title">Intervalo de consulta da Claro</string>
+    <string name="claro_offer_interval_default">A cada 15 minutos</string>
     <string name="samsung_offer_interval_title">Samsung Ofertas</string>
     <string name="samsung_offer_interval_dialog_title">Intervalo de consulta da Samsung Ofertas</string>
     <string name="samsung_offer_interval_default">A cada 15 minutos</string>

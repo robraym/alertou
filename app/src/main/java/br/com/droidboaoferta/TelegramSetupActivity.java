@@ -152,6 +152,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView motorolaOfferSourceState;
     private ImageButton motorolaOfferOpenButton;
     private TextView motorolaOfferSourceTitle;
+    private TextView claroOfferSourceRow;
+    private TextView claroOfferSourceState;
+    private ImageButton claroOfferOpenButton;
+    private TextView claroOfferSourceTitle;
     private TextView samsungOfferSourceRow;
     private TextView samsungOfferSourceState;
     private ImageButton samsungOfferOpenButton;
@@ -202,6 +206,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             renderPromobitSource();
             renderKabumOfferSource();
             renderMotorolaOfferSource();
+            renderClaroOfferSource();
             renderSamsungOfferSource();
             renderSamsungDiscountOfferSource();
             sortStoreSources();
@@ -289,6 +294,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         motorolaOfferSourceState = findViewById(R.id.text_motorola_offer_source_state);
         motorolaOfferOpenButton = findViewById(R.id.button_motorola_offer_open);
         motorolaOfferSourceTitle = findViewById(R.id.text_motorola_offer_source_title);
+        claroOfferSourceRow = findViewById(R.id.text_claro_offer_source_row);
+        claroOfferSourceState = findViewById(R.id.text_claro_offer_source_state);
+        claroOfferOpenButton = findViewById(R.id.button_claro_offer_open);
+        claroOfferSourceTitle = findViewById(R.id.text_claro_offer_source_title);
         samsungOfferSourceRow = findViewById(R.id.text_samsung_offer_source_row);
         samsungOfferSourceState = findViewById(R.id.text_samsung_offer_source_state);
         samsungOfferOpenButton = findViewById(R.id.button_samsung_offer_open);
@@ -327,6 +336,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         promobitEditButton.setOnClickListener(view -> showPromobitSourceDialog());
         kabumOfferEditButton.setOnClickListener(view -> showKabumOfferSourceDialog());
         motorolaOfferOpenButton.setOnClickListener(view -> showMotorolaOfferSourceDialog());
+        claroOfferOpenButton.setOnClickListener(view -> showClaroOfferSourceDialog());
         samsungOfferOpenButton.setOnClickListener(view -> showSamsungOfferSourceDialog());
         samsungDiscountOfferOpenButton.setOnClickListener(
                 view -> showSamsungDiscountOfferSourceDialog());
@@ -336,6 +346,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         renderPromobitSource();
         renderKabumOfferSource();
         renderMotorolaOfferSource();
+        renderClaroOfferSource();
         renderSamsungOfferSource();
         renderSamsungDiscountOfferSource();
         sortStoreSources();
@@ -452,6 +463,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             sourceStatusFilter.addAction(PromobitMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(KabumOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(MotorolaOfferMonitor.ACTION_STATUS_CHANGED);
+            sourceStatusFilter.addAction(ClaroOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(SamsungOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(SamsungDiscountOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(StoreSourceCheckStatus.ACTION_CHANGED);
@@ -1099,6 +1111,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 R.string.kabum_offer_source_title);
         addStoreSourceItem(sources, R.id.text_motorola_offer_source_title,
                 R.string.motorola_offer_source_title);
+        addStoreSourceItem(sources, R.id.text_claro_offer_source_title,
+                R.string.claro_offer_source_title);
         addStoreSourceItem(sources, R.id.text_samsung_offer_source_title,
                 R.string.samsung_offer_source_title);
         addStoreSourceItem(sources, R.id.text_samsung_discount_offer_source_title,
@@ -1172,6 +1186,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         if (sourceTitleResource == R.string.motorola_offer_source_title) {
             return MotorolaOfferSource.getLastSuccessfulCheckAt(this);
+        }
+        if (sourceTitleResource == R.string.claro_offer_source_title) {
+            return ClaroOfferSource.getLastSuccessfulCheckAt(this);
         }
         if (sourceTitleResource == R.string.samsung_offer_source_title) {
             return SamsungOfferSource.getLastSuccessfulCheckAt(this);
@@ -1648,6 +1665,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         boolean promobitConfigured = PromobitSource.isConfigured(this);
         boolean kabumConfigured = KabumOfferSource.isConfigured(this);
         boolean motorolaConfigured = MotorolaOfferSource.isConfigured(this);
+        boolean claroConfigured = ClaroOfferSource.isConfigured(this);
         boolean samsungConfigured = SamsungOfferSource.isConfigured(this);
         boolean samsungDiscountConfigured = SamsungDiscountOfferSource.isConfigured(this);
         boolean showingProgress = storeRefreshProgressActive || checkingSource != 0;
@@ -1665,6 +1683,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(motorolaConfigured,
                     MotorolaOfferSource.hasSuccessfulCheck(this), MotorolaOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
+            online += isSourceOnline(claroConfigured,
+                    ClaroOfferSource.hasSuccessfulCheck(this), ClaroOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(samsungConfigured,
                     SamsungOfferSource.hasSuccessfulCheck(this), SamsungOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(samsungDiscountConfigured,
@@ -1678,6 +1698,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             offline += promobitConfigured && PromobitSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += kabumConfigured && KabumOfferSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += motorolaConfigured && MotorolaOfferSource.hasLastCheckFailed(this) ? 1 : 0;
+            offline += claroConfigured && ClaroOfferSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += samsungConfigured && SamsungOfferSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += samsungDiscountConfigured && SamsungDiscountOfferSource.hasLastCheckFailed(this) ? 1 : 0;
         }
@@ -1786,6 +1807,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         total += PromobitSource.isConfigured(this) ? 1 : 0;
         total += KabumOfferSource.isConfigured(this) ? 1 : 0;
         total += MotorolaOfferSource.isConfigured(this) ? 1 : 0;
+        total += ClaroOfferSource.isConfigured(this) ? 1 : 0;
         total += SamsungOfferSource.isConfigured(this) ? 1 : 0;
         total += SamsungDiscountOfferSource.isConfigured(this) ? 1 : 0;
         return total;
@@ -1824,6 +1846,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
             return R.string.motorola_offer_source_title;
         }
+        if (row.findViewById(R.id.text_claro_offer_source_title) != null) {
+            return R.string.claro_offer_source_title;
+        }
         if (row.findViewById(R.id.text_samsung_offer_source_title) != null) {
             return R.string.samsung_offer_source_title;
         }
@@ -1853,6 +1878,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (sourceTitleResource == R.string.kabum_offer_source_title) {
             return isSourceOnline(KabumOfferSource.isConfigured(this),
                     KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this));
+        }
+        if (sourceTitleResource == R.string.motorola_offer_source_title) {
+            return isSourceOnline(MotorolaOfferSource.isConfigured(this),
+                    MotorolaOfferSource.hasSuccessfulCheck(this), MotorolaOfferSource.hasLastCheckFailed(this));
+        }
+        if (sourceTitleResource == R.string.claro_offer_source_title) {
+            return isSourceOnline(ClaroOfferSource.isConfigured(this),
+                    ClaroOfferSource.hasSuccessfulCheck(this), ClaroOfferSource.hasLastCheckFailed(this));
         }
         if (sourceTitleResource == R.string.samsung_offer_source_title) {
             return isSourceOnline(SamsungOfferSource.isConfigured(this),
@@ -1892,6 +1925,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         latest = newestStoreSourceFailure(latest, R.string.motorola_offer_source_title,
                 MotorolaOfferSource.hasLastCheckFailed(this), MotorolaOfferSource.getLastFailedCheckAt(this),
                 MotorolaOfferSource.getLastSuccessfulCheckAt(this));
+        latest = newestStoreSourceFailure(latest, R.string.claro_offer_source_title,
+                ClaroOfferSource.hasLastCheckFailed(this), ClaroOfferSource.getLastFailedCheckAt(this),
+                ClaroOfferSource.getLastSuccessfulCheckAt(this));
         latest = newestStoreSourceFailure(latest, R.string.samsung_offer_source_title,
                 SamsungOfferSource.hasLastCheckFailed(this), SamsungOfferSource.getLastFailedCheckAt(this),
                 SamsungOfferSource.getLastSuccessfulCheckAt(this));
@@ -1991,6 +2027,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
             return MotorolaOfferSource.isConfigured(this) ? MotorolaOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
+        if (row.findViewById(R.id.text_claro_offer_source_title) != null) {
+            return ClaroOfferSource.isConfigured(this) ? ClaroOfferMonitor.ACTION_STATUS_CHANGED : null;
+        }
         if (row.findViewById(R.id.text_samsung_offer_source_title) != null) {
             return SamsungOfferSource.isConfigured(this) ? SamsungOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
@@ -2036,6 +2075,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             KabumOfferMonitor.getInstance().checkNow(this);
         } else if (MotorolaOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
             MotorolaOfferMonitor.getInstance().checkNow(this);
+        } else if (ClaroOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
+            ClaroOfferMonitor.getInstance().checkNow(this);
         } else if (SamsungOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
             SamsungOfferMonitor.getInstance().checkNow(this);
         } else if (SamsungDiscountOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
@@ -2665,6 +2706,33 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     renderMotorolaOfferSource();
                     MonitorServiceController.update(this);
                     MotorolaOfferMonitor.getInstance().checkNow(this);
+                });
+    }
+
+    private void renderClaroOfferSource() {
+        claroOfferSourceTitle.setText(ClaroOfferSource.getTitle(this));
+        long lastSuccessfulCheck = ClaroOfferSource.getLastSuccessfulCheckAt(this);
+        boolean offline = ClaroOfferSource.hasLastCheckFailed(this);
+        String sourceStatus = offline
+                ? getString(R.string.claro_offer_source_check_failed, formatSourceCheckTime(lastSuccessfulCheck))
+                : (ClaroOfferSource.hasSuccessfulCheck(this)
+                ? getString(R.string.claro_offer_source_check_succeeded, formatSourceCheckTime(lastSuccessfulCheck))
+                : getString(R.string.claro_offer_source_check_pending));
+        claroOfferSourceRow.setText(appendStoreCheckDuration(sourceStatus, R.string.claro_offer_source_title));
+        renderSourceState(claroOfferSourceState, true, ClaroOfferSource.hasSuccessfulCheck(this), offline);
+        claroOfferOpenButton.setContentDescription(getString(R.string.claro_offer_open_link));
+        renderStoreSourceRowState(claroOfferSourceRow, R.string.claro_offer_source_title, offline);
+        renderStoreSourcesStatus();
+    }
+
+    private void showClaroOfferSourceDialog() {
+        showOfficialOfferUrlDialog(R.string.claro_offer_source_title,
+                ClaroOfferSource.getTitle(this), ClaroOfferSource.getUrl(this), (sourceTitle, rawUrl) -> {
+                    ClaroOfferSource.saveTitle(this, sourceTitle);
+                    ClaroOfferSource.save(this, rawUrl);
+                    renderClaroOfferSource();
+                    MonitorServiceController.update(this);
+                    ClaroOfferMonitor.getInstance().checkNow(this);
                 });
     }
 

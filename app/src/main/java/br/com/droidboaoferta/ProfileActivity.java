@@ -104,6 +104,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView promobitIntervalSummary;
     private TextView kabumOfferIntervalSummary;
     private TextView motorolaOfferIntervalSummary;
+    private TextView claroOfferIntervalSummary;
     private TextView samsungOfferIntervalSummary;
     private TextView samsungDiscountOfferIntervalSummary;
     private LinearLayout accountCard;
@@ -148,6 +149,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         promobitIntervalSummary = findViewById(R.id.text_promobit_interval_summary);
         kabumOfferIntervalSummary = findViewById(R.id.text_kabum_offer_interval_summary);
         motorolaOfferIntervalSummary = findViewById(R.id.text_motorola_offer_interval_summary);
+        claroOfferIntervalSummary = findViewById(R.id.text_claro_offer_interval_summary);
         samsungOfferIntervalSummary = findViewById(R.id.text_samsung_offer_interval_summary);
         samsungDiscountOfferIntervalSummary = findViewById(R.id.text_samsung_discount_offer_interval_summary);
         accountCard = findViewById(R.id.card_telegram_account);
@@ -226,6 +228,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         );
         findViewById(R.id.row_motorola_offer_interval).setOnClickListener(
                 view -> showMotorolaOfferIntervalDialog()
+        );
+        findViewById(R.id.row_claro_offer_interval).setOnClickListener(
+                view -> showClaroOfferIntervalDialog()
         );
         findViewById(R.id.row_samsung_offer_interval).setOnClickListener(
                 view -> showSamsungOfferIntervalDialog()
@@ -442,12 +447,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 KabumOfferSource.getCheckIntervalSeconds(this)));
         motorolaOfferIntervalSummary.setText(formatCheckIntervalSeconds(
                 MotorolaOfferSource.getCheckIntervalSeconds(this)));
+        claroOfferIntervalSummary.setText(formatCheckIntervalSeconds(
+                ClaroOfferSource.getCheckIntervalSeconds(this)));
         samsungOfferIntervalSummary.setText(formatCheckIntervalSeconds(
                 SamsungOfferSource.getCheckIntervalSeconds(this)));
         samsungDiscountOfferIntervalSummary.setText(formatCheckIntervalSeconds(
                 SamsungDiscountOfferSource.getCheckIntervalSeconds(this)));
         ((TextView) findViewById(R.id.text_motorola_offer_interval_title)).setText(
                 MotorolaOfferSource.getTitle(this));
+        ((TextView) findViewById(R.id.text_claro_offer_interval_title)).setText(
+                ClaroOfferSource.getTitle(this));
         ((TextView) findViewById(R.id.text_samsung_offer_interval_title)).setText(
                 SamsungOfferSource.getTitle(this));
         ((TextView) findViewById(R.id.text_samsung_discount_offer_interval_title)).setText(
@@ -938,6 +947,43 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         content.addView(options);
 
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
+    }
+
+    private void showClaroOfferIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.claro_offer_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = ClaroOfferSource.getCheckIntervalSeconds(this);
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval), interval == savedInterval);
+            option.setOnClickListener(view -> {
+                ClaroOfferSource.saveCheckIntervalSeconds(this, interval);
+                claroOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                ClaroOfferMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
         TextView close = createDialogAction(R.string.action_close);

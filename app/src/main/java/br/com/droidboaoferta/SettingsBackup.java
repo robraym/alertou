@@ -10,11 +10,11 @@ final class SettingsBackup {
     static final String KEY = "source_settings";
     private static final String META = "source_settings_sync";
     private static final String[] EXTERNAL_KEYS = {"vivo_outlet_url", "vivo_madrugada_url", "pelando_url",
-            "promobit_url", "kabum_offer_url", "motorola_offer_url", "motorola_offer_title",
+            "promobit_url", "kabum_offer_url", "motorola_offer_url", "motorola_offer_title", "claro_offer_url", "claro_offer_title",
             "samsung_offer_url", "samsung_offer_title", "samsung_discount_offer_url",
             "samsung_discount_offer_title", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes",
             "vivo_outlet_check_interval_seconds", "vivo_madrugada_check_interval_seconds",
-            "motorola_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
+            "motorola_offer_check_interval_seconds", "claro_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds",
             "samsung_discount_offer_check_interval_seconds"};
     private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes", "check_interval_seconds"};
@@ -144,6 +144,7 @@ final class SettingsBackup {
                 case "promobit_url": return PromobitSource.normalizeUrl(url) != null;
                 case "kabum_offer_url": return KabumOfferSource.normalizeUrl(url) != null;
                 case "motorola_offer_url": return MotorolaOfferSource.normalizeUrl(url) != null;
+                case "claro_offer_url": return ClaroOfferSource.normalizeUrl(url) != null;
                 case "samsung_offer_url": return SamsungOfferSource.normalizeUrl(url) != null;
                 case "samsung_discount_offer_url": return SamsungDiscountOfferSource.normalizeUrl(url) != null;
                 default: return false;
@@ -160,6 +161,7 @@ final class SettingsBackup {
             case "vivo_outlet_check_interval_seconds": return VivoOutletSource.isSupportedCheckIntervalSeconds(interval);
             case "vivo_madrugada_check_interval_seconds": return VivoMadrugadaSource.isSupportedCheckIntervalSeconds(interval);
             case "motorola_offer_check_interval_seconds": return MotorolaOfferSource.isSupportedCheckIntervalSeconds(interval);
+            case "claro_offer_check_interval_seconds": return ClaroOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "samsung_offer_check_interval_seconds": return SamsungOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "samsung_discount_offer_check_interval_seconds": return SamsungOfferSource.isSupportedCheckIntervalSeconds(interval);
             case "pelando_check_interval_seconds": return PelandoSource.isSupportedCheckInterval(interval);

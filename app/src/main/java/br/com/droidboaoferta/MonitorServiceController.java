@@ -60,7 +60,11 @@ final class MonitorServiceController {
                 || VivoMadrugadaSource.isConfigured(context)
                 || PelandoSource.isConfigured(context)
                 || PromobitSource.isConfigured(context)
-                || KabumOfferSource.isConfigured(context)));
+                || KabumOfferSource.isConfigured(context)
+                || MotorolaOfferSource.isConfigured(context)
+                || SamsungOfferSource.isConfigured(context)
+                || SamsungDiscountOfferSource.isConfigured(context)
+                || ClaroOfferSource.isConfigured(context)));
     }
 
     static boolean isEnabled(Context context) {
