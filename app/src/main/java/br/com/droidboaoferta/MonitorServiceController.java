@@ -61,6 +61,7 @@ final class MonitorServiceController {
                 || PelandoSource.isConfigured(context)
                 || PromobitSource.isConfigured(context)
                 || KabumOfferSource.isConfigured(context)
+                || KabumCatalogSource.isConfigured(context)
                 || MotorolaOfferSource.isConfigured(context)
                 || SamsungOfferSource.isConfigured(context)
                 || SamsungDiscountOfferSource.isConfigured(context)

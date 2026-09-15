@@ -932,7 +932,7 @@ public class MainActivity extends AlertouActivity {
         NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         List<ObservedOffer> filtered = new java.util.ArrayList<>();
         for (ObservedOffer offer : offers) {
-            String text = offer.getInterest() + " " + offer.getSource() + " "
+            String text = offer.getDisplayTitle() + " " + offer.getInterest() + " " + offer.getSource() + " "
                     + currency.format(offer.getPrice()) + " " + offer.getPrice();
             if (OfferTextParser.normalize(text).contains(normalizedQuery)) {
                 filtered.add(offer);
@@ -949,8 +949,8 @@ public class MainActivity extends AlertouActivity {
         Comparator<ObservedOffer> comparator;
         if (sortOrder == SORT_NAME) {
             comparator = (first, second) -> {
-                int byName = OfferTextParser.normalize(first.getInterest())
-                        .compareTo(OfferTextParser.normalize(second.getInterest()));
+                int byName = OfferTextParser.normalize(first.getDisplayTitle())
+                        .compareTo(OfferTextParser.normalize(second.getDisplayTitle()));
                 return byName != 0 ? byName : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
         } else if (sortOrder == SORT_PRICE_ASCENDING) {
@@ -1154,6 +1154,17 @@ public class MainActivity extends AlertouActivity {
         sourceView.setPadding(dp(4), 0, 0, 0);
         metaLine.addView(sourceView, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         row.addView(metaLine);
+        if (!offer.getProductTitle().isEmpty()) {
+            TextView productView = new TextView(this);
+            productView.setText(offer.getProductTitle());
+            productView.setTextColor(getColor(R.color.text_secondary));
+            productView.setTextSize(11.5f);
+            productView.setPadding(0, dp(2), 0, 0);
+            row.addView(productView, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+        }
         if (propertyPublishedAt > 0L || !propertyListingCode.isEmpty()) {
             String accessibleDetails = publication;
             if (!propertyListingCode.isEmpty()) {

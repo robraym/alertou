@@ -21,7 +21,12 @@ final class OfferLinkValidationStore {
                 && !offer.getId().startsWith("vivo|")
                 && !offer.getId().startsWith("pelando|")
                 && !offer.getId().startsWith("promobit|")
-                && !offer.getId().startsWith("kabum|");
+                && !offer.getId().startsWith("kabum|")
+                && !offer.getId().startsWith("kabum_catalog|")
+                && !offer.getId().startsWith("motorola|")
+                && !offer.getId().startsWith("claro|")
+                && !offer.getId().startsWith("samsung|")
+                && !offer.getId().startsWith("samsung_discount|");
     }
 
     boolean canDisplay(ObservedOffer offer) {

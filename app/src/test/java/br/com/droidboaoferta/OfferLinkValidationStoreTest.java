@@ -45,6 +45,19 @@ public class OfferLinkValidationStoreTest {
         assertTrue(store.canDisplay(offer("coupon|1|123")));
     }
 
+    @Test public void displaysOffersFoundByEveryStoreWithoutTelegramLinkValidation() {
+        OfferLinkValidationStore store = new OfferLinkValidationStore(preferences());
+        assertTrue(store.canDisplay(offer("vivo|1|123")));
+        assertTrue(store.canDisplay(offer("pelando|1|123")));
+        assertTrue(store.canDisplay(offer("promobit|1|123")));
+        assertTrue(store.canDisplay(offer("kabum|1|123")));
+        assertTrue(store.canDisplay(offer("kabum_catalog|1|123")));
+        assertTrue(store.canDisplay(offer("motorola|1|123")));
+        assertTrue(store.canDisplay(offer("claro|1|123")));
+        assertTrue(store.canDisplay(offer("samsung|1|123")));
+        assertTrue(store.canDisplay(offer("samsung_discount|1|123")));
+    }
+
     private ObservedOffer offer(String id) {
         return new ObservedOffer(id, 1, "Z Flip7", "Grupo", 3999, 4000, 1,
                 "https://loja.example/flip7", "https://t.me/group/1");

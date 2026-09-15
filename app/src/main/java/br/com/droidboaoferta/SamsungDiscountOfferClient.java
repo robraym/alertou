@@ -19,19 +19,26 @@ import java.util.regex.Pattern;
 
 /** Reads the public VTEX catalogue referenced by Samsung's official discount page. */
 final class SamsungDiscountOfferClient {
-    private static final Pattern SKU_ID = Pattern.compile("(?i)skuId=(\\d+)");
+    // Samsung's campaign pages use both spellings in product links.  The current
+    // Fold8 card, for example, uses `idsku`, while other cards use `skuId`.
+    private static final Pattern SKU_ID = Pattern.compile("(?i)(?:skuId|idsku)=(\\d+)");
     private SamsungDiscountOfferClient() { }
 
     static List<ExternalProductDeal> fetchOffers(Context context) throws Exception {
         String page = read(SamsungDiscountOfferSource.getUrl(context));
-        Set<String> skuIds = new LinkedHashSet<>();
-        Matcher matcher = SKU_ID.matcher(page);
-        while (matcher.find() && skuIds.size() < 20) skuIds.add(matcher.group(1));
+        Set<String> skuIds = extractSkuIds(page);
         if (skuIds.isEmpty()) throw new IllegalStateException("No Samsung Discount SKU found");
         List<ExternalProductDeal> deals = new ArrayList<>();
         String productApiUrl = SamsungDiscountOfferSource.getProductApiUrl(context);
         for (String skuId : skuIds) addProduct(read(productApiUrl + skuId), deals, skuId);
         return deals;
+    }
+
+    static Set<String> extractSkuIds(String page) {
+        Set<String> skuIds = new LinkedHashSet<>();
+        Matcher matcher = SKU_ID.matcher(page == null ? "" : page);
+        while (matcher.find() && skuIds.size() < 20) skuIds.add(matcher.group(1));
+        return skuIds;
     }
 
     private static void addProduct(String json, List<ExternalProductDeal> deals, String fallbackId) {

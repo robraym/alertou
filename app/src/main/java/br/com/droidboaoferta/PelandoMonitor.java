@@ -147,8 +147,7 @@ final class PelandoMonitor {
                     preferences.edit().putLong(key, Double.doubleToRawLongBits(deal.getPrice()))
                             .apply();
                     if (!OfferTextParser.isPlausiblePriceForInterest(deal.getPrice(), interest.getTerm())
-                            || deal.getPrice() > interest.getMaximumPrice()
-                            || (known && Double.compare(lastPrice, deal.getPrice()) == 0)) {
+                            || deal.getPrice() > interest.getMaximumPrice()) {
                         continue;
                     }
                     ObservedOffer offer = new ObservedOffer(
@@ -160,8 +159,13 @@ final class PelandoMonitor {
                             interest.getMaximumPrice(),
                             observedAt,
                             deal.getLink(),
-                            ""
+                            "",
+                            deal.getTitle()
                     );
+                    if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
+                        repository.refreshStoreProduct(offer);
+                        continue;
+                    }
                     repository.add(offer);
                     showNotification(context, offer);
                     found = true;
@@ -221,7 +225,7 @@ final class PelandoMonitor {
                 AlertSoundController.getChannelId(context)
         )
                 .setSmallIcon(R.drawable.ic_notification_offer)
-                .setContentTitle(offer.getInterest())
+                .setContentTitle(offer.getDisplayTitle())
                 .setContentText(explanation)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(explanation))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)

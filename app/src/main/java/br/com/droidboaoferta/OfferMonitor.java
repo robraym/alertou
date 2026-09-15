@@ -257,7 +257,8 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                         current.getMaximumPrice(),
                         verifiedDate,
                         verifiedLink,
-                        telegramPostLink
+                        telegramPostLink,
+                        OfferTextParser.extractProductTitle(verifiedText, current.getTerm())
                 );
                 new OfferLinkValidationStore(appContext).setValidated(offer, true);
                 offerRepository.add(offer);

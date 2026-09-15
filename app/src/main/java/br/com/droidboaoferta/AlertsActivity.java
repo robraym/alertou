@@ -1238,9 +1238,11 @@ public class AlertsActivity extends AlertouActivity {
                     PelandoMonitor.getInstance().clearState(this, interestToEdit.getId());
                     PromobitMonitor.getInstance().clearState(this, interestToEdit.getId());
                     KabumOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
+                    KabumCatalogMonitor.getInstance().clearState(this, interestToEdit.getId());
                     MotorolaOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     ClaroOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     SamsungOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
+                    SamsungDiscountOfferMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
                     if (!sameProduct) {
                         offerRepository.clearRecentForInterest(interestToEdit.getId());
@@ -1412,9 +1414,11 @@ public class AlertsActivity extends AlertouActivity {
         if (PelandoSource.isConfigured(this)) PelandoMonitor.getInstance().checkInterestNow(this, interestId);
         if (PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkInterestNow(this, interestId);
         if (KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkInterestNow(this, interestId);
+        if (KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().checkInterestNow(this, interestId);
         if (MotorolaOfferSource.isConfigured(this)) MotorolaOfferMonitor.getInstance().checkInterestNow(this, interestId);
         if (ClaroOfferSource.isConfigured(this)) ClaroOfferMonitor.getInstance().checkInterestNow(this, interestId);
         if (SamsungOfferSource.isConfigured(this)) SamsungOfferMonitor.getInstance().checkInterestNow(this, interestId);
+        if (SamsungDiscountOfferSource.isConfigured(this)) SamsungDiscountOfferMonitor.getInstance().checkNow(this);
     }
 
     private Dialog showUpdatingDialog() {

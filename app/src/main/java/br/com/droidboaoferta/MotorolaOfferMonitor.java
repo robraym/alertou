@@ -115,11 +115,15 @@ final class MotorolaOfferMonitor {
                     double lastPrice = Double.longBitsToDouble(preferences.getLong(key,
                             Double.doubleToRawLongBits(Double.NaN)));
                     preferences.edit().putLong(key, Double.doubleToRawLongBits(deal.getPrice())).apply();
-                    if (known && Double.compare(lastPrice, deal.getPrice()) == 0) continue;
                     ObservedOffer offer = new ObservedOffer(
                             "motorola|" + interest.getId() + "|" + deal.getId(), interest.getId(),
                             interest.getTerm(), context.getString(R.string.motorola_offer_source),
-                            deal.getPrice(), interest.getMaximumPrice(), observedAt, deal.getLink(), "");
+                            deal.getPrice(), interest.getMaximumPrice(), observedAt, deal.getLink(), "",
+                            deal.getTitle());
+                    if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
+                        repository.refreshStoreProduct(offer);
+                        continue;
+                    }
                     repository.add(offer);
                     showNotification(context, offer);
                     found = true;
@@ -158,7 +162,7 @@ final class MotorolaOfferMonitor {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context,
                 AlertSoundController.getChannelId(context))
                 .setSmallIcon(R.drawable.ic_notification_offer)
-                .setContentTitle(offer.getInterest()).setContentText(explanation)
+                .setContentTitle(offer.getDisplayTitle()).setContentText(explanation)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(explanation))
                 .setPriority(NotificationCompat.PRIORITY_HIGH).setSound(AlertSoundController.getSoundUri(context))
                 .setAutoCancel(true).setContentIntent(pendingIntent);

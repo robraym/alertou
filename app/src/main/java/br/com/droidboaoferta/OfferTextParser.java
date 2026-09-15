@@ -287,6 +287,28 @@ final class OfferTextParser {
                 && !looksLikeReplacementPartOffer(plainMessage, normalizedInterest);
     }
 
+    /** Returns the publication line that names the matching product, without price or link noise. */
+    static String extractProductTitle(String message, String interest) {
+        if (message == null || interest == null) {
+            return "";
+        }
+        String[] lines = message.replace('\r', '\n').split("\\n+");
+        for (String line : lines) {
+            String candidate = line == null ? "" : line.trim().replaceAll("\\s+", " ");
+            if (candidate.isEmpty() || !matchesInterest(candidate, interest)) {
+                continue;
+            }
+            candidate = LINK.matcher(candidate).replaceAll("").trim();
+            candidate = candidate.replaceAll("(?i)\\s*(?:por|preço|valor|agora)\\s*:?\\s*R\\$.*$", "")
+                    .replaceFirst("^[^\\p{L}\\p{N}]+\\s*", "")
+                    .trim();
+            if (!candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+        return interest.trim();
+    }
+
     static boolean isFlipModelInterest(String interest) {
         return interest != null && FLIP_MODEL.matcher(interest).find();
     }

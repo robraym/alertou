@@ -112,6 +112,76 @@ public class OfferRepositoryTest {
         assertTrue(offers.stream().anyMatch(offer -> offer.getId().equals("property_market|24|listing-c")));
     }
 
+    @Test public void sameStoreProductKeepsNewestObservation() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long now = System.currentTimeMillis();
+        repository.add(storeOffer("kabum|7|123", "Galaxy S25 256 GB Preto", 3999, now));
+        repository.add(storeOffer("kabum|7|123", "Galaxy S25 256 GB Preto", 4299, now - 1_000));
+
+        List<ObservedOffer> offers = repository.getRecentForValidation();
+        assertEquals(1, offers.size());
+        assertEquals(3999, offers.get(0).getPrice(), 0.001);
+        assertEquals(now, offers.get(0).getObservedAt());
+    }
+
+    @Test public void differentStoreVariantsAreNotMerged() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long now = System.currentTimeMillis();
+        repository.add(storeOffer("kabum|7|123", "Galaxy S25 256 GB Preto", 3999, now));
+        repository.add(new ObservedOffer("kabum|7|456", 7L, "S25", "KaBuM", 3999, 9000,
+                now, "https://example.com/produto/456", "", "Galaxy S25 512 GB Azul"));
+
+        assertEquals(2, repository.getRecentForValidation().size());
+    }
+
+    @Test public void productTitleSurvivesStorageRoundTrip() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        repository.add(storeOffer("kabum|7|123", "Galaxy S25 256 GB Preto", 3999,
+                System.currentTimeMillis()));
+
+        ObservedOffer restored = repository.getRecentForValidation().get(0);
+        assertEquals("Galaxy S25 256 GB Preto", restored.getProductTitle());
+        assertEquals("Galaxy S25 256 GB Preto", restored.getDisplayTitle());
+    }
+
+    @Test public void unchangedStoreProductGainsTitleWithoutChangingObservationTime() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long firstObservedAt = System.currentTimeMillis() - 60_000;
+        repository.add(new ObservedOffer("kabum|7|123", 7L, "S25", "KaBuM", 3999, 9000,
+                firstObservedAt, "https://example.com/produto/123", ""));
+
+        repository.refreshStoreProduct(storeOffer("kabum|7|123",
+                "Galaxy S25 256 GB Preto", 3999, System.currentTimeMillis()));
+
+        ObservedOffer refreshed = repository.getRecentForValidation().get(0);
+        assertEquals(firstObservedAt, refreshed.getObservedAt());
+        assertEquals("Galaxy S25 256 GB Preto", refreshed.getDisplayTitle());
+    }
+
+    @Test public void metadataRefreshReplacesLegacyStoreIdentity() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long now = System.currentTimeMillis();
+        repository.add(new ObservedOffer("kabum_catalog|legacy-hash", 7L, "S25", "KaBuM", 3999,
+                9000, now - 60_000, "https://example.com/produto/123", ""));
+
+        repository.refreshStoreProduct(storeOffer("kabum_catalog|7|123",
+                "Galaxy S25 256 GB Preto", 3999, now));
+
+        List<ObservedOffer> offers = repository.getRecentForValidation();
+        assertEquals(1, offers.size());
+        assertEquals("kabum_catalog|7|123", offers.get(0).getId());
+    }
+
+    private static ObservedOffer storeOffer(String id, String productTitle, double price, long observedAt) {
+        return new ObservedOffer(id, 7L, "S25", "KaBuM", price, 9000, observedAt,
+                "https://example.com/produto/123", "", productTitle);
+    }
+
     private static ObservedOffer offer(int id) {
         return new ObservedOffer("offer-" + id, id + 1, "Produto " + id, "Fonte " + id,
                 100, 200, System.currentTimeMillis() - 1000, "https://example.com/" + id, "");

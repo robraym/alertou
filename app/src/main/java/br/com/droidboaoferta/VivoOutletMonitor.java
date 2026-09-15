@@ -200,9 +200,6 @@ final class VivoOutletMonitor {
                     boolean known = preferences.contains(key);
                     double lastPrice = Double.longBitsToDouble(preferences.getLong(
                             key, Double.doubleToRawLongBits(Double.NaN)));
-                    if (known && Double.compare(lastPrice, product.getPixPrice()) == 0) {
-                        continue;
-                    }
                     preferences.edit().putLong(key, Double.doubleToRawLongBits(product.getPixPrice()))
                             .apply();
                     ObservedOffer offer = new ObservedOffer(
@@ -214,8 +211,13 @@ final class VivoOutletMonitor {
                             interest.getMaximumPrice(),
                             observedAt,
                             product.getLink(),
-                            ""
+                            "",
+                            product.getName()
                     );
+                    if (known && Double.compare(lastPrice, product.getPixPrice()) == 0) {
+                        repository.refreshStoreProduct(offer);
+                        continue;
+                    }
                     repository.add(offer);
                     showNotification(context, offer);
                     found = true;
@@ -255,7 +257,7 @@ final class VivoOutletMonitor {
                 AlertSoundController.getChannelId(context)
         )
                 .setSmallIcon(R.drawable.ic_notification_offer)
-                .setContentTitle(offer.getInterest())
+                .setContentTitle(offer.getDisplayTitle())
                 .setContentText(explanation)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(explanation))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)

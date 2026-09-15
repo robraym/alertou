@@ -468,7 +468,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
         List<ObservedOffer> filtered = new java.util.ArrayList<>();
         for (ObservedOffer offer : offers) {
-            String text = offer.getInterest() + " " + offer.getSource() + " "
+            String text = offer.getDisplayTitle() + " " + offer.getInterest() + " " + offer.getSource() + " "
                     + currency.format(offer.getPrice()) + " " + offer.getPrice();
             if (OfferTextParser.normalize(text).contains(normalizedQuery)) {
                 filtered.add(offer);
@@ -485,8 +485,8 @@ abstract class StoredOffersActivity extends AlertouActivity {
         Comparator<ObservedOffer> comparator;
         if (sortOrder == SORT_NAME) {
             comparator = (first, second) -> {
-                int byName = OfferTextParser.normalize(first.getInterest())
-                        .compareTo(OfferTextParser.normalize(second.getInterest()));
+                int byName = OfferTextParser.normalize(first.getDisplayTitle())
+                        .compareTo(OfferTextParser.normalize(second.getDisplayTitle()));
                 return byName != 0 ? byName : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
         } else if (sortOrder == SORT_PRICE_ASCENDING) {
@@ -680,6 +680,17 @@ abstract class StoredOffersActivity extends AlertouActivity {
         sourceView.setPadding(dp(4), 0, 0, 0);
         metaLine.addView(sourceView, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         texts.addView(metaLine);
+        if (!offer.getProductTitle().isEmpty()) {
+            TextView productView = new TextView(this);
+            productView.setText(offer.getProductTitle());
+            productView.setTextColor(getColor(R.color.text_secondary));
+            productView.setTextSize(11.5f);
+            productView.setPadding(0, dp(2), 0, 0);
+            texts.addView(productView, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            ));
+        }
         row.addView(texts, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         if (hasSecondaryAction()) {
@@ -737,7 +748,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         content.setBackgroundResource(R.drawable.bg_dialog);
 
         TextView title = new TextView(this);
-        title.setText(offer.getInterest());
+        title.setText(offer.getDisplayTitle());
         title.setTextColor(getColor(R.color.text_secondary));
         title.setTextSize(14);
         title.setSingleLine(true);
@@ -830,7 +841,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
             renderOffers();
             return;
         }
-        showStyledConfirmation(title, getString(message, offer.getInterest()),
+        showStyledConfirmation(title, getString(message, offer.getDisplayTitle()),
                 getLongPressPrimaryActionDescription(), R.color.action, () -> {
                     runLongPressPrimaryAction(offerRepository, offer.getId());
                     renderOffers();
@@ -864,7 +875,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
 
     private void showDeleteConfirmationDialog(ObservedOffer offer) {
         showStyledConfirmation(getDeleteConfirmationTitle(),
-                getString(getDeleteConfirmationMessage(), offer.getInterest()),
+                getString(getDeleteConfirmationMessage(), offer.getDisplayTitle()),
                 R.string.action_delete_offer, R.color.danger, () -> {
                     deleteOffer(offerRepository, offer.getId());
                     renderOffers();

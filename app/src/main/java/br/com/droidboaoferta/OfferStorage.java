@@ -29,7 +29,8 @@ final class OfferStorage {
                         result.add(new ObservedOffer(item.optString("id", ""),
                                 item.optLong("interest_id", 0), item.getString("interest"),
                                 item.getString("source"), price, maximum, item.getLong("observed_at"),
-                                item.optString("link"), item.optString("telegram_post_link", "")));
+                                item.optString("link"), item.optString("telegram_post_link", ""),
+                                item.optString("product_title", "")));
                     } catch (Exception malformedItem) {
                         preserve(preferences, key, raw);
                     }
@@ -57,7 +58,8 @@ final class OfferStorage {
                         .put("interest_id", item.getInterestId()).put("interest", item.getInterest())
                         .put("source", item.getSource()).put("price", item.getPrice())
                         .put("maximum_price", item.getMaximumPrice()).put("observed_at", item.getObservedAt())
-                        .put("link", item.getLink()).put("telegram_post_link", item.getTelegramPostLink()));
+                        .put("link", item.getLink()).put("telegram_post_link", item.getTelegramPostLink())
+                        .put("product_title", item.getProductTitle()));
             }
             return array.toString();
         } catch (Exception invalidOffer) {

@@ -30,6 +30,16 @@ final class SamsungDiscountOfferMonitor {
                     SamsungDiscountOfferSource.getCheckIntervalSeconds(appContext)), () -> checkSafely(true));
         } else scheduler.request(0, () -> checkSafely(true));
     }
+    synchronized void clearState(Context context, long interestId) {
+        SharedPreferences preferences = context.getSharedPreferences(
+                "samsung_discount_offer_monitor", Context.MODE_PRIVATE);
+        String prefix = "price_" + interestId + '_';
+        SharedPreferences.Editor editor = preferences.edit();
+        for (String key : preferences.getAll().keySet()) {
+            if (key.startsWith(prefix)) editor.remove(key);
+        }
+        editor.apply();
+    }
     synchronized void rescheduleIfRunning(Context context) { if (scheduler.isStarted()) { stop(); start(context); } }
 
     private void checkSafely(boolean force) {
@@ -52,11 +62,17 @@ final class SamsungDiscountOfferMonitor {
                             || deal.getPrice() > interest.getMaximumPrice()) continue;
                     String key = "price_" + interest.getId() + '_' + deal.getId();
                     long value = Double.doubleToRawLongBits(deal.getPrice());
-                    if (prefs.contains(key) && prefs.getLong(key, 0L) == value) continue;
+                    boolean unchanged = prefs.contains(key) && prefs.getLong(key, 0L) == value;
                     prefs.edit().putLong(key, value).apply();
-                    offers.add(new ObservedOffer("samsung_discount|" + interest.getId() + '|' + deal.getId(),
+                    ObservedOffer offer = new ObservedOffer("samsung_discount|" + interest.getId() + '|' + deal.getId(),
                             interest.getId(), interest.getTerm(), "Samsung Desconto", deal.getPrice(),
-                            interest.getMaximumPrice(), System.currentTimeMillis(), deal.getLink(), ""));
+                            interest.getMaximumPrice(), System.currentTimeMillis(), deal.getLink(), "",
+                            deal.getTitle());
+                    if (unchanged) {
+                        offers.refreshStoreProduct(offer);
+                        continue;
+                    }
+                    offers.add(offer);
                     found = true;
                 }
             }

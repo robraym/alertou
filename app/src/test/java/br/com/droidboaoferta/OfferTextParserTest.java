@@ -418,6 +418,14 @@ public class OfferTextParserTest {
     }
 
     @Test
+    public void extractsTelegramProductTitleFromMatchingLine() {
+        assertEquals("Galaxy S25 256 GB Azul", OfferTextParser.extractProductTitle(
+                "🔥 Galaxy S25 256 GB Azul\nPor R$ 3.999,00\nhttps://loja.exemplo/s25",
+                "S25"
+        ));
+    }
+
+    @Test
     public void normalizesAccentsForInterestMatching() {
         assertEquals("cafe eletrico", OfferTextParser.normalize("Café Elétrico"));
     }

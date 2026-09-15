@@ -55,9 +55,16 @@ final class OfferRepository {
     void add(ObservedOffer offer) {
         synchronized (OfferStorage.LOCK) {
             List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
-            offers.removeIf(item -> item.getId().equals(offer.getId())
+            ObservedOffer newest = offer;
+            for (ObservedOffer item : offers) {
+                if (isSameStoredProduct(item, offer) && item.getObservedAt() > newest.getObservedAt()) {
+                    newest = item;
+                }
+            }
+            ObservedOffer selected = newest;
+            offers.removeIf(item -> isSameStoredProduct(item, offer)
                     || isSameObservedOffer(item, offer));
-            offers.add(0, offer);
+            offers.add(0, selected);
             saveOffers(KEY_OFFERS, trimOffers(sortByObservedAt(offers)));
             long changedAt = System.currentTimeMillis();
             CloudSyncStore.rememberRecentChanged(context, changedAt);
@@ -82,6 +89,34 @@ final class OfferRepository {
                 long changedAt = System.currentTimeMillis();
                 CloudSyncStore.rememberRecentChanged(context, changedAt);
             }
+        }
+    }
+
+    /** Updates a store product's metadata without making an unchanged price look newly observed. */
+    void refreshStoreProduct(ObservedOffer current) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
+            ObservedOffer stored = null;
+            for (ObservedOffer item : offers) {
+                if (item.getId().equals(current.getId())) {
+                    stored = item;
+                    break;
+                }
+            }
+            ObservedOffer refreshed = stored == null ? current : new ObservedOffer(
+                    current.getId(), current.getInterestId(), current.getInterest(),
+                    current.getSource(), current.getPrice(), current.getMaximumPrice(),
+                    stored.getObservedAt(), current.getLink(), current.getTelegramPostLink(),
+                    current.getProductTitle());
+            List<ObservedOffer> updated = new ArrayList<>(offers);
+            updated.removeIf(item -> isSameStoredProduct(item, current));
+            updated.add(0, refreshed);
+            updated = trimOffers(sortByObservedAt(updated));
+            if (areSameOfferLists(offers, updated)) {
+                return;
+            }
+            saveOffers(KEY_OFFERS, updated);
+            CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
         }
     }
 
@@ -188,10 +223,11 @@ final class OfferRepository {
                         matchingInterest.getMaximumPrice(),
                         offer.getObservedAt(),
                         getReconciledOfferLink(offer, matchingInterest),
-                        offer.getTelegramPostLink()
+                        offer.getTelegramPostLink(),
+                        offer.getProductTitle()
                 ));
             }
-            reconciled = trimOffers(sortByObservedAt(reconciled));
+            reconciled = trimOffers(sortByObservedAt(keepNewestStoredProducts(reconciled)));
             if (areSameOfferLists(recent, reconciled)) {
                 return;
             }
@@ -250,7 +286,8 @@ final class OfferRepository {
                 && Double.compare(first.getMaximumPrice(), second.getMaximumPrice()) == 0
                 && first.getObservedAt() == second.getObservedAt()
                 && first.getLink().equals(second.getLink())
-                && first.getTelegramPostLink().equals(second.getTelegramPostLink());
+                && first.getTelegramPostLink().equals(second.getTelegramPostLink())
+                && first.getProductTitle().equals(second.getProductTitle());
     }
 
     void archive(String id) {
@@ -566,6 +603,54 @@ final class OfferRepository {
                 && Double.compare(first.getPrice(), second.getPrice()) == 0
                 && first.getObservedAt() == second.getObservedAt()
                 && first.getLink().equals(second.getLink());
+    }
+
+    private boolean isSameStoredProduct(ObservedOffer first, ObservedOffer second) {
+        if (first.getId().equals(second.getId())) {
+            return true;
+        }
+        if (first.getInterestId() != second.getInterestId()
+                || !normalize(first.getSource()).equals(normalize(second.getSource()))) {
+            return false;
+        }
+        String firstTitle = normalize(first.getProductTitle());
+        String secondTitle = normalize(second.getProductTitle());
+        String firstLink = normalizeLink(first.getLink());
+        String secondLink = normalizeLink(second.getLink());
+        if (firstLink.isEmpty() || !firstLink.equals(secondLink)) {
+            return false;
+        }
+        if (!firstTitle.isEmpty() && !secondTitle.isEmpty()) {
+            return firstTitle.equals(secondTitle);
+        }
+        // Registros gravados por versões antigas não possuíam o título real do produto.
+        // Link e preço iguais são a única identidade segura disponível para a migração.
+        return Double.compare(first.getPrice(), second.getPrice()) == 0;
+    }
+
+    private List<ObservedOffer> keepNewestStoredProducts(List<ObservedOffer> offers) {
+        List<ObservedOffer> newest = new ArrayList<>();
+        for (ObservedOffer candidate : sortByObservedAt(new ArrayList<>(offers))) {
+            boolean alreadyKept = false;
+            for (ObservedOffer kept : newest) {
+                if (isSameStoredProduct(kept, candidate)) {
+                    alreadyKept = true;
+                    break;
+                }
+            }
+            if (!alreadyKept) {
+                newest.add(candidate);
+            }
+        }
+        return newest;
+    }
+
+    private String normalizeLink(String value) {
+        String normalized = normalize(value);
+        while (normalized.endsWith("/")) {
+            normalized = normalized.substring(0, normalized.length() - 1);
+        }
+        return normalized;
     }
 
     private String normalize(String value) {

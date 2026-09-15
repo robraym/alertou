@@ -10,6 +10,7 @@ final class ObservedOffer {
     private final long observedAt;
     private final String link;
     private final String telegramPostLink;
+    private final String productTitle;
 
     ObservedOffer(String interest, String source, double price, double maximumPrice, long observedAt,
                   String link) {
@@ -38,8 +39,21 @@ final class ObservedOffer {
                 interestId, interest, source, price, maximumPrice, observedAt, link, telegramPostLink);
     }
 
+    ObservedOffer(long interestId, String interest, String source, double price, double maximumPrice,
+                  long observedAt, String link, String telegramPostLink, String productTitle) {
+        this(createId(interestId, interest, source, price, maximumPrice, observedAt, link),
+                interestId, interest, source, price, maximumPrice, observedAt, link,
+                telegramPostLink, productTitle);
+    }
+
     ObservedOffer(String id, long interestId, String interest, String source, double price, double maximumPrice,
                   long observedAt, String link, String telegramPostLink) {
+        this(id, interestId, interest, source, price, maximumPrice, observedAt, link,
+                telegramPostLink, "");
+    }
+
+    ObservedOffer(String id, long interestId, String interest, String source, double price, double maximumPrice,
+                  long observedAt, String link, String telegramPostLink, String productTitle) {
         this.interestId = interestId;
         this.interest = interest;
         this.source = source;
@@ -48,6 +62,7 @@ final class ObservedOffer {
         this.observedAt = observedAt;
         this.link = link;
         this.telegramPostLink = telegramPostLink == null ? "" : telegramPostLink;
+        this.productTitle = productTitle == null ? "" : productTitle.trim();
         this.id = id == null || id.trim().isEmpty()
                 ? createId(interestId, interest, source, price, maximumPrice, observedAt, link)
                 : id;
@@ -87,6 +102,14 @@ final class ObservedOffer {
 
     String getTelegramPostLink() {
         return telegramPostLink;
+    }
+
+    String getProductTitle() {
+        return productTitle;
+    }
+
+    String getDisplayTitle() {
+        return productTitle.isEmpty() ? interest : productTitle;
     }
 
     private static String createId(long interestId, String interest, String source, double price,

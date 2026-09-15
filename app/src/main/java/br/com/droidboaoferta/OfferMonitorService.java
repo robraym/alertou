@@ -53,6 +53,7 @@ public class OfferMonitorService extends Service {
         PelandoMonitor.getInstance().stop();
         PromobitMonitor.getInstance().stop();
         KabumOfferMonitor.getInstance().stop();
+        KabumCatalogMonitor.getInstance().stop();
         MotorolaOfferMonitor.getInstance().stop();
         ClaroOfferMonitor.getInstance().stop();
         SamsungOfferMonitor.getInstance().stop();
@@ -105,7 +106,9 @@ public class OfferMonitorService extends Service {
             KabumOfferMonitor.getInstance().start(this);
         } else {
             KabumOfferMonitor.getInstance().stop();
+            KabumCatalogMonitor.getInstance().stop();
         }
+        if (hasPriceAlert && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().start(this);
         if (hasPriceAlert && MotorolaOfferSource.isConfigured(this)) {
             MotorolaOfferMonitor.getInstance().start(this);
         } else {

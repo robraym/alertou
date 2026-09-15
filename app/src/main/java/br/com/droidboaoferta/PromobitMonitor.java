@@ -132,9 +132,6 @@ final class PromobitMonitor {
                     ));
                     preferences.edit().putLong(key, Double.doubleToRawLongBits(deal.getPrice()))
                             .apply();
-                    if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
-                        continue;
-                    }
                     ObservedOffer offer = new ObservedOffer(
                             "promobit|" + interest.getId() + "|" + deal.getId(),
                             interest.getId(),
@@ -144,8 +141,13 @@ final class PromobitMonitor {
                             interest.getMaximumPrice(),
                             observedAt,
                             deal.getLink(),
-                            ""
+                            "",
+                            deal.getTitle()
                     );
+                    if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
+                        repository.refreshStoreProduct(offer);
+                        continue;
+                    }
                     repository.add(offer);
                     showNotification(context, offer);
                     found = true;
@@ -199,7 +201,7 @@ final class PromobitMonitor {
                 AlertSoundController.getChannelId(context)
         )
                 .setSmallIcon(R.drawable.ic_notification_offer)
-                .setContentTitle(offer.getInterest())
+                .setContentTitle(offer.getDisplayTitle())
                 .setContentText(explanation)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(explanation))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)

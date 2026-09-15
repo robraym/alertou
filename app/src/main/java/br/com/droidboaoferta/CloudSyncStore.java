@@ -1655,6 +1655,7 @@ final class CloudSyncStore {
                 PelandoMonitor.getInstance().rescheduleIfRunning(appContext);
                 PromobitMonitor.getInstance().rescheduleIfRunning(appContext);
                 KabumOfferMonitor.getInstance().rescheduleIfRunning(appContext);
+                KabumCatalogMonitor.getInstance().rescheduleIfRunning(appContext);
                 MotorolaOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 ClaroOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 MonitorServiceController.update(appContext);
