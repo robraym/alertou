@@ -7,7 +7,9 @@ import java.net.URI;
 import java.util.Locale;
 
 final class VivoOutletSource {
-    static final String DEFAULT_URL = "https://store.vivo.com.br/outlet-geral-30off/c";
+    private static final String API_BASE = "https://api.store.vivo.com.br/occ/v2/vivo/products/search";
+    static final String DEFAULT_URL = API_BASE
+            + "?query=%3Arelevance%3AallCategories%3Aoutlet-geral-30off&fields=FULL&pageSize=100&currentPage=0";
     private static final String PREFS = "external_offer_sources";
     private static final String KEY_URL = "vivo_outlet_url";
     private static final String KEY_LAST_SUCCESS = "vivo_outlet_last_success";
@@ -21,8 +23,11 @@ final class VivoOutletSource {
     }
 
     static String getUrl(Context context) {
-        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        String saved = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getString(KEY_URL, "");
+        if ("https://store.vivo.com.br/outlet-geral-30off/c".equals(saved)) return DEFAULT_URL;
+        String normalized = normalizeUrl(saved);
+        return normalized == null ? saved : normalized;
     }
 
     static boolean isConfigured(Context context) {
@@ -42,34 +47,15 @@ final class VivoOutletSource {
     }
 
     static String normalizeUrl(String rawUrl) {
-        if (rawUrl == null) {
-            return null;
-        }
-        try {
-            URI uri = URI.create(rawUrl.trim());
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-            String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            String[] parts = path.split("/");
-            if (!"https".equals(scheme)
-                    || !"store.vivo.com.br".equals(host)
-                    || parts.length != 3
-                    || !"c".equalsIgnoreCase(parts[2])
-                    || !parts[1].matches("[A-Za-z0-9-]+")) {
-                return null;
-            }
-            return "https://store.vivo.com.br/" + parts[1].toLowerCase(Locale.ROOT) + "/c";
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static String getCategoryCode(String rawUrl) {
-        String normalized = normalizeUrl(rawUrl);
-        if (normalized == null) {
-            return null;
-        }
-        return normalized.substring("https://store.vivo.com.br/".length(), normalized.length() - 2);
+        return null;
+    }
+
+    static String normalizeApiUrl(String rawUrl) {
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static void markSuccessfulCheck(Context context) {

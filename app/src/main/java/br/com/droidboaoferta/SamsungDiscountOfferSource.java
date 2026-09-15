@@ -9,8 +9,10 @@ import java.util.Locale;
 /** Official Samsung Brazil discount page, kept separate from Samsung Ofertas. */
 final class SamsungDiscountOfferSource {
     static final String DEFAULT_URL = "https://shop.samsung.com/br/desconto-samsung";
+    static final String DEFAULT_PRODUCT_API_URL = "https://samsungbrshop.vtexcommercestable.com.br/api/catalog_system/pub/products/search?fq=skuId:";
     private static final String PREFS = "external_offer_sources";
     private static final String KEY_URL = "samsung_discount_offer_url";
+    private static final String KEY_PRODUCT_API_URL = "samsung_discount_offer_product_api_url";
     private static final String KEY_TITLE = "samsung_discount_offer_title";
     private static final String KEY_CHECK_INTERVAL_SECONDS = "samsung_discount_offer_check_interval_seconds";
     private static final String KEY_LAST_SUCCESS = "samsung_discount_offer_last_success";
@@ -25,6 +27,17 @@ final class SamsungDiscountOfferSource {
 
     static String getTitle(Context context) {
         return preferences(context).getString(KEY_TITLE, "Samsung Desconto");
+    }
+
+    static String getProductApiUrl(Context context) {
+        return preferences(context).getString(KEY_PRODUCT_API_URL, DEFAULT_PRODUCT_API_URL);
+    }
+
+    static void saveProductApiUrl(Context context, String rawUrl) {
+        String normalized = normalizeProductApiUrl(rawUrl);
+        if (normalized == null) throw new IllegalArgumentException("Unsupported Samsung product API URL");
+        preferences(context).edit().putString(KEY_PRODUCT_API_URL, normalized).apply();
+        SettingsBackup.changed(context);
     }
 
     static void saveTitle(Context context, String title) {
@@ -72,17 +85,11 @@ final class SamsungDiscountOfferSource {
     }
 
     static String normalizeUrl(String rawUrl) {
-        if (rawUrl == null) return null;
-        try {
-            URI uri = URI.create(rawUrl.trim());
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-            String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            return "https".equals(scheme) && "shop.samsung.com".equals(host)
-                    && "/br/desconto-samsung".equals(path) ? DEFAULT_URL : null;
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return StoreSourceUrl.normalize(rawUrl);
+    }
+
+    static String normalizeProductApiUrl(String rawUrl) {
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static int getCheckIntervalSeconds(Context context) {

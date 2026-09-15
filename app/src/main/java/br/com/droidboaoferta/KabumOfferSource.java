@@ -7,7 +7,7 @@ import java.net.URI;
 import java.util.Locale;
 
 final class KabumOfferSource {
-    static final String DEFAULT_URL = "https://www.kabum.com.br/lojas/oferta-relampago";
+    static final String DEFAULT_URL = "https://servicespub.prod.api.aws.grupokabum.com.br/catalog/v2/brandshowcase?query=oferta-relampago-lista&is_prime=false&payload_data=products_category_filters";
     private static final String PREFS = "external_offer_sources";
     private static final String KEY_URL = "kabum_offer_url";
     private static final String KEY_LAST_SUCCESS = "kabum_offer_last_success";
@@ -19,7 +19,10 @@ final class KabumOfferSource {
     }
 
     static String getUrl(Context context) {
-        return preferences(context).getString(KEY_URL, "");
+        String saved = preferences(context).getString(KEY_URL, "");
+        if ("https://www.kabum.com.br/lojas/oferta-relampago".equals(saved)) return DEFAULT_URL;
+        String normalized = normalizeUrl(saved);
+        return normalized == null ? saved : normalized;
     }
 
     static boolean isConfigured(Context context) {
@@ -36,23 +39,7 @@ final class KabumOfferSource {
     }
 
     static String normalizeUrl(String rawUrl) {
-        if (rawUrl == null) {
-            return null;
-        }
-        try {
-            URI uri = URI.create(rawUrl.trim());
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-            String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            if (!"https".equals(scheme)
-                    || (!"www.kabum.com.br".equals(host) && !"kabum.com.br".equals(host))
-                    || !"/lojas/oferta-relampago".equals(path)) {
-                return null;
-            }
-            return DEFAULT_URL;
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static void markSuccessfulCheck(Context context) {

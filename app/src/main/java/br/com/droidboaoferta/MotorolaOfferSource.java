@@ -8,7 +8,7 @@ import java.util.Locale;
 
 /** Official Motorola Brazil offers catalog. */
 final class MotorolaOfferSource {
-    static final String DEFAULT_URL = "https://www.motorola.com.br/ofertas";
+    static final String DEFAULT_URL = "https://www.motorola.com.br/api/catalog_system/pub/products/search?fq=H:377&_from=0&_to=49";
     private static final String PREFS = "external_offer_sources";
     private static final String KEY_URL = "motorola_offer_url";
     private static final String KEY_TITLE = "motorola_offer_title";
@@ -23,7 +23,10 @@ final class MotorolaOfferSource {
     }
 
     static String getUrl(Context context) {
-        return preferences(context).getString(KEY_URL, DEFAULT_URL);
+        String saved = preferences(context).getString(KEY_URL, DEFAULT_URL);
+        if ("https://www.motorola.com.br/ofertas".equals(saved)) return DEFAULT_URL;
+        String normalized = normalizeUrl(saved);
+        return normalized == null ? saved : normalized;
     }
 
     static String getTitle(Context context) {
@@ -49,17 +52,7 @@ final class MotorolaOfferSource {
     }
 
     static String normalizeUrl(String rawUrl) {
-        if (rawUrl == null) return null;
-        try {
-            URI uri = URI.create(rawUrl.trim());
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-            String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            return "https".equals(scheme) && "www.motorola.com.br".equals(host)
-                    && "/ofertas".equals(path) ? DEFAULT_URL : null;
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static void markSuccessfulCheck(Context context) {

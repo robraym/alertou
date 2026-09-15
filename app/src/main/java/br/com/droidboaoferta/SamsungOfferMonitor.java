@@ -91,7 +91,7 @@ final class SamsungOfferMonitor {
         if (!MonitorRunPolicy.canRun(context) || !SamsungOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.samsung_offer_source_title);
         try {
-            List<ExternalProductDeal> deals = SamsungOfferClient.fetchOffers();
+            List<ExternalProductDeal> deals = SamsungOfferClient.fetchOffers(context);
             if (deals.isEmpty()) throw new IllegalStateException("No Samsung offers");
             SamsungOfferSource.markSuccessfulCheck(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);

@@ -82,7 +82,7 @@ final class ClaroOfferMonitor {
         if (!MonitorRunPolicy.canRun(context) || !ClaroOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.claro_offer_source_title);
         try {
-            List<ExternalProductDeal> deals = ClaroOfferClient.fetchOffers();
+            List<ExternalProductDeal> deals = ClaroOfferClient.fetchOffers(context);
             if (deals.isEmpty()) throw new IllegalStateException("No Claro offers");
             ClaroOfferSource.markSuccessfulCheck(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);

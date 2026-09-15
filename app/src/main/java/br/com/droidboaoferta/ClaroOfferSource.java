@@ -47,17 +47,7 @@ final class ClaroOfferSource {
     }
 
     static String normalizeUrl(String rawUrl) {
-        if (rawUrl == null) return null;
-        try {
-            URI uri = URI.create(rawUrl.trim());
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-            String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            return "https".equals(scheme) && "planoscelular.claro.com.br".equals(host)
-                    && "/claro/pt/c/celulares".equals(path) ? DEFAULT_URL : null;
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static void markSuccessfulCheck(Context context) {

@@ -5,7 +5,7 @@ import android.content.SharedPreferences;
 
 /** Official Vivo overnight campaign. */
 final class VivoMadrugadaSource {
-    static final String DEFAULT_URL = "https://store.vivo.com.br/oferta-da-madrugada/c";
+    static final String DEFAULT_URL = "https://api.store.vivo.com.br/occ/v2/vivo/products/search?query=%3Arelevance%3AallCategories%3Aoferta-da-madrugada&fields=FULL&pageSize=100&currentPage=0";
     static final String URL = DEFAULT_URL;
     private static final String PREFS = "external_offer_sources";
     private static final String KEY_URL = "vivo_madrugada_url";
@@ -19,11 +19,14 @@ final class VivoMadrugadaSource {
     private VivoMadrugadaSource() { }
 
     static String getUrl(Context context) {
-        return preferences(context).getString(KEY_URL, DEFAULT_URL);
+        String saved = preferences(context).getString(KEY_URL, DEFAULT_URL);
+        if ("https://store.vivo.com.br/oferta-da-madrugada/c".equals(saved)) return DEFAULT_URL;
+        String normalized = normalizeUrl(saved);
+        return normalized == null ? saved : normalized;
     }
 
     static String normalizeUrl(String rawUrl) {
-        return VivoOutletSource.normalizeUrl(rawUrl);
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static void save(Context context, String rawUrl) {

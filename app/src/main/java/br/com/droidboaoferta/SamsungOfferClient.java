@@ -1,5 +1,7 @@
 package br.com.droidboaoferta;
 
+import android.content.Context;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -25,8 +27,8 @@ final class SamsungOfferClient {
     private SamsungOfferClient() {
     }
 
-    static List<ExternalProductDeal> fetchOffers() throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(SamsungOfferSource.DEFAULT_URL).openConnection();
+    static List<ExternalProductDeal> fetchOffers(Context context) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(SamsungOfferSource.getUrl(context)).openConnection();
         connection.setConnectTimeout(10_000);
         connection.setReadTimeout(15_000);
         connection.setInstanceFollowRedirects(true);

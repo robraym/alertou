@@ -15,23 +15,17 @@ import java.util.Locale;
 
 final class KabumOfferClient {
     private static final int MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
-    private static final String API_URL =
-            "https://servicespub.prod.api.aws.grupokabum.com.br/catalog/v2/brandshowcase"
-                    + "?query=oferta-relampago-lista"
-                    + "&is_prime=false"
-                    + "&payload_data=products_category_filters";
-
     private KabumOfferClient() {
     }
 
     static List<ExternalProductDeal> fetchOffers(String sourceUrl) throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(API_URL).openConnection();
+        HttpURLConnection connection = (HttpURLConnection) new URL(sourceUrl).openConnection();
         connection.setConnectTimeout(10_000);
         connection.setReadTimeout(15_000);
         connection.setInstanceFollowRedirects(true);
         connection.setRequestProperty("Accept", "application/json");
         connection.setRequestProperty("Origin", "https://www.kabum.com.br");
-        connection.setRequestProperty("Referer", sourceUrl);
+        connection.setRequestProperty("Referer", "https://www.kabum.com.br/lojas/oferta-relampago");
         connection.setRequestProperty("User-Agent", "Alertou/1.0 Android");
         try {
             int status = connection.getResponseCode();

@@ -1,5 +1,7 @@
 package br.com.droidboaoferta;
 
+import android.content.Context;
+
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -26,8 +28,8 @@ final class ClaroOfferClient {
     private ClaroOfferClient() {
     }
 
-    static List<ExternalProductDeal> fetchOffers() throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(ClaroOfferSource.DEFAULT_URL).openConnection();
+    static List<ExternalProductDeal> fetchOffers(Context context) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(ClaroOfferSource.getUrl(context)).openConnection();
         connection.setConnectTimeout(10_000);
         connection.setReadTimeout(15_000);
         connection.setInstanceFollowRedirects(true);

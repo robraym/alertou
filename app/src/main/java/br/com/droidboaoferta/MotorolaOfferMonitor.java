@@ -91,7 +91,7 @@ final class MotorolaOfferMonitor {
         if (!MonitorRunPolicy.canRun(context) || !MotorolaOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.motorola_offer_source_title);
         try {
-            List<ExternalProductDeal> deals = MotorolaOfferClient.fetchOffers();
+            List<ExternalProductDeal> deals = MotorolaOfferClient.fetchOffers(context);
             if (deals.isEmpty()) throw new IllegalStateException("No Motorola offers");
             MotorolaOfferSource.markSuccessfulCheck(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);

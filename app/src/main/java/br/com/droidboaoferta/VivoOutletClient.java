@@ -6,14 +6,12 @@ import org.json.JSONObject;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URLEncoder;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 final class VivoOutletClient {
-    private static final String API_BASE = "https://api.store.vivo.com.br/occ/v2/vivo/products/search";
     private static final String STORE_BASE = "https://store.vivo.com.br";
     private static final int PAGE_SIZE = 100;
     private static final int MAX_PAGES = 3;
@@ -24,14 +22,10 @@ final class VivoOutletClient {
     }
 
     static List<VivoOutletProduct> fetchProducts(String sourceUrl) throws Exception {
-        String categoryCode = VivoOutletSource.getCategoryCode(sourceUrl);
-        if (categoryCode == null) {
-            throw new IllegalArgumentException("Unsupported Vivo outlet URL");
-        }
         List<VivoOutletProduct> products = new ArrayList<>();
         int totalPages = 1;
         for (int page = 0; page < totalPages && page < MAX_PAGES; page++) {
-            JSONObject response = new JSONObject(fetchPage(categoryCode, page));
+            JSONObject response = new JSONObject(fetchPage(sourceUrl, page));
             totalPages = Math.max(1, response.optJSONObject("pagination")
                     .optInt("totalPages", 1));
             JSONArray entries = response.optJSONArray("products");
@@ -62,11 +56,8 @@ final class VivoOutletClient {
         return products;
     }
 
-    private static String fetchPage(String categoryCode, int page) throws Exception {
-        String query = ":relevance:allCategories:" + categoryCode;
-        String url = API_BASE
-                + "?query=" + URLEncoder.encode(query, "UTF-8")
-                + "&fields=FULL&pageSize=" + PAGE_SIZE + "&currentPage=" + page;
+    private static String fetchPage(String sourceUrl, int page) throws Exception {
+        String url = withPage(sourceUrl, page);
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(10_000);
         connection.setReadTimeout(15_000);
@@ -82,6 +73,20 @@ final class VivoOutletClient {
         } finally {
             connection.disconnect();
         }
+    }
+
+    private static String withPage(String sourceUrl, int page) throws Exception {
+        int queryStart = sourceUrl.indexOf('?');
+        String base = queryStart < 0 ? sourceUrl : sourceUrl.substring(0, queryStart);
+        String rawQuery = queryStart < 0 ? "" : sourceUrl.substring(queryStart + 1);
+        int fragmentStart = rawQuery.indexOf('#');
+        String fragment = fragmentStart < 0 ? "" : rawQuery.substring(fragmentStart);
+        if (fragmentStart >= 0) rawQuery = rawQuery.substring(0, fragmentStart);
+        String withoutPage = rawQuery.replaceAll("(?i)(^|&)currentPage=[^&]*", "$1")
+                .replaceAll("^&|&$", "").replaceAll("&&+", "&");
+        String query = withoutPage.isEmpty() ? "currentPage=" + page
+                : withoutPage + "&currentPage=" + page;
+        return base + "?" + query + fragment;
     }
 
     private static String readResponse(InputStream input) throws Exception {

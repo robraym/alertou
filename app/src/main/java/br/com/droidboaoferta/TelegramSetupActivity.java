@@ -2699,14 +2699,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     }
 
     private void showMotorolaOfferSourceDialog() {
-        showOfficialOfferUrlDialog(R.string.motorola_offer_source_title,
+        showOfferUrlDialog(R.string.motorola_offer_source_title,
                 MotorolaOfferSource.getTitle(this), MotorolaOfferSource.getUrl(this), (sourceTitle, rawUrl) -> {
                     MotorolaOfferSource.saveTitle(this, sourceTitle);
                     MotorolaOfferSource.save(this, rawUrl);
                     renderMotorolaOfferSource();
                     MonitorServiceController.update(this);
                     MotorolaOfferMonitor.getInstance().checkNow(this);
-                });
+                }, true);
     }
 
     private void renderClaroOfferSource() {
@@ -2758,6 +2758,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void showOfficialOfferUrlDialog(int sourceNameResource, String savedTitle, String savedUrl,
                                             OfferUrlSaver saver) {
+        showOfferUrlDialog(sourceNameResource, savedTitle, savedUrl, saver, false);
+    }
+
+    private void showOfferUrlDialog(int sourceNameResource, String savedTitle, String savedUrl,
+                                    OfferUrlSaver saver, boolean api) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -2765,13 +2770,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         content.setBackgroundResource(R.drawable.bg_dialog);
 
         TextView title = new TextView(this);
-        title.setText(getString(R.string.offer_source_url_dialog_title, getString(sourceNameResource)));
+        title.setText(api ? getString(R.string.offer_source_api_dialog_title, getString(sourceNameResource))
+                : getString(R.string.offer_source_url_dialog_title, getString(sourceNameResource)));
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(22);
         content.addView(title);
 
         TextView summary = new TextView(this);
-        summary.setText(R.string.offer_source_url_dialog_summary);
+        summary.setText(api ? R.string.offer_source_api_dialog_summary : R.string.offer_source_url_dialog_summary);
         summary.setTextColor(getColor(R.color.text_secondary));
         summary.setTextSize(15);
         summary.setPadding(0, dp(6), 0, dp(16));
@@ -2794,7 +2800,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
         EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setHint(R.string.offer_source_url_hint);
+        input.setHint(api ? R.string.offer_source_api_hint : R.string.offer_source_url_hint);
         input.setText(savedUrl);
         input.setTextColor(getColor(R.color.text_primary));
         input.setHintTextColor(getColor(R.color.text_secondary));
@@ -2808,6 +2814,32 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         content.addView(input, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
+        EditText productApiInput = null;
+        if (sourceNameResource == R.string.samsung_discount_offer_source_title) {
+            TextView productApiLabel = new TextView(this);
+            productApiLabel.setText(R.string.samsung_discount_product_api_label);
+            productApiLabel.setTextColor(getColor(R.color.text_secondary));
+            productApiLabel.setTextSize(13);
+            productApiLabel.setPadding(0, dp(14), 0, dp(4));
+            content.addView(productApiLabel);
+
+            productApiInput = new EditText(this);
+            productApiInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+            productApiInput.setHint(R.string.samsung_discount_product_api_hint);
+            productApiInput.setText(SamsungDiscountOfferSource.getProductApiUrl(this));
+            productApiInput.setTextColor(getColor(R.color.text_primary));
+            productApiInput.setHintTextColor(getColor(R.color.text_secondary));
+            productApiInput.setTextSize(13);
+            productApiInput.setSingleLine(false);
+            productApiInput.setMinLines(2);
+            productApiInput.setMaxLines(3);
+            productApiInput.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+            productApiInput.setPadding(dp(12), dp(6), dp(12), dp(6));
+            productApiInput.setBackgroundResource(R.drawable.bg_input);
+            content.addView(productApiInput, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        }
+
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         actions.setPadding(0, dp(14), 0, 0);
@@ -2815,12 +2847,24 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         cancel.setOnClickListener(view -> dialog.dismiss());
         actions.addView(cancel);
         TextView save = createSourcePrimaryDialogAction(R.string.action_save);
+        EditText finalProductApiInput = productApiInput;
         save.setOnClickListener(view -> {
+            if (finalProductApiInput != null
+                    && SamsungDiscountOfferSource.normalizeProductApiUrl(
+                    finalProductApiInput.getText().toString().trim()) == null) {
+                finalProductApiInput.setError(getString(R.string.samsung_discount_product_api_unsupported));
+                return;
+            }
             try {
                 saver.save(titleInput.getText().toString(), input.getText().toString().trim());
+                if (finalProductApiInput != null) {
+                    SamsungDiscountOfferSource.saveProductApiUrl(this,
+                            finalProductApiInput.getText().toString().trim());
+                }
                 dialog.dismiss();
             } catch (IllegalArgumentException exception) {
-                input.setError(getString(R.string.offer_source_url_unsupported));
+                input.setError(getString(api ? R.string.offer_source_api_unsupported
+                        : R.string.offer_source_url_unsupported));
             }
         });
         LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
@@ -2940,6 +2984,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             lastSuccessfulCheck = SamsungOfferSource.getLastSuccessfulCheckAt(this);
         } else if (sourceTitleResource == R.string.samsung_discount_offer_source_title) {
             lastSuccessfulCheck = SamsungDiscountOfferSource.getLastSuccessfulCheckAt(this);
+        } else if (sourceTitleResource == R.string.claro_offer_source_title) {
+            lastSuccessfulCheck = ClaroOfferSource.getLastSuccessfulCheckAt(this);
         } else {
             lastSuccessfulCheck = MotorolaOfferSource.getLastSuccessfulCheckAt(this);
         }

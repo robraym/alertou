@@ -38,7 +38,7 @@ final class SamsungDiscountOfferMonitor {
                 || !SamsungDiscountOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.samsung_discount_offer_source_title);
         try {
-            List<ExternalProductDeal> deals = SamsungDiscountOfferClient.fetchOffers();
+            List<ExternalProductDeal> deals = SamsungDiscountOfferClient.fetchOffers(context);
             if (deals.isEmpty()) throw new IllegalStateException("No Samsung Discount offers");
             SamsungDiscountOfferSource.markSuccessfulCheck(context);
             SharedPreferences prefs = context.getSharedPreferences("samsung_discount_offer_monitor", Context.MODE_PRIVATE);

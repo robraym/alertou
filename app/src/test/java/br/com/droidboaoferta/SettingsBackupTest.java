@@ -74,12 +74,12 @@ public class SettingsBackupTest {
         assertTrue(SettingsBackup.merge(local, remote, false).getJSONObject(key).getBoolean("value"));
         assertFalse(SettingsBackup.merge(local, remote, true).getJSONObject(key).getBoolean("value"));
     }
-    @Test public void rejectsUntrustedUrlsUnknownFieldsAndUnsupportedIntervals() throws Exception {
+    @Test public void acceptsManuallyConfiguredUrlsButRejectsUnknownFieldsAndUnsupportedIntervals() throws Exception {
         JSONObject incoming = new JSONObject()
                 .put("external_offer_sources/pelando_url", value("https://example.com"))
                 .put("external_offer_sources/pelando_check_interval_seconds", value(13))
                 .put("telegram_preferences/session", value("private"));
-        assertEquals(0, SettingsBackup.merge(new JSONObject(), incoming, true).length());
+        assertEquals(1, SettingsBackup.merge(new JSONObject(), incoming, true).length());
     }
     private JSONObject value(Object value) throws Exception {
         return new JSONObject().put("value", value).put("updated_at", 100);

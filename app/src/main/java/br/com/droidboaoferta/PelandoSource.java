@@ -37,23 +37,7 @@ final class PelandoSource {
     }
 
     static String normalizeUrl(String rawUrl) {
-        if (rawUrl == null) {
-            return null;
-        }
-        try {
-            URI uri = URI.create(rawUrl.trim());
-            String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
-            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
-            String path = uri.getPath() == null ? "" : uri.getPath().replaceAll("/+$", "");
-            if (!"https".equals(scheme)
-                    || (!"www.pelando.com.br".equals(host) && !"pelando.com.br".equals(host))
-                    || !"/recentes".equals(path)) {
-                return null;
-            }
-            return DEFAULT_URL;
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
+        return StoreSourceUrl.normalize(rawUrl);
     }
 
     static void markSuccessfulCheck(Context context, String lastModified) {

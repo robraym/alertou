@@ -11,7 +11,7 @@ final class SettingsBackup {
     private static final String META = "source_settings_sync";
     private static final String[] EXTERNAL_KEYS = {"vivo_outlet_url", "vivo_madrugada_url", "pelando_url",
             "promobit_url", "kabum_offer_url", "motorola_offer_url", "motorola_offer_title", "claro_offer_url", "claro_offer_title",
-            "samsung_offer_url", "samsung_offer_title", "samsung_discount_offer_url",
+            "samsung_offer_url", "samsung_offer_title", "samsung_discount_offer_url", "samsung_discount_offer_product_api_url",
             "samsung_discount_offer_title", "vivo_outlet_check_interval_minutes", "vivo_madrugada_check_interval_minutes",
             "vivo_outlet_check_interval_seconds", "vivo_madrugada_check_interval_seconds",
             "motorola_offer_check_interval_seconds", "claro_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
@@ -147,6 +147,7 @@ final class SettingsBackup {
                 case "claro_offer_url": return ClaroOfferSource.normalizeUrl(url) != null;
                 case "samsung_offer_url": return SamsungOfferSource.normalizeUrl(url) != null;
                 case "samsung_discount_offer_url": return SamsungDiscountOfferSource.normalizeUrl(url) != null;
+                case "samsung_discount_offer_product_api_url": return SamsungDiscountOfferSource.normalizeProductApiUrl(url) != null;
                 default: return false;
             }
         }

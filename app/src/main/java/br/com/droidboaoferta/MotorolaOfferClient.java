@@ -1,5 +1,7 @@
 package br.com.droidboaoferta;
 
+import android.content.Context;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -14,19 +16,16 @@ import java.util.List;
 /** Reads the public VTEX catalog used by Motorola's official offers page. */
 final class MotorolaOfferClient {
     private static final int MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
-    private static final String API_URL = "https://www.motorola.com.br/api/catalog_system/pub/products/search"
-            + "?fq=H:377&_from=0&_to=49";
-
     private MotorolaOfferClient() {
     }
 
-    static List<ExternalProductDeal> fetchOffers() throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(API_URL).openConnection();
+    static List<ExternalProductDeal> fetchOffers(Context context) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(MotorolaOfferSource.getUrl(context)).openConnection();
         connection.setConnectTimeout(10_000);
         connection.setReadTimeout(15_000);
         connection.setInstanceFollowRedirects(true);
         connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Referer", MotorolaOfferSource.DEFAULT_URL);
+        connection.setRequestProperty("Referer", "https://www.motorola.com.br/ofertas");
         connection.setRequestProperty("User-Agent", "Alertou/1.0 Android");
         try {
             int status = connection.getResponseCode();
