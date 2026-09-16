@@ -242,6 +242,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
+                        android:singleLine="true"
                         android:textColor="@color/action"
                         android:textSize="14sp" />
 
@@ -250,6 +251,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="6dp"
+                        android:singleLine="true"
                         android:textColor="@color/danger"
                         android:textSize="14sp"
                         android:visibility="gone" />

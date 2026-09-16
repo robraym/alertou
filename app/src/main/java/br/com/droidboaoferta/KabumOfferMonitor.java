@@ -94,6 +94,7 @@ final class KabumOfferMonitor {
         if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.kabum_offer_source_title) || !KabumOfferSource.isConfigured(context)) {
             return;
         }
+        if (!force && StoreSourceCheckStatus.isManualBatchActive()) return;
         StoreSourceCheckStatus.begin(context, R.string.kabum_offer_source_title);
         try {
             List<ExternalProductDeal> deals = KabumOfferClient.fetchOffers(

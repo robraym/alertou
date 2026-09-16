@@ -94,6 +94,7 @@ final class PromobitMonitor {
         if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.promobit_source_title) || !PromobitSource.isConfigured(context)) {
             return;
         }
+        if (!force && StoreSourceCheckStatus.isManualBatchActive()) return;
         StoreSourceCheckStatus.begin(context, R.string.promobit_source_title);
         try {
             List<ExternalProductDeal> deals = PromobitRecentClient.fetchRecent(

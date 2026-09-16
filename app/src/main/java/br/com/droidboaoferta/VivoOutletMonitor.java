@@ -117,6 +117,9 @@ final class VivoOutletMonitor {
         if (!MonitorRunPolicy.canRun(context)) {
             return;
         }
+        if (!force && StoreSourceCheckStatus.isManualBatchActive()) {
+            return;
+        }
         boolean found = false;
         if (StoreSourceControl.isEnabled(context, R.string.vivo_outlet_source_title)
                 && VivoOutletSource.isConfigured(context)

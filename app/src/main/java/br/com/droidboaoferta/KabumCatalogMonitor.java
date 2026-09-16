@@ -19,14 +19,15 @@ final class KabumCatalogMonitor {
     private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
     private Context appContext;
     static KabumCatalogMonitor getInstance() { return INSTANCE; }
-    synchronized void start(Context context) { appContext = context.getApplicationContext(); if (MonitorRunPolicy.canRun(appContext)) scheduler.start(() -> check(0L), KabumCatalogSource.getCheckIntervalSeconds(appContext) * 1000L); }
+    synchronized void start(Context context) { appContext = context.getApplicationContext(); if (MonitorRunPolicy.canRun(appContext)) scheduler.start(() -> check(0L, false), KabumCatalogSource.getCheckIntervalSeconds(appContext) * 1000L); }
     synchronized void stop() { scheduler.stop(); }
     synchronized void checkNow(Context context) { checkInterestNow(context,0L); }
-    synchronized void checkInterestNow(Context context, long id) { appContext=context.getApplicationContext(); if (!MonitorRunPolicy.canRun(appContext)) return; if (!scheduler.isStarted()) scheduler.start(() -> check(0L), KabumCatalogSource.getCheckIntervalSeconds(appContext)*1000L, () -> check(id)); else scheduler.request(0, () -> check(id)); }
+    synchronized void checkInterestNow(Context context, long id) { appContext=context.getApplicationContext(); if (!MonitorRunPolicy.canRun(appContext)) return; if (!scheduler.isStarted()) scheduler.start(() -> check(0L, false), KabumCatalogSource.getCheckIntervalSeconds(appContext)*1000L, () -> check(id, true)); else scheduler.request(0, () -> check(id, true)); }
     synchronized void rescheduleIfRunning(Context context) { if(scheduler.isStarted()){stop();start(context);} }
     synchronized void clearState(Context context, long id) { SharedPreferences p=context.getSharedPreferences(PREFS, Context.MODE_PRIVATE); SharedPreferences.Editor e=p.edit(); String prefix=id+"_"; for(String k:p.getAll().keySet()) if(k.startsWith(prefix)) e.remove(k); e.apply(); }
-    private void check(long onlyId) {
+    private void check(long onlyId, boolean force) {
         Context context=appContext; if (context==null || !StoreSourceControl.isEnabled(context, R.string.kabum_catalog_source_title) || !KabumCatalogSource.isConfigured(context)) return;
+        if (!force && StoreSourceCheckStatus.isManualBatchActive()) return;
         StoreSourceCheckStatus.begin(context,R.string.kabum_catalog_source_title);
         SharedPreferences prefs=context.getSharedPreferences(PREFS, Context.MODE_PRIVATE); OfferRepository repository=new OfferRepository(context); OfferInvalidationRepository invalidations=new OfferInvalidationRepository(context);
         boolean succeeded=false, found=false;

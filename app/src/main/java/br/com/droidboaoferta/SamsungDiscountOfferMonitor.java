@@ -47,6 +47,7 @@ final class SamsungDiscountOfferMonitor {
         if (context == null || !MonitorRunPolicy.canRun(context)
                 || !StoreSourceControl.isEnabled(context, R.string.samsung_discount_offer_source_title)
                 || !SamsungDiscountOfferSource.isConfigured(context)) return;
+        if (!force && StoreSourceCheckStatus.isManualBatchActive()) return;
         StoreSourceCheckStatus.begin(context, R.string.samsung_discount_offer_source_title);
         try {
             List<ExternalProductDeal> deals = SamsungDiscountOfferClient.fetchOffers(context);

@@ -93,6 +93,7 @@ final class PelandoMonitor {
         if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.pelando_source_title) || !PelandoSource.isConfigured(context)) {
             return;
         }
+        if (!force && StoreSourceCheckStatus.isManualBatchActive()) return;
         StoreSourceCheckStatus.begin(context, R.string.pelando_source_title);
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         FeedRetryState retry = new FeedRetryState(preferences);

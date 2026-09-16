@@ -89,6 +89,25 @@ final class StoreSourceCheckStatus {
         return prefs(context).getLong(durationKey(sourceTitleResource), 0L);
     }
 
+    static long getCurrentDurationMillis(Context context, int sourceTitleResource) {
+        long startedAt = prefs(context).getLong(startKey(sourceTitleResource), 0L);
+        return startedAt <= 0L ? 0L
+                : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
+    }
+
+    static boolean isManualBatchActive() {
+        synchronized (BATCH_LOCK) {
+            return manualBatchActive;
+        }
+    }
+
+    static long getCurrentManualBatchDurationMillis() {
+        synchronized (BATCH_LOCK) {
+            return !manualBatchActive || manualBatchStartedAt <= 0L ? 0L
+                    : Math.max(0L, SystemClock.elapsedRealtime() - manualBatchStartedAt);
+        }
+    }
+
     static int getLastAutomaticSourceTitleResource(Context context) {
         return prefs(context).getInt(KEY_LAST_AUTOMATIC_SOURCE_TITLE, 0);
     }
@@ -173,12 +192,6 @@ final class StoreSourceCheckStatus {
         AUTOMATIC_BATCH_FINISHED.clear();
         automaticBatchStartedAt = 0L;
         automaticBatchQualified = false;
-    }
-
-    private static boolean isManualBatchActive() {
-        synchronized (BATCH_LOCK) {
-            return manualBatchActive;
-        }
     }
 
     private static void notifyChanged(Context context, int sourceTitleResource, boolean checking) {

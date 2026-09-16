@@ -194,10 +194,21 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private CountryOption selectedCountry;
     private boolean formattingPhoneNumber;
     private final Handler smsHandler = new Handler(Looper.getMainLooper());
+    private final Handler storeProgressHandler = new Handler(Looper.getMainLooper());
     private boolean smsReceiverRegistered;
     private boolean cloudSyncReceiverRegistered;
     private boolean smsConsentListening;
     private final Runnable smsCountdownRunnable = this::renderSmsOption;
+    private final Runnable storeProgressRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (StoreSourceCheckStatus.getCurrentSourceTitleResource() == 0) return;
+            if (StoreSourceCheckStatus.isManualBatchActive()) {
+                renderCurrentManualStoreSourceDuration();
+            }
+            renderStoreSourcesStatus();
+        }
+    };
     private final BroadcastReceiver cloudSyncReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -500,6 +511,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     @Override
     protected void onStop() {
         smsHandler.removeCallbacks(smsCountdownRunnable);
+        storeProgressHandler.removeCallbacks(storeProgressRunnable);
         unregisterSmsReceiver();
         if (cloudSyncReceiverRegistered) {
             unregisterReceiver(cloudSyncReceiver);
@@ -1731,22 +1743,39 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.source_status_dot_online_progress, online, onlineTotal)
                 : getString(R.string.source_status_dot_online, online));
         storeSourcesOnlineText.setTextColor(getColor(R.color.action));
+        storeSourcesOnlineText.setTextSize(offline > 0 && countPausedStoreSources() > 0 ? 12f : 14f);
         storeSourcesOnlineText.setVisibility(View.VISIBLE);
         int paused = countPausedStoreSources();
         if (offline > 0 || paused > 0) {
-            storeSourcesOfflineText.setText(offline > 0 && paused > 0
-                    ? getResources().getQuantityString(R.plurals.source_status_dot_offline_paused,
-                    paused, offline, paused)
-                    : offline > 0 ? getString(R.string.source_status_dot_offline, offline)
-                    : getResources().getQuantityString(R.plurals.source_status_dot_paused, paused, paused));
+            if (offline > 0 && paused > 0) {
+                String offlineText = getString(R.string.source_status_dot_offline, offline);
+                String pausedText = getResources().getQuantityString(
+                        R.plurals.source_status_dot_paused, paused, paused);
+                SpannableString combined = new SpannableString(offlineText + " " + pausedText);
+                combined.setSpan(new ForegroundColorSpan(getColor(R.color.text_secondary)),
+                        offlineText.length() + 1, combined.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                storeSourcesOfflineText.setText(combined);
+            } else {
+                storeSourcesOfflineText.setText(offline > 0
+                        ? getString(R.string.source_status_dot_offline, offline)
+                        : getResources().getQuantityString(R.plurals.source_status_dot_paused, paused, paused));
+            }
             storeSourcesOfflineText.setTextColor(getColor(offline > 0 ? R.color.danger : R.color.text_secondary));
+            storeSourcesOfflineText.setTextSize(offline > 0 && paused > 0 ? 12f : 14f);
             storeSourcesOfflineText.setVisibility(View.VISIBLE);
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);
         }
         if (checkingSource != 0) {
-            storeSourcesSummaryText.setText(getString(R.string.store_sources_checking,
-                    getString(checkingSource)));
+            storeSourcesSummaryText.setText(StoreSourceCheckStatus.isManualBatchActive()
+                    ? getString(R.string.store_sources_checking_total_duration,
+                    getString(checkingSource),
+                    formatStoreCheckDuration(
+                            StoreSourceCheckStatus.getCurrentManualBatchDurationMillis()))
+                    : getString(R.string.store_sources_checking_with_duration,
+                    getString(checkingSource),
+                    formatStoreCheckDuration(StoreSourceCheckStatus.getCurrentDurationMillis(
+                            this, checkingSource))));
             storeSourcesSummaryText.setTextColor(getColor(R.color.action));
             storeSourcesSummaryText.setVisibility(View.VISIBLE);
         } else {
@@ -1796,6 +1825,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     storeSourcesSummaryText.setVisibility(View.VISIBLE);
                 }
             }
+        }
+        storeProgressHandler.removeCallbacks(storeProgressRunnable);
+        if (checkingSource != 0) {
+            storeProgressHandler.postDelayed(storeProgressRunnable, 1000L);
         }
     }
 
@@ -2752,14 +2785,92 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     }
 
     private void showKabumCatalogSourceDialog() {
-        Dialog dialog = new Dialog(this); LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL); content.setPadding(dp(24),dp(22),dp(24),dp(16)); content.setBackgroundResource(R.drawable.bg_dialog);
-        TextView title=new TextView(this); title.setText(R.string.kabum_catalog_dialog_title); title.setTextColor(getColor(R.color.text_primary)); title.setTextSize(22); content.addView(title);
-        TextView message=new TextView(this); message.setText(R.string.kabum_catalog_dialog_summary); message.setTextColor(getColor(R.color.text_secondary)); message.setTextSize(15); message.setPadding(0,dp(6),0,dp(16)); content.addView(message);
-        EditText titleInput=addStoreTitleInput(content,R.string.kabum_catalog_source_title);
-        EditText input=new EditText(this); input.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_URI); input.setHint(R.string.kabum_catalog_link_hint); input.setText(KabumCatalogSource.getUrl(this)); input.setTextColor(getColor(R.color.text_primary)); input.setHintTextColor(getColor(R.color.text_secondary)); input.setTextSize(13); input.setMinLines(2); input.setMaxLines(4); input.setPadding(dp(12),dp(6),dp(12),dp(6)); input.setBackgroundResource(R.drawable.bg_input); content.addView(input);
-        LinearLayout actions=new LinearLayout(this); actions.setGravity(Gravity.END); actions.setPadding(0,dp(14),0,0); TextView cancel=createSourceDialogAction(R.string.action_cancel); cancel.setOnClickListener(v->dialog.dismiss()); actions.addView(cancel); TextView save=createSourcePrimaryDialogAction(R.string.action_save); save.setOnClickListener(v->{String url=input.getText().toString().trim(); if(StoreSourceUrl.normalize(url)==null){input.setError(getString(R.string.kabum_offer_link_unsupported));return;} StoreDisplayName.save(this,R.string.kabum_catalog_source_title,titleInput.getText().toString()); KabumCatalogSource.save(this,url); renderKabumCatalogSource(); MonitorServiceController.update(this); KabumCatalogMonitor.getInstance().checkNow(this); dialog.dismiss();}); actions.addView(save); content.addView(actions);
-        dialog.setContentView(content); if(dialog.getWindow()!=null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT)); dialog.show(); if(dialog.getWindow()!=null){WindowManager.LayoutParams params=new WindowManager.LayoutParams(); params.copyFrom(dialog.getWindow().getAttributes()); params.width=getResources().getDisplayMetrics().widthPixels-dp(44); params.height=WindowManager.LayoutParams.WRAP_CONTENT; params.dimAmount=0.65f; dialog.getWindow().setAttributes(params); dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);}
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.kabum_catalog_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(22);
+        content.addView(title);
+
+        TextView message = new TextView(this);
+        message.setText(R.string.kabum_catalog_dialog_summary);
+        message.setTextColor(getColor(R.color.text_secondary));
+        message.setTextSize(15);
+        message.setPadding(0, dp(6), 0, dp(16));
+        content.addView(message);
+
+        EditText titleInput = addStoreTitleInput(content, R.string.kabum_catalog_source_title);
+
+        EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
+        input.setHint(R.string.kabum_catalog_link_hint);
+        input.setText(KabumCatalogSource.getUrl(this));
+        input.setTextColor(getColor(R.color.text_primary));
+        input.setHintTextColor(getColor(R.color.text_secondary));
+        input.setTextSize(13);
+        input.setSingleLine(false);
+        input.setMinLines(2);
+        input.setMaxLines(4);
+        input.setHorizontallyScrolling(false);
+        input.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
+        input.setPadding(dp(12), dp(6), dp(12), dp(6));
+        input.setBackgroundResource(R.drawable.bg_input);
+        content.addView(input, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        actions.setPadding(0, dp(14), 0, 0);
+        TextView cancel = createSourceDialogAction(R.string.action_cancel);
+        cancel.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(cancel);
+        TextView save = createSourcePrimaryDialogAction(R.string.action_save);
+        save.setOnClickListener(view -> {
+            String url = input.getText().toString().trim();
+            if (StoreSourceUrl.normalize(url) == null) {
+                input.setError(getString(R.string.kabum_offer_link_unsupported));
+                return;
+            }
+            StoreDisplayName.save(this, R.string.kabum_catalog_source_title,
+                    titleInput.getText().toString());
+            KabumCatalogSource.save(this, url);
+            renderKabumCatalogSource();
+            MonitorServiceController.update(this);
+            KabumCatalogMonitor.getInstance().checkNow(this);
+            dialog.dismiss();
+        });
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                dp(42)
+        );
+        saveParams.leftMargin = dp(10);
+        actions.addView(save, saveParams);
+        content.addView(actions);
+
+        dialog.setContentView(content);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow != null) {
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(shownWindow.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+            params.dimAmount = 0.65f;
+            shownWindow.setAttributes(params);
+            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
     }
 
     private void renderMotorolaOfferSource() {
@@ -3055,11 +3166,41 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             summary.setTextColor(getColor(failed ? R.color.danger : R.color.text_secondary));
             return;
         }
-        if (summary instanceof RollingStatusTextView) {
-            ((RollingStatusTextView) summary).showRollingValue(
-                    getString(R.string.store_source_last_check_prefix),
-                    getStoreSourceCheckValue(sourceTitleResource));
+        if (StoreSourceCheckStatus.isManualBatchActive()) {
+            summary.setText(getString(R.string.store_source_checking_duration,
+                    formatStoreCheckDuration(StoreSourceCheckStatus.getCurrentDurationMillis(
+                            this, sourceTitleResource))));
         }
+        summary.setTextColor(getColor(R.color.action));
+        TextView title = findViewById(getStoreSourceTitleViewId(sourceTitleResource));
+        if (title != null) title.setTextColor(getColor(R.color.action));
+    }
+
+    private void renderCurrentManualStoreSourceDuration() {
+        int sourceTitle = StoreSourceCheckStatus.getCurrentSourceTitleResource();
+        if (sourceTitle == 0 || !StoreSourceCheckStatus.isManualBatchActive()) return;
+        TextView summary = getStoreSourceSummaryView(sourceTitle);
+        if (summary == null) return;
+        summary.setText(getString(R.string.store_source_checking_duration,
+                formatStoreCheckDuration(StoreSourceCheckStatus.getCurrentDurationMillis(
+                        this, sourceTitle))));
+        summary.setTextColor(getColor(R.color.action));
+    }
+
+    private TextView getStoreSourceSummaryView(int sourceTitleResource) {
+        if (sourceTitleResource == R.string.vivo_outlet_source_title) return vivoOutletSourceRow;
+        if (sourceTitleResource == R.string.vivo_madrugada_source_title) return vivoMadrugadaSourceRow;
+        if (sourceTitleResource == R.string.pelando_source_title) return pelandoSourceRow;
+        if (sourceTitleResource == R.string.promobit_source_title) return promobitSourceRow;
+        if (sourceTitleResource == R.string.kabum_offer_source_title) return kabumOfferSourceRow;
+        if (sourceTitleResource == R.string.kabum_catalog_source_title) return kabumCatalogSourceRow;
+        if (sourceTitleResource == R.string.motorola_offer_source_title) return motorolaOfferSourceRow;
+        if (sourceTitleResource == R.string.claro_offer_source_title) return claroOfferSourceRow;
+        if (sourceTitleResource == R.string.samsung_offer_source_title) return samsungOfferSourceRow;
+        if (sourceTitleResource == R.string.samsung_discount_offer_source_title) {
+            return samsungDiscountOfferSourceRow;
+        }
+        return null;
     }
 
     private String getStoreSourceCheckValue(int sourceTitleResource) {
