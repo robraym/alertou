@@ -38,6 +38,7 @@
     <string name="store_sources_updated_at">Consulta concluída %1$s · %2$s</string>
     <string name="store_sources_last_check">Consultado: %1$s · %2$s · %3$s</string>
     <string name="source_status_dot">●</string>
+    <string name="offer_source_telegram">Telegram · %1$s</string>
     <string name="source_status_dot_online">• %1$d Online</string>
     <string name="source_status_dot_online_progress">• %1$d de %2$d Online</string>
     <string name="source_status_dot_offline">• %1$d Offline</string>

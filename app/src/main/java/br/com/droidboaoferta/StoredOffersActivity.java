@@ -430,7 +430,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
                     offer,
                     currency.format(offer.getPrice()),
                     OfferDateFormatter.formatTime(offer.getObservedAt()),
-                    offer.getSource()
+                    getOfferSourceLabel(offer)
             );
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
@@ -443,6 +443,37 @@ abstract class StoredOffersActivity extends AlertouActivity {
     private boolean isPropertyOffer(ObservedOffer offer) {
         return offer.getId().startsWith("property|")
                 || PropertyMarketReferenceSettings.isReference(offer);
+    }
+
+    private String getOfferSourceLabel(ObservedOffer offer) {
+        String source = offer.getSource();
+        if (isPropertyOffer(offer)) {
+            return source;
+        }
+        if (isTelegramOffer(offer)) {
+            return getString(R.string.offer_source_telegram, source);
+        }
+        return source;
+    }
+
+    private boolean isTelegramOffer(ObservedOffer offer) {
+        if (!offer.getTelegramPostLink().isEmpty()) {
+            return true;
+        }
+        String id = offer.getId();
+        return !(id.startsWith("vivo|")
+                || id.startsWith("vivo_madrugada|")
+                || id.startsWith("pelando|")
+                || id.startsWith("promobit|")
+                || id.startsWith("kabum|")
+                || id.startsWith("kabum_catalog|")
+                || id.startsWith("motorola|")
+                || id.startsWith("claro|")
+                || id.startsWith("samsung|")
+                || id.startsWith("samsung_discount|")
+                || id.startsWith("coupon|")
+                || id.startsWith("property|")
+                || id.startsWith("market_reference|"));
     }
 
     private boolean isCouponOffer(ObservedOffer offer) {
@@ -672,7 +703,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         metaLine.addView(timeView);
 
         TextView sourceView = new TextView(this);
-        sourceView.setText(source);
+        sourceView.setText("• " + source);
         sourceView.setTextColor(getColor(R.color.text_secondary));
         sourceView.setTextSize(11.5f);
         sourceView.setSingleLine(true);

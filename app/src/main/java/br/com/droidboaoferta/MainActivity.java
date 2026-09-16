@@ -751,7 +751,7 @@ public class MainActivity extends AlertouActivity {
                     offer.getInterestId(),
                     displayedPrice,
                     displayedTime,
-                    offer.getSource(),
+                    getOfferSourceLabel(offer),
                     contentDescription,
                     getPropertyListingCode(offer),
                     expired,
@@ -1181,6 +1181,37 @@ public class MainActivity extends AlertouActivity {
             row.addView(status);
         }
         return row;
+    }
+
+    private String getOfferSourceLabel(ObservedOffer offer) {
+        String source = offer.getSource();
+        if (isPropertyOffer(offer)) {
+            return source;
+        }
+        if (isTelegramOffer(offer)) {
+            return getString(R.string.offer_source_telegram, source);
+        }
+        return source;
+    }
+
+    private boolean isTelegramOffer(ObservedOffer offer) {
+        if (!offer.getTelegramPostLink().isEmpty()) {
+            return true;
+        }
+        String id = offer.getId();
+        return !(id.startsWith("vivo|")
+                || id.startsWith("vivo_madrugada|")
+                || id.startsWith("pelando|")
+                || id.startsWith("promobit|")
+                || id.startsWith("kabum|")
+                || id.startsWith("kabum_catalog|")
+                || id.startsWith("motorola|")
+                || id.startsWith("claro|")
+                || id.startsWith("samsung|")
+                || id.startsWith("samsung_discount|")
+                || id.startsWith("coupon|")
+                || id.startsWith("property|")
+                || id.startsWith("market_reference|"));
     }
 
     private RollingPriceView createRollingPriceView(String price) {
