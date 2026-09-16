@@ -91,6 +91,7 @@ final class ClaroOfferMonitor {
             preferences.edit().putString(KEY_LAST_FEED_SIGNATURE, feedSignature).apply();
             List<Interest> interests = new InterestRepository(context).getAll();
             OfferRepository repository = new OfferRepository(context);
+            OfferInvalidationRepository invalidations = new OfferInvalidationRepository(context);
             long observedAt = System.currentTimeMillis();
             boolean found = false;
             for (ExternalProductDeal deal : deals) for (Interest interest : interests) {
@@ -108,6 +109,7 @@ final class ClaroOfferMonitor {
                         interest.getId(), interest.getTerm(), context.getString(R.string.claro_offer_source),
                         deal.getPrice(), interest.getMaximumPrice(), observedAt, deal.getLink(), "",
                         deal.getTitle());
+                if (invalidations.isInvalidated(offer)) continue;
                 if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
                     repository.refreshStoreProduct(offer);
                     continue;

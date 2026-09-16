@@ -28,7 +28,7 @@ final class KabumCatalogMonitor {
     private void check(long onlyId) {
         Context context=appContext; if (context==null || !KabumCatalogSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context,R.string.kabum_catalog_source_title);
-        SharedPreferences prefs=context.getSharedPreferences(PREFS, Context.MODE_PRIVATE); OfferRepository repository=new OfferRepository(context);
+        SharedPreferences prefs=context.getSharedPreferences(PREFS, Context.MODE_PRIVATE); OfferRepository repository=new OfferRepository(context); OfferInvalidationRepository invalidations=new OfferInvalidationRepository(context);
         boolean succeeded=false, found=false;
         try {
             for (Interest interest:new InterestRepository(context).getAll()) {
@@ -41,6 +41,7 @@ final class KabumCatalogMonitor {
                     boolean unchanged=prefs.contains(key)&&prefs.getLong(key,0L)==value;
                     prefs.edit().putLong(key,value).apply();
                     ObservedOffer offer=new ObservedOffer("kabum_catalog|"+key,interest.getId(),interest.getTerm(),StoreDisplayName.get(context,R.string.kabum_catalog_source_title),deal.getPrice(),interest.getMaximumPrice(),System.currentTimeMillis(),deal.getLink(),"",deal.getTitle());
+                    if (invalidations.isInvalidated(offer)) continue;
                     if(unchanged) { repository.refreshStoreProduct(offer); continue; }
                     repository.add(offer); showNotification(context,offer);
                     found=true;

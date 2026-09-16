@@ -13,9 +13,16 @@ final class OfferInvalidationRepository {
     private static final int MAX_INVALIDATIONS = 300;
 
     private final SharedPreferences preferences;
+    private final Context context;
 
     OfferInvalidationRepository(Context context) {
-        preferences = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.context = context.getApplicationContext();
+        preferences = this.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+    }
+
+    OfferInvalidationRepository(SharedPreferences preferences) {
+        context = null;
+        this.preferences = preferences;
     }
 
     synchronized void markInvalid(ObservedOffer offer) {
@@ -24,9 +31,11 @@ final class OfferInvalidationRepository {
         JSONArray updated = new JSONArray();
         String interest = normalize(offer.getInterest());
         String source = normalize(offer.getSource());
+        String identity = identityFor(offer);
         for (int index = 0; index < invalidations.length(); index++) {
             JSONObject item = invalidations.optJSONObject(index);
-            if (item != null && same(item, interest, source, offer.getPrice(), offer.getObservedAt())) {
+            if (item != null && (identity.equals(item.optString("identity"))
+                    || same(item, interest, source, offer.getPrice(), offer.getObservedAt()))) {
                 continue;
             }
             updated.put(invalidations.opt(index));
@@ -36,7 +45,8 @@ final class OfferInvalidationRepository {
                     .put("interest", interest)
                     .put("source", source)
                     .put("price", offer.getPrice())
-                    .put("observed_at", offer.getObservedAt()));
+                    .put("observed_at", offer.getObservedAt())
+                    .put("identity", identity));
         } catch (Exception ignored) {
             return;
         }
@@ -61,6 +71,79 @@ final class OfferInvalidationRepository {
             }
         }
         return false;
+    }
+
+    synchronized boolean isInvalidated(ObservedOffer offer) {
+        if (offer == null) {
+            return false;
+        }
+        migrateLegacyInvalidations();
+        String identity = identityFor(offer);
+        String interest = normalize(offer.getInterest());
+        String source = normalize(offer.getSource());
+        JSONArray invalidations = read();
+        for (int index = 0; index < invalidations.length(); index++) {
+            JSONObject item = invalidations.optJSONObject(index);
+            if (item != null && (identity.equals(item.optString("identity"))
+                    || same(item, interest, source, offer.getPrice(), offer.getObservedAt()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void migrateLegacyInvalidations() {
+        if (context == null) {
+            return;
+        }
+        JSONArray invalidations = read();
+        boolean changed = false;
+        for (int index = 0; index < invalidations.length(); index++) {
+            JSONObject item = invalidations.optJSONObject(index);
+            if (item == null || !item.optString("identity").isEmpty()) {
+                continue;
+            }
+            ObservedOffer original = findTrashedOffer(item);
+            if (original == null) {
+                continue;
+            }
+            try {
+                item.put("identity", identityFor(original));
+                changed = true;
+            } catch (Exception ignored) {
+                // Leave the original decision intact if a malformed legacy entry cannot be upgraded.
+            }
+        }
+        if (changed) {
+            preferences.edit().putString(KEY_INVALIDATIONS, invalidations.toString()).apply();
+        }
+    }
+
+    private ObservedOffer findTrashedOffer(JSONObject invalidation) {
+        String interest = invalidation.optString("interest");
+        String source = invalidation.optString("source");
+        double price = invalidation.optDouble("price", Double.NaN);
+        long observedAt = invalidation.optLong("observed_at", 0L);
+        for (ObservedOffer offer : new OfferRepository(context).getTrashed()) {
+            if (same(invalidation, normalize(offer.getInterest()), normalize(offer.getSource()),
+                    offer.getPrice(), offer.getObservedAt())) {
+                return offer;
+            }
+        }
+        return null;
+    }
+
+    private String identityFor(ObservedOffer offer) {
+        String post = normalizeUrl(offer.getTelegramPostLink());
+        if (!post.isEmpty()) {
+            return "telegram|" + post;
+        }
+        return "source|" + offer.getInterestId() + "|" + normalize(offer.getSource())
+                + "|" + normalize(offer.getId());
+    }
+
+    private String normalizeUrl(String value) {
+        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private boolean same(JSONObject item, String interest, String source, double price, long observedAt) {

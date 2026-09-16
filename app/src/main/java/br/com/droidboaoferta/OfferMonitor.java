@@ -244,11 +244,6 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                         || verifiedPrice > current.getMaximumPrice()
                         || !OfferEligibility.isRecent(verifiedDate, System.currentTimeMillis())
                         || !OfferEligibility.hasUsableLink(verifiedLink)) return;
-                // Failed validation must never consume deduplication, ranking or notification state.
-                if (!offerRepository.markOfferProcessed(chatId, messageId, current.getId())) return;
-                if (recordQuality) {
-                    new GroupQualityRepository(appContext).recordApprovedOffer(chatId, messageId, verifiedDate);
-                }
                 ObservedOffer offer = new ObservedOffer(
                         current.getId(),
                         current.getTerm(),
@@ -260,6 +255,13 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                         telegramPostLink,
                         OfferTextParser.extractProductTitle(verifiedText, current.getTerm())
                 );
+                if (new OfferInvalidationRepository(appContext).isInvalidated(offer)) return;
+                // Failed validation or an explicit invalidation must never consume deduplication,
+                // ranking or notification state.
+                if (!offerRepository.markOfferProcessed(chatId, messageId, current.getId())) return;
+                if (recordQuality) {
+                    new GroupQualityRepository(appContext).recordApprovedOffer(chatId, messageId, verifiedDate);
+                }
                 new OfferLinkValidationStore(appContext).setValidated(offer, true);
                 offerRepository.add(offer);
                 new GroupSpeedRepository(appContext).record(

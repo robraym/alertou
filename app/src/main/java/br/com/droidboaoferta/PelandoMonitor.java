@@ -117,6 +117,7 @@ final class PelandoMonitor {
             boolean allDetailsSucceeded = true;
             List<Interest> interests = new InterestRepository(context).getAll();
             OfferRepository repository = new OfferRepository(context);
+            OfferInvalidationRepository invalidations = new OfferInvalidationRepository(context);
             long observedAt = System.currentTimeMillis();
             boolean found = false;
             for (PelandoDeal feedDeal : result.getDeals()) {
@@ -162,6 +163,7 @@ final class PelandoMonitor {
                             "",
                             deal.getTitle()
                     );
+                    if (invalidations.isInvalidated(offer)) continue;
                     if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
                         repository.refreshStoreProduct(offer);
                         continue;

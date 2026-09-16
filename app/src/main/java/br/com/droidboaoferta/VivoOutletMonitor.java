@@ -178,6 +178,7 @@ final class VivoOutletMonitor {
             else VivoMadrugadaSource.markSuccessfulCheck(context);
             List<Interest> interests = new InterestRepository(context).getAll();
             OfferRepository repository = new OfferRepository(context);
+            OfferInvalidationRepository invalidations = new OfferInvalidationRepository(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             long observedAt = System.currentTimeMillis();
             boolean found = false;
@@ -214,6 +215,7 @@ final class VivoOutletMonitor {
                             "",
                             product.getName()
                     );
+                    if (invalidations.isInvalidated(offer)) continue;
                     if (known && Double.compare(lastPrice, product.getPixPrice()) == 0) {
                         repository.refreshStoreProduct(offer);
                         continue;

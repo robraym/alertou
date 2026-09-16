@@ -100,6 +100,7 @@ final class MotorolaOfferMonitor {
             preferences.edit().putString(KEY_LAST_FEED_SIGNATURE, feedSignature).apply();
             List<Interest> interests = new InterestRepository(context).getAll();
             OfferRepository repository = new OfferRepository(context);
+            OfferInvalidationRepository invalidations = new OfferInvalidationRepository(context);
             long observedAt = System.currentTimeMillis();
             boolean found = false;
             for (ExternalProductDeal deal : deals) {
@@ -120,6 +121,7 @@ final class MotorolaOfferMonitor {
                             interest.getTerm(), context.getString(R.string.motorola_offer_source),
                             deal.getPrice(), interest.getMaximumPrice(), observedAt, deal.getLink(), "",
                             deal.getTitle());
+                    if (invalidations.isInvalidated(offer)) continue;
                     if (known && Double.compare(lastPrice, deal.getPrice()) == 0) {
                         repository.refreshStoreProduct(offer);
                         continue;

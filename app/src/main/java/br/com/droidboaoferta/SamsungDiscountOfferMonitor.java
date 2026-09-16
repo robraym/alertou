@@ -53,6 +53,7 @@ final class SamsungDiscountOfferMonitor {
             SamsungDiscountOfferSource.markSuccessfulCheck(context);
             SharedPreferences prefs = context.getSharedPreferences("samsung_discount_offer_monitor", Context.MODE_PRIVATE);
             OfferRepository offers = new OfferRepository(context);
+            OfferInvalidationRepository invalidations = new OfferInvalidationRepository(context);
             boolean found = false;
             for (Interest interest : new InterestRepository(context).getAll()) {
                 if (!interest.isPrice()) continue;
@@ -68,6 +69,7 @@ final class SamsungDiscountOfferMonitor {
                             interest.getId(), interest.getTerm(), "Samsung Desconto", deal.getPrice(),
                             interest.getMaximumPrice(), System.currentTimeMillis(), deal.getLink(), "",
                             deal.getTitle());
+                    if (invalidations.isInvalidated(offer)) continue;
                     if (unchanged) {
                         offers.refreshStoreProduct(offer);
                         continue;

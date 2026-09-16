@@ -54,6 +54,9 @@ final class OfferRepository {
 
     void add(ObservedOffer offer) {
         synchronized (OfferStorage.LOCK) {
+            if (context != null && new OfferInvalidationRepository(context).isInvalidated(offer)) {
+                return;
+            }
             List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
             ObservedOffer newest = offer;
             for (ObservedOffer item : offers) {
@@ -95,6 +98,9 @@ final class OfferRepository {
     /** Updates a store product's metadata without making an unchanged price look newly observed. */
     void refreshStoreProduct(ObservedOffer current) {
         synchronized (OfferStorage.LOCK) {
+            if (context != null && new OfferInvalidationRepository(context).isInvalidated(current)) {
+                return;
+            }
             List<ObservedOffer> offers = new ArrayList<>(getRecentForValidation());
             ObservedOffer stored = null;
             for (ObservedOffer item : offers) {

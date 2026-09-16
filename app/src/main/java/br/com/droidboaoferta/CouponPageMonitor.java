@@ -168,6 +168,9 @@ final class CouponPageMonitor {
                 canonicalUrl == null ? interest.getTerm() : canonicalUrl,
                 ""
         );
+        if (new OfferInvalidationRepository(context).isInvalidated(offer)) {
+            return;
+        }
         new OfferRepository(context).add(offer);
         showNotification(context, interest, highest, offer.getLink(), brand);
         context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
