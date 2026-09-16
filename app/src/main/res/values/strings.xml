@@ -36,8 +36,7 @@
     <string name="store_sources_failed">%1$s falhou em %2$s\nÚltima válida: %3$s</string>
     <string name="store_sources_updated_today">Consulta concluída Hoje, %1$s · %2$s</string>
     <string name="store_sources_updated_at">Consulta concluída %1$s · %2$s</string>
-    <string name="store_sources_updated_source_today">Consulta a %1$s concluída Hoje, %2$s · %3$s</string>
-    <string name="store_sources_updated_source_at">Consulta a %1$s concluída %2$s · %3$s</string>
+    <string name="store_sources_last_check">Consultado: %1$s · %2$s · %3$s</string>
     <string name="source_status_dot">●</string>
     <string name="source_status_dot_online">• %1$d Online</string>
     <string name="source_status_dot_online_progress">• %1$d de %2$d Online</string>

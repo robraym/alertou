@@ -1792,15 +1792,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                         : StoreSourceCheckStatus.getLastAutomaticSourceTitleResource(this);
                 if (lastAutomaticSource != 0) {
                     long checkedAt = getStoreSourceLastCheckAt(lastAutomaticSource);
-                    String checkedTime = DateUtils.isToday(checkedAt)
-                            ? new SimpleDateFormat("HH:mm", new Locale("pt", "BR"))
-                            .format(new java.util.Date(checkedAt))
-                            : formatSourceCheckTime(checkedAt);
-                    storeSourcesSummaryText.setText(getString(DateUtils.isToday(checkedAt)
-                                    ? R.string.store_sources_updated_source_today
-                                    : R.string.store_sources_updated_source_at,
+                    storeSourcesSummaryText.setText(getString(R.string.store_sources_last_check,
                             getString(lastAutomaticSource),
-                            checkedTime,
+                            formatSourceCheckTime(checkedAt),
                             formatStoreCheckDuration(StoreSourceCheckStatus.getLastDurationMillis(
                                     this, lastAutomaticSource))));
                     storeSourcesSummaryText.setTextColor(getColor(R.color.text_secondary));
@@ -2024,7 +2018,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private StoreSourceFailure newestStoreSourceFailure(StoreSourceFailure current,
                                                          int sourceTitleResource, boolean failed,
                                                          long failedAt, long lastSuccessfulAt) {
-        if (!failed || failedAt <= 0L || current != null && current.failedAt >= failedAt) {
+        if (!StoreSourceControl.isEnabled(this, sourceTitleResource)
+                || !failed || failedAt <= 0L
+                || current != null && current.failedAt >= failedAt) {
             return current;
         }
         return new StoreSourceFailure(sourceTitleResource, failedAt, lastSuccessfulAt);
