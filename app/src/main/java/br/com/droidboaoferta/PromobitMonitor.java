@@ -91,7 +91,7 @@ final class PromobitMonitor {
 
     private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !PromobitSource.isConfigured(context)) {
+        if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.promobit_source_title) || !PromobitSource.isConfigured(context)) {
             return;
         }
         StoreSourceCheckStatus.begin(context, R.string.promobit_source_title);

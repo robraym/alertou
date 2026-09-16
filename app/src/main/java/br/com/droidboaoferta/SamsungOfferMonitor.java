@@ -88,7 +88,7 @@ final class SamsungOfferMonitor {
 
     private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !SamsungOfferSource.isConfigured(context)) return;
+        if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.samsung_offer_source_title) || !SamsungOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.samsung_offer_source_title);
         try {
             List<ExternalProductDeal> deals = SamsungOfferClient.fetchOffers(context);

@@ -118,14 +118,17 @@ final class VivoOutletMonitor {
             return;
         }
         boolean found = false;
-        if (VivoOutletSource.isConfigured(context)
+        if (StoreSourceControl.isEnabled(context, R.string.vivo_outlet_source_title)
+                && VivoOutletSource.isConfigured(context)
                 && (force || isDue(VivoOutletSource.getLastCheckAt(context),
                 VivoOutletSource.getCheckIntervalSeconds(context)))) {
             found |= checkSource(context, VivoOutletSource.getUrl(context), "vivo_outlet_",
                     "vivo|", R.string.vivo_outlet_offer_source, true, interestId);
         }
-        if (force || isDue(VivoMadrugadaSource.getLastCheckAt(context),
-                VivoMadrugadaSource.getCheckIntervalSeconds(context))) {
+        if (StoreSourceControl.isEnabled(context, R.string.vivo_madrugada_source_title)
+                && VivoMadrugadaSource.isConfigured(context)
+                && (force || isDue(VivoMadrugadaSource.getLastCheckAt(context),
+                VivoMadrugadaSource.getCheckIntervalSeconds(context)))) {
             found |= checkSource(context, VivoMadrugadaSource.getUrl(context), "vivo_madrugada_",
                     "vivo_madrugada|", R.string.vivo_madrugada_offer_source, false, interestId);
         }
@@ -140,8 +143,10 @@ final class VivoOutletMonitor {
     private void checkSingleSourceSafely(boolean outlet) {
         Context context = appContext;
         if (!MonitorRunPolicy.canRun(context)) return;
-        boolean configured = outlet ? VivoOutletSource.isConfigured(context)
-                : VivoMadrugadaSource.isConfigured(context);
+        boolean configured = (outlet
+                ? StoreSourceControl.isEnabled(context, R.string.vivo_outlet_source_title)
+                : StoreSourceControl.isEnabled(context, R.string.vivo_madrugada_source_title))
+                && (outlet ? VivoOutletSource.isConfigured(context) : VivoMadrugadaSource.isConfigured(context));
         if (configured) {
             String url = outlet ? VivoOutletSource.getUrl(context) : VivoMadrugadaSource.getUrl(context);
             checkSource(context, url, outlet ? "vivo_outlet_" : "vivo_madrugada_",

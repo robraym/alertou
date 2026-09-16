@@ -16,7 +16,7 @@ final class SettingsBackup {
             "vivo_outlet_check_interval_seconds", "vivo_madrugada_check_interval_seconds",
             "motorola_offer_check_interval_seconds", "claro_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds", "kabum_catalog_check_interval_seconds",
-            "samsung_discount_offer_check_interval_seconds"};
+            "samsung_discount_offer_check_interval_seconds", StoreSourceControl.KEY_DISABLED_SOURCES_MASK};
     private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes", "check_interval_seconds"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
     private static final String[] STORE_DISPLAY_KEYS = {
@@ -130,6 +130,11 @@ final class SettingsBackup {
                     && ((Number) value).intValue() == ((Number) value).doubleValue();
         }
         if (key.equals("enabled")) return value instanceof Boolean;
+        if (key.equals(StoreSourceControl.KEY_DISABLED_SOURCES_MASK)) {
+            return value instanceof Number && ((Number) value).intValue() >= 0
+                    && ((Number) value).intValue() <= 1023
+                    && ((Number) value).intValue() == ((Number) value).doubleValue();
+        }
         if (key.endsWith("_title")) {
             return value instanceof String && !((String) value).trim().isEmpty()
                     && ((String) value).trim().length() <= 40;

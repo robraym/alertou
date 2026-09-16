@@ -26,7 +26,7 @@ final class KabumCatalogMonitor {
     synchronized void rescheduleIfRunning(Context context) { if(scheduler.isStarted()){stop();start(context);} }
     synchronized void clearState(Context context, long id) { SharedPreferences p=context.getSharedPreferences(PREFS, Context.MODE_PRIVATE); SharedPreferences.Editor e=p.edit(); String prefix=id+"_"; for(String k:p.getAll().keySet()) if(k.startsWith(prefix)) e.remove(k); e.apply(); }
     private void check(long onlyId) {
-        Context context=appContext; if (context==null || !KabumCatalogSource.isConfigured(context)) return;
+        Context context=appContext; if (context==null || !StoreSourceControl.isEnabled(context, R.string.kabum_catalog_source_title) || !KabumCatalogSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context,R.string.kabum_catalog_source_title);
         SharedPreferences prefs=context.getSharedPreferences(PREFS, Context.MODE_PRIVATE); OfferRepository repository=new OfferRepository(context); OfferInvalidationRepository invalidations=new OfferInvalidationRepository(context);
         boolean succeeded=false, found=false;

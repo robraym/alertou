@@ -86,45 +86,46 @@ public class OfferMonitorService extends Service {
         } else {
             OfferMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && (VivoOutletSource.isConfigured(this)
-                || VivoMadrugadaSource.isConfigured(this))) {
+        if (hasPriceAlert && ((StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this))
+                || (StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this)))) {
             VivoOutletMonitor.getInstance().start(this);
         } else {
             VivoOutletMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && PelandoSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this)) {
             PelandoMonitor.getInstance().start(this);
         } else {
             PelandoMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && PromobitSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this)) {
             PromobitMonitor.getInstance().start(this);
         } else {
             PromobitMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && KabumOfferSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this)) {
             KabumOfferMonitor.getInstance().start(this);
         } else {
             KabumOfferMonitor.getInstance().stop();
             KabumCatalogMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().start(this);
-        if (hasPriceAlert && MotorolaOfferSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().start(this);
+        else KabumCatalogMonitor.getInstance().stop();
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this)) {
             MotorolaOfferMonitor.getInstance().start(this);
         } else {
             MotorolaOfferMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && ClaroOfferSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this)) {
             ClaroOfferMonitor.getInstance().start(this);
         } else {
             ClaroOfferMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && SamsungOfferSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this)) {
             SamsungOfferMonitor.getInstance().start(this);
         } else {
             SamsungOfferMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && SamsungDiscountOfferSource.isConfigured(this)) {
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.samsung_discount_offer_source_title) && SamsungDiscountOfferSource.isConfigured(this)) {
             SamsungDiscountOfferMonitor.getInstance().start(this);
         } else {
             SamsungDiscountOfferMonitor.getInstance().stop();

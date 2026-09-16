@@ -1674,16 +1674,16 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             lastStoreRefreshWasManual = false;
         }
         renderStoreSourcesIcon(checkingSource != 0);
-        boolean outletConfigured = VivoOutletSource.isConfigured(this);
-        boolean madrugadaConfigured = VivoMadrugadaSource.isConfigured(this);
-        boolean pelandoConfigured = PelandoSource.isConfigured(this);
-        boolean promobitConfigured = PromobitSource.isConfigured(this);
-        boolean kabumConfigured = KabumOfferSource.isConfigured(this);
-        boolean kabumCatalogConfigured = KabumCatalogSource.isConfigured(this);
-        boolean motorolaConfigured = MotorolaOfferSource.isConfigured(this);
-        boolean claroConfigured = ClaroOfferSource.isConfigured(this);
-        boolean samsungConfigured = SamsungOfferSource.isConfigured(this);
-        boolean samsungDiscountConfigured = SamsungDiscountOfferSource.isConfigured(this);
+        boolean outletConfigured = StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this);
+        boolean madrugadaConfigured = StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this);
+        boolean pelandoConfigured = StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this);
+        boolean promobitConfigured = StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this);
+        boolean kabumConfigured = StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this);
+        boolean kabumCatalogConfigured = StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this);
+        boolean motorolaConfigured = StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this);
+        boolean claroConfigured = StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this);
+        boolean samsungConfigured = StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this);
+        boolean samsungDiscountConfigured = StoreSourceControl.isEnabled(this, R.string.samsung_discount_offer_source_title) && SamsungDiscountOfferSource.isConfigured(this);
         boolean showingProgress = storeRefreshProgressActive || checkingSource != 0;
         int online = storeRefreshProgressActive ? countCompletedOnlineStoreSources() : 0;
         if (!showingProgress) {
@@ -1732,9 +1732,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 : getString(R.string.source_status_dot_online, online));
         storeSourcesOnlineText.setTextColor(getColor(R.color.action));
         storeSourcesOnlineText.setVisibility(View.VISIBLE);
-        if (offline > 0) {
-            storeSourcesOfflineText.setText(getString(R.string.source_status_dot_offline, offline));
-            storeSourcesOfflineText.setTextColor(getColor(R.color.danger));
+        int paused = countPausedStoreSources();
+        if (offline > 0 || paused > 0) {
+            storeSourcesOfflineText.setText(offline > 0 && paused > 0
+                    ? getResources().getQuantityString(R.plurals.source_status_dot_offline_paused,
+                    paused, offline, paused)
+                    : offline > 0 ? getString(R.string.source_status_dot_offline, offline)
+                    : getResources().getQuantityString(R.plurals.source_status_dot_paused, paused, paused));
+            storeSourcesOfflineText.setTextColor(getColor(offline > 0 ? R.color.danger : R.color.text_secondary));
             storeSourcesOfflineText.setVisibility(View.VISIBLE);
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);
@@ -1820,16 +1825,31 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private int countConfiguredStoreSources() {
         int total = 0;
-        total += VivoOutletSource.isConfigured(this) ? 1 : 0;
-        total += VivoMadrugadaSource.isConfigured(this) ? 1 : 0;
-        total += PelandoSource.isConfigured(this) ? 1 : 0;
-        total += PromobitSource.isConfigured(this) ? 1 : 0;
-        total += KabumOfferSource.isConfigured(this) ? 1 : 0;
-        total += KabumCatalogSource.isConfigured(this) ? 1 : 0;
-        total += MotorolaOfferSource.isConfigured(this) ? 1 : 0;
-        total += ClaroOfferSource.isConfigured(this) ? 1 : 0;
-        total += SamsungOfferSource.isConfigured(this) ? 1 : 0;
-        total += SamsungDiscountOfferSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this) ? 1 : 0;
+        total += StoreSourceControl.isEnabled(this, R.string.samsung_discount_offer_source_title) && SamsungDiscountOfferSource.isConfigured(this) ? 1 : 0;
+        return total;
+    }
+
+    private int countPausedStoreSources() {
+        int total = 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this) ? 1 : 0;
+        total += !StoreSourceControl.isEnabled(this, R.string.samsung_discount_offer_source_title) && SamsungDiscountOfferSource.isConfigured(this) ? 1 : 0;
         return total;
     }
 
@@ -1882,6 +1902,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     }
 
     private boolean isStoreSourceOnline(int sourceTitleResource) {
+        if (!StoreSourceControl.isEnabled(this, sourceTitleResource)) return false;
         if (sourceTitleResource == R.string.vivo_outlet_source_title) {
             return isSourceOnline(VivoOutletSource.isConfigured(this),
                     VivoOutletSource.hasSuccessfulCheck(this), VivoOutletSource.hasLastCheckFailed(this));
@@ -2041,34 +2062,34 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private String getStoreRefreshAction(View row) {
         if (row == null) return null;
         if (row.findViewById(R.id.text_vivo_outlet_source_title) != null) {
-            return VivoOutletSource.isConfigured(this) ? MANUAL_VIVO_OUTLET : null;
+            return StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this) ? MANUAL_VIVO_OUTLET : null;
         }
         if (row.findViewById(R.id.text_vivo_madrugada_source_title) != null) {
-            return VivoMadrugadaSource.isConfigured(this) ? MANUAL_VIVO_MADRUGADA : null;
+            return StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this) ? MANUAL_VIVO_MADRUGADA : null;
         }
         if (row.findViewById(R.id.text_pelando_source_title) != null) {
-            return PelandoSource.isConfigured(this) ? PelandoMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this) ? PelandoMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_promobit_source_title) != null) {
-            return PromobitSource.isConfigured(this) ? PromobitMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this) ? PromobitMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_kabum_offer_source_title) != null) {
-            return KabumOfferSource.isConfigured(this) ? KabumOfferMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this) ? KabumOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_kabum_catalog_source_title) != null) {
-            return KabumCatalogSource.isConfigured(this) ? KabumCatalogMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this) ? KabumCatalogMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
-            return MotorolaOfferSource.isConfigured(this) ? MotorolaOfferMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this) ? MotorolaOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_claro_offer_source_title) != null) {
-            return ClaroOfferSource.isConfigured(this) ? ClaroOfferMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this) ? ClaroOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_samsung_offer_source_title) != null) {
-            return SamsungOfferSource.isConfigured(this) ? SamsungOfferMonitor.ACTION_STATUS_CHANGED : null;
+            return StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this) ? SamsungOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
         if (row.findViewById(R.id.text_samsung_discount_offer_source_title) != null) {
-            return SamsungDiscountOfferSource.isConfigured(this)
+            return StoreSourceControl.isEnabled(this, R.string.samsung_discount_offer_source_title) && SamsungDiscountOfferSource.isConfigured(this)
                     ? SamsungDiscountOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
         return null;
@@ -3020,6 +3041,15 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void renderStoreSourceRowState(TextView summary, int sourceTitleResource,
                                            boolean failed) {
+        if (!StoreSourceControl.isEnabled(this, sourceTitleResource)) {
+            summary.setText(R.string.store_source_disabled);
+            summary.setTextColor(getColor(R.color.text_secondary));
+            summary.setAlpha(0.55f);
+            renderPausedStoreSourceVisual(sourceTitleResource);
+            return;
+        }
+        renderActiveStoreSourceVisual(sourceTitleResource);
+        summary.setAlpha(1f);
         boolean checking = StoreSourceCheckStatus.isCurrent(sourceTitleResource);
         if (!checking) {
             summary.setTextColor(getColor(failed ? R.color.danger : R.color.text_secondary));
@@ -3087,6 +3117,73 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         return new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR"))
                 .format(new java.util.Date(timestamp));
+    }
+
+    private void renderPausedStoreSourceVisual(int sourceTitleResource) {
+        TextView title = findViewById(getStoreSourceTitleViewId(sourceTitleResource));
+        TextView state = findViewById(getStoreSourceStateViewId(sourceTitleResource));
+        ImageButton action = findViewById(getStoreSourceActionViewId(sourceTitleResource));
+        if (title != null) title.setTextColor(getColor(R.color.text_secondary));
+        if (state != null) {
+            state.setText(R.string.store_source_paused_badge);
+            state.setTextColor(getColor(R.color.text_secondary));
+            state.setBackground(null);
+            state.setPadding(0, 0, 0, 0);
+        }
+        if (action != null) {
+            action.setImageResource(R.drawable.ic_edit);
+            action.setColorFilter(getColor(R.color.text_secondary));
+        }
+    }
+
+    private void renderActiveStoreSourceVisual(int sourceTitleResource) {
+        TextView title = findViewById(getStoreSourceTitleViewId(sourceTitleResource));
+        ImageButton action = findViewById(getStoreSourceActionViewId(sourceTitleResource));
+        if (title != null) title.setTextColor(getColor(R.color.text_primary));
+        if (action != null) {
+            action.clearColorFilter();
+            action.setImageResource(R.drawable.ic_edit);
+            action.setColorFilter(getColor(R.color.action));
+        }
+    }
+
+    private int getStoreSourceTitleViewId(int sourceTitleResource) {
+        if (sourceTitleResource == R.string.vivo_outlet_source_title) return R.id.text_vivo_outlet_source_title;
+        if (sourceTitleResource == R.string.vivo_madrugada_source_title) return R.id.text_vivo_madrugada_source_title;
+        if (sourceTitleResource == R.string.pelando_source_title) return R.id.text_pelando_source_title;
+        if (sourceTitleResource == R.string.promobit_source_title) return R.id.text_promobit_source_title;
+        if (sourceTitleResource == R.string.kabum_offer_source_title) return R.id.text_kabum_offer_source_title;
+        if (sourceTitleResource == R.string.kabum_catalog_source_title) return R.id.text_kabum_catalog_source_title;
+        if (sourceTitleResource == R.string.motorola_offer_source_title) return R.id.text_motorola_offer_source_title;
+        if (sourceTitleResource == R.string.claro_offer_source_title) return R.id.text_claro_offer_source_title;
+        if (sourceTitleResource == R.string.samsung_offer_source_title) return R.id.text_samsung_offer_source_title;
+        return R.id.text_samsung_discount_offer_source_title;
+    }
+
+    private int getStoreSourceStateViewId(int sourceTitleResource) {
+        if (sourceTitleResource == R.string.vivo_outlet_source_title) return R.id.text_vivo_outlet_source_state;
+        if (sourceTitleResource == R.string.vivo_madrugada_source_title) return R.id.text_vivo_madrugada_source_state;
+        if (sourceTitleResource == R.string.pelando_source_title) return R.id.text_pelando_source_state;
+        if (sourceTitleResource == R.string.promobit_source_title) return R.id.text_promobit_source_state;
+        if (sourceTitleResource == R.string.kabum_offer_source_title) return R.id.text_kabum_offer_source_state;
+        if (sourceTitleResource == R.string.kabum_catalog_source_title) return R.id.text_kabum_catalog_source_state;
+        if (sourceTitleResource == R.string.motorola_offer_source_title) return R.id.text_motorola_offer_source_state;
+        if (sourceTitleResource == R.string.claro_offer_source_title) return R.id.text_claro_offer_source_state;
+        if (sourceTitleResource == R.string.samsung_offer_source_title) return R.id.text_samsung_offer_source_state;
+        return R.id.text_samsung_discount_offer_source_state;
+    }
+
+    private int getStoreSourceActionViewId(int sourceTitleResource) {
+        if (sourceTitleResource == R.string.vivo_outlet_source_title) return R.id.button_vivo_outlet_edit;
+        if (sourceTitleResource == R.string.vivo_madrugada_source_title) return R.id.button_vivo_madrugada_edit;
+        if (sourceTitleResource == R.string.pelando_source_title) return R.id.button_pelando_edit;
+        if (sourceTitleResource == R.string.promobit_source_title) return R.id.button_promobit_edit;
+        if (sourceTitleResource == R.string.kabum_offer_source_title) return R.id.button_kabum_offer_edit;
+        if (sourceTitleResource == R.string.kabum_catalog_source_title) return R.id.button_kabum_catalog_edit;
+        if (sourceTitleResource == R.string.motorola_offer_source_title) return R.id.button_motorola_offer_open;
+        if (sourceTitleResource == R.string.claro_offer_source_title) return R.id.button_claro_offer_open;
+        if (sourceTitleResource == R.string.samsung_offer_source_title) return R.id.button_samsung_offer_open;
+        return R.id.button_samsung_discount_offer_open;
     }
 
     private EditText addStoreTitleInput(LinearLayout content, int defaultNameResource) {

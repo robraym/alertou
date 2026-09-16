@@ -45,6 +45,7 @@ final class SamsungDiscountOfferMonitor {
     private void checkSafely(boolean force) {
         Context context = appContext;
         if (context == null || !MonitorRunPolicy.canRun(context)
+                || !StoreSourceControl.isEnabled(context, R.string.samsung_discount_offer_source_title)
                 || !SamsungDiscountOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.samsung_discount_offer_source_title);
         try {

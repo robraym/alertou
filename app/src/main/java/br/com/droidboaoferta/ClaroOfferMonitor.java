@@ -79,7 +79,7 @@ final class ClaroOfferMonitor {
 
     private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !ClaroOfferSource.isConfigured(context)) return;
+        if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.claro_offer_source_title) || !ClaroOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.claro_offer_source_title);
         try {
             List<ExternalProductDeal> deals = ClaroOfferClient.fetchOffers(context);

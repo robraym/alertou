@@ -88,7 +88,7 @@ final class MotorolaOfferMonitor {
 
     private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !MotorolaOfferSource.isConfigured(context)) return;
+        if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.motorola_offer_source_title) || !MotorolaOfferSource.isConfigured(context)) return;
         StoreSourceCheckStatus.begin(context, R.string.motorola_offer_source_title);
         try {
             List<ExternalProductDeal> deals = MotorolaOfferClient.fetchOffers(context);

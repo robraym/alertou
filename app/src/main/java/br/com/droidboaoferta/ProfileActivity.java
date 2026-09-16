@@ -440,26 +440,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         );
         propertyIntervalSummary.setText(formatCheckIntervalSeconds(
                 PropertyMarketReferenceSettings.getCheckIntervalSeconds(this)));
-        vivoOutletIntervalSummary.setText(formatCheckIntervalSeconds(
-                VivoOutletSource.getCheckIntervalSeconds(this)));
-        vivoMadrugadaIntervalSummary.setText(formatCheckIntervalSeconds(
-                VivoMadrugadaSource.getCheckIntervalSeconds(this)));
-        pelandoIntervalSummary.setText(formatCheckIntervalSeconds(
-                PelandoSource.getCheckIntervalSeconds(this)));
-        promobitIntervalSummary.setText(formatCheckIntervalSeconds(
-                PromobitSource.getCheckIntervalSeconds(this)));
-        kabumOfferIntervalSummary.setText(formatCheckIntervalSeconds(
-                KabumOfferSource.getCheckIntervalSeconds(this)));
-        kabumCatalogIntervalSummary.setText(formatCheckIntervalSeconds(
-                KabumCatalogSource.getCheckIntervalSeconds(this)));
-        motorolaOfferIntervalSummary.setText(formatCheckIntervalSeconds(
-                MotorolaOfferSource.getCheckIntervalSeconds(this)));
-        claroOfferIntervalSummary.setText(formatCheckIntervalSeconds(
-                ClaroOfferSource.getCheckIntervalSeconds(this)));
-        samsungOfferIntervalSummary.setText(formatCheckIntervalSeconds(
-                SamsungOfferSource.getCheckIntervalSeconds(this)));
-        samsungDiscountOfferIntervalSummary.setText(formatCheckIntervalSeconds(
-                SamsungDiscountOfferSource.getCheckIntervalSeconds(this)));
+        vivoOutletIntervalSummary.setText(formatStoreInterval(R.string.vivo_outlet_source_title, VivoOutletSource.getCheckIntervalSeconds(this)));
+        vivoMadrugadaIntervalSummary.setText(formatStoreInterval(R.string.vivo_madrugada_source_title, VivoMadrugadaSource.getCheckIntervalSeconds(this)));
+        pelandoIntervalSummary.setText(formatStoreInterval(R.string.pelando_source_title, PelandoSource.getCheckIntervalSeconds(this)));
+        promobitIntervalSummary.setText(formatStoreInterval(R.string.promobit_source_title, PromobitSource.getCheckIntervalSeconds(this)));
+        kabumOfferIntervalSummary.setText(formatStoreInterval(R.string.kabum_offer_source_title, KabumOfferSource.getCheckIntervalSeconds(this)));
+        kabumCatalogIntervalSummary.setText(formatStoreInterval(R.string.kabum_catalog_source_title, KabumCatalogSource.getCheckIntervalSeconds(this)));
+        motorolaOfferIntervalSummary.setText(formatStoreInterval(R.string.motorola_offer_source_title, MotorolaOfferSource.getCheckIntervalSeconds(this)));
+        claroOfferIntervalSummary.setText(formatStoreInterval(R.string.claro_offer_source_title, ClaroOfferSource.getCheckIntervalSeconds(this)));
+        samsungOfferIntervalSummary.setText(formatStoreInterval(R.string.samsung_offer_source_title, SamsungOfferSource.getCheckIntervalSeconds(this)));
+        samsungDiscountOfferIntervalSummary.setText(formatStoreInterval(R.string.samsung_discount_offer_source_title, SamsungDiscountOfferSource.getCheckIntervalSeconds(this)));
         ((TextView) findViewById(R.id.text_motorola_offer_interval_title)).setText(
                 MotorolaOfferSource.getTitle(this));
         ((TextView) findViewById(R.id.text_claro_offer_interval_title)).setText(
@@ -641,7 +631,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.vivo_outlet_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
                 PropertyMarketReferenceSettings.saveCheckIntervalSeconds(this, interval);
                 propertyIntervalSummary.setText(formatCheckIntervalSeconds(interval));
@@ -681,15 +671,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.vivo_madrugada_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.vivo_outlet_source_title, true);
                 VivoOutletSource.saveCheckIntervalSeconds(this, interval);
-                vivoOutletIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                vivoOutletIntervalSummary.setText(formatStoreInterval(R.string.vivo_outlet_source_title, interval));
                 VivoOutletMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.vivo_outlet_source_title, vivoOutletIntervalSummary,
+                dialog, () -> VivoOutletMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -737,15 +730,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.pelando_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.vivo_madrugada_source_title, true);
                 VivoMadrugadaSource.saveCheckIntervalSeconds(this, interval);
-                vivoMadrugadaIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                vivoMadrugadaIntervalSummary.setText(formatStoreInterval(R.string.vivo_madrugada_source_title, interval));
                 VivoOutletMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.vivo_madrugada_source_title, vivoMadrugadaIntervalSummary,
+                dialog, () -> VivoOutletMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -777,15 +773,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.promobit_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.pelando_source_title, true);
                 PelandoSource.saveCheckIntervalSeconds(this, interval);
-                pelandoIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                pelandoIntervalSummary.setText(formatStoreInterval(R.string.pelando_source_title, interval));
                 PelandoMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.pelando_source_title, pelandoIntervalSummary,
+                dialog, () -> PelandoMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -833,15 +832,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.kabum_offer_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.promobit_source_title, true);
                 PromobitSource.saveCheckIntervalSeconds(this, interval);
-                promobitIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                promobitIntervalSummary.setText(formatStoreInterval(R.string.promobit_source_title, interval));
                 PromobitMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.promobit_source_title, promobitIntervalSummary,
+                dialog, () -> PromobitMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -889,15 +891,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.motorola_offer_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.kabum_offer_source_title, true);
                 KabumOfferSource.saveCheckIntervalSeconds(this, interval);
-                kabumOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                kabumOfferIntervalSummary.setText(formatStoreInterval(R.string.kabum_offer_source_title, interval));
                 KabumOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.kabum_offer_source_title, kabumOfferIntervalSummary,
+                dialog, () -> KabumOfferMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -947,13 +952,16 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
                     interval == savedInterval);
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.motorola_offer_source_title, true);
                 MotorolaOfferSource.saveCheckIntervalSeconds(this, interval);
-                motorolaOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                motorolaOfferIntervalSummary.setText(formatStoreInterval(R.string.motorola_offer_source_title, interval));
                 MotorolaOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.motorola_offer_source_title, motorolaOfferIntervalSummary,
+                dialog, () -> MotorolaOfferMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -981,15 +989,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
-            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval), interval == savedInterval);
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval), isStoreIntervalSelected(R.string.kabum_catalog_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.kabum_catalog_source_title, true);
                 KabumCatalogSource.saveCheckIntervalSeconds(this, interval);
-                kabumCatalogIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                kabumCatalogIntervalSummary.setText(formatStoreInterval(R.string.kabum_catalog_source_title, interval));
                 KabumCatalogMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.kabum_catalog_source_title, kabumCatalogIntervalSummary,
+                dialog, () -> KabumCatalogMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
@@ -1021,15 +1032,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
-            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval), interval == savedInterval);
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval), isStoreIntervalSelected(R.string.claro_offer_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.claro_offer_source_title, true);
                 ClaroOfferSource.saveCheckIntervalSeconds(this, interval);
-                claroOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                claroOfferIntervalSummary.setText(formatStoreInterval(R.string.claro_offer_source_title, interval));
                 ClaroOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.claro_offer_source_title, claroOfferIntervalSummary,
+                dialog, () -> ClaroOfferMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
@@ -1059,15 +1073,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.samsung_offer_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.samsung_offer_source_title, true);
                 SamsungOfferSource.saveCheckIntervalSeconds(this, interval);
-                samsungOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                samsungOfferIntervalSummary.setText(formatStoreInterval(R.string.samsung_offer_source_title, interval));
                 SamsungOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.samsung_offer_source_title, samsungOfferIntervalSummary,
+                dialog, () -> SamsungOfferMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -1096,15 +1113,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
-                    interval == savedInterval);
+                    isStoreIntervalSelected(R.string.samsung_discount_offer_source_title, interval, savedInterval));
             option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.samsung_discount_offer_source_title, true);
                 SamsungDiscountOfferSource.saveCheckIntervalSeconds(this, interval);
-                samsungDiscountOfferIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                samsungDiscountOfferIntervalSummary.setText(formatStoreInterval(R.string.samsung_discount_offer_source_title, interval));
                 SamsungDiscountOfferMonitor.getInstance().rescheduleIfRunning(this);
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        addNeverConsultOption(options, R.string.samsung_discount_offer_source_title, samsungDiscountOfferIntervalSummary,
+                dialog, () -> SamsungDiscountOfferMonitor.getInstance().rescheduleIfRunning(this));
         content.addView(options);
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
@@ -1122,6 +1142,29 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private String formatCheckIntervalSeconds(int seconds) {
         return getString(R.string.profile_check_interval_summary,
                 formatCheckIntervalDuration(seconds));
+    }
+
+    private String formatStoreInterval(int sourceTitleResource, int seconds) {
+        return StoreSourceControl.isEnabled(this, sourceTitleResource)
+                ? formatCheckIntervalSeconds(seconds)
+                : getString(R.string.store_source_disabled);
+    }
+
+    private boolean isStoreIntervalSelected(int sourceTitleResource, int interval, int savedInterval) {
+        return StoreSourceControl.isEnabled(this, sourceTitleResource) && interval == savedInterval;
+    }
+
+    private void addNeverConsultOption(LinearLayout options, int sourceTitleResource,
+                                       TextView summary, Dialog dialog, Runnable reschedule) {
+        TextView option = createThemeOption(R.string.store_source_never_consult,
+                !StoreSourceControl.isEnabled(this, sourceTitleResource));
+        option.setOnClickListener(view -> {
+            StoreSourceControl.setEnabled(this, sourceTitleResource, false);
+            summary.setText(R.string.store_source_disabled);
+            reschedule.run();
+            dialog.dismiss();
+        });
+        options.addView(option);
     }
 
     private String getCheckIntervalOptionLabel(int seconds) {

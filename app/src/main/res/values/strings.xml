@@ -39,6 +39,14 @@
     <string name="source_status_dot_online">• %1$d Online</string>
     <string name="source_status_dot_online_progress">• %1$d de %2$d Online</string>
     <string name="source_status_dot_offline">• %1$d Offline</string>
+    <plurals name="source_status_dot_paused">
+        <item quantity="one">• %d pausada</item>
+        <item quantity="other">• %d pausadas</item>
+    </plurals>
+    <plurals name="source_status_dot_offline_paused">
+        <item quantity="one">• %1$d Offline · %2$d pausada</item>
+        <item quantity="other">• %1$d Offline · %2$d pausadas</item>
+    </plurals>
     <string name="source_status_dot_online_label">• Online</string>
     <string name="source_status_dot_offline_label">• Offline</string>
     <string name="vivo_outlet_source_online">Online</string>
@@ -716,4 +724,7 @@
     <string name="source_error_timeout">A página demorou para responder.</string>
     <string name="source_error_connection">Não foi possível conectar à fonte.</string>
     <string name="source_error_response">Não foi possível concluir a leitura da fonte.</string>
+    <string name="store_source_never_consult">Consultas pausadas</string>
+    <string name="store_source_disabled">Não será consultada</string>
+    <string name="store_source_paused_badge">Ⅱ</string>
 </resources>

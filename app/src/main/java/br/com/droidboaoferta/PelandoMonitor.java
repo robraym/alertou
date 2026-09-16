@@ -90,7 +90,7 @@ final class PelandoMonitor {
 
     private void checkAllSafely(boolean force, long interestId) {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !PelandoSource.isConfigured(context)) {
+        if (!MonitorRunPolicy.canRun(context) || !StoreSourceControl.isEnabled(context, R.string.pelando_source_title) || !PelandoSource.isConfigured(context)) {
             return;
         }
         StoreSourceCheckStatus.begin(context, R.string.pelando_source_title);
