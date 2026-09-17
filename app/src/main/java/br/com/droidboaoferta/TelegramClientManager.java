@@ -451,8 +451,17 @@ final class TelegramClientManager {
         storedOfferLinkGate.finish(offer.getId(), readable, SystemClock.elapsedRealtime());
         boolean removedWrongEdition = false;
         if (readable) {
-            String text = TelegramMessagePayload.fromMessage(message).getText();
-            if (OfferTextParser.hasDifferentFlipEdition(text, offer.getInterest())) {
+            TelegramMessagePayload payload = TelegramMessagePayload.fromMessage(message);
+            String text = payload.getText();
+            double verifiedPrice = OfferTextParser.extractPriceForInterest(text, offer.getInterest());
+            String verifiedLink = payload.findBestLink(offer.getInterest());
+            boolean contentChanged = !OfferTextParser.matchesInterest(text, offer.getInterest())
+                    || !OfferTextParser.isPlausiblePriceForInterest(verifiedPrice, offer.getInterest())
+                    || verifiedPrice > offer.getMaximumPrice()
+                    || !OfferEligibility.hasUsableLink(verifiedLink)
+                    || Double.compare(verifiedPrice, offer.getPrice()) != 0
+                    || !normalizeOfferLink(verifiedLink).equals(normalizeOfferLink(offer.getLink()));
+            if (OfferTextParser.hasDifferentFlipEdition(text, offer.getInterest()) || contentChanged) {
                 new GroupSpeedRepository(appContext).invalidateOffer(offer);
                 OfferRepository repository = new OfferRepository(appContext);
                 repository.trash(offer.getId());
@@ -464,6 +473,10 @@ final class TelegramClientManager {
         // Failed checks only hide the card; they do not erase offers or ranking history.
         boolean visibilityChanged = new OfferLinkValidationStore(appContext).setValidated(offer, readable);
         if (visibilityChanged || removedWrongEdition) broadcastOfferValidationChanged();
+    }
+
+    private String normalizeOfferLink(String link) {
+        return link == null ? "" : link.trim().replaceAll("[),.;]+$", "").toLowerCase(Locale.ROOT);
     }
 
     private synchronized void broadcastOfferValidationChanged() {

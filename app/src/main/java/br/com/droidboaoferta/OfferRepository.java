@@ -522,7 +522,9 @@ final class OfferRepository {
     }
 
     List<ObservedOffer> getRecentForValidation() {
-        List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+        List<ObservedOffer> recent = keepNewestStoredProducts(
+                new ArrayList<>(readOffers(KEY_OFFERS))
+        );
         long now = System.currentTimeMillis();
         recent.removeIf(offer -> !OfferEligibility.canDisplay(offer, now));
         return recent;
@@ -615,7 +617,7 @@ final class OfferRepository {
         if (first.getId().equals(second.getId())) {
             return true;
         }
-        if (first.getInterestId() != second.getInterestId()
+        if (!normalize(first.getInterest()).equals(normalize(second.getInterest()))
                 || !normalize(first.getSource()).equals(normalize(second.getSource()))) {
             return false;
         }

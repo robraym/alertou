@@ -426,6 +426,18 @@ public class OfferTextParserTest {
     }
 
     @Test
+    public void keepsRealmePostPriceBoundToItsOwnTelegramMessage() {
+        String text = "📱 Realme P4 Power 5G 256GB Dimensity 7400 Ultra, 10001mAh\n\n"
+                + "🔥 Por R$ 2.350,60 no Pix\nem até 12x no cartão 💳\n"
+                + "🎟CUPOM: SHOPEE100AF\n\n🔗https://s.shopee.com.br/5q8FoLhd8B";
+
+        assertEquals(2350.60d,
+                OfferTextParser.extractPriceForInterest(text, "Realme P4 Power"), 0.001d);
+        assertEquals("Realme P4 Power 5G 256GB Dimensity 7400 Ultra, 10001mAh",
+                OfferTextParser.extractProductTitle(text, "Realme P4 Power"));
+    }
+
+    @Test
     public void normalizesAccentsForInterestMatching() {
         assertEquals("cafe eletrico", OfferTextParser.normalize("Café Elétrico"));
     }
