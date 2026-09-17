@@ -543,7 +543,7 @@ final class PropertyPageMonitor {
                 || Double.compare(previousReference.getPrice(), marketReference.getPrice()) != 0;
         repository.replacePropertyMarketReference(marketReference);
         if (newLowest) {
-            PropertyMarketWinnerStore.record(context, marketReference, previousReference.getPrice());
+            PropertyMarketWinnerStore.record(context, marketReference, previousReference);
             showNewLowestMarketNotification(context, interest, propertyName, listing,
                     previousReference.getPrice());
         }

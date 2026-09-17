@@ -730,6 +730,17 @@ public class MainActivity extends AlertouActivity {
             }
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
             PropertyHistoryEntry propertyHistory = propertyHistoryRepository.getForOffer(offer);
+            double propertyPriceChange = propertyHistory == null
+                    ? 0d : propertyHistory.getLatestPriceChangeAmount();
+            double propertyPriceChangePercentage = propertyHistory == null
+                    ? 0d : propertyHistory.getLatestPriceChangePercentage();
+            if (newLowestMarketReference) {
+                PropertyMarketWinnerStore.WinnerInfo winner = PropertyMarketWinnerStore.get(this, offer);
+                if (winner != null && !Double.isNaN(winner.previousPrice) && winner.previousPrice > 0d) {
+                    propertyPriceChange = offer.getPrice() - winner.previousPrice;
+                    propertyPriceChangePercentage = propertyPriceChange * 100d / winner.previousPrice;
+                }
+            }
             String displayedPrice = PropertyOfferDisplay.formatPrice(this, offer, propertyHistory, currency);
             String offerMoment = propertyMarketReference
                     ? new SimpleDateFormat("dd/MM/yy HH:mm", new Locale("pt", "BR"))
@@ -757,8 +768,8 @@ public class MainActivity extends AlertouActivity {
                     expired,
                     propertyHistory != null && propertyHistory.isRecent(System.currentTimeMillis()),
                     propertyHistory == null ? 0L : propertyHistory.getFirstPublicationAt(),
-                    propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangeAmount(),
-                    propertyHistory == null ? 0d : propertyHistory.getLatestPriceChangePercentage(),
+                    propertyPriceChange,
+                    propertyPriceChangePercentage,
                     propertyMarketReference,
                     newLowestMarketReference,
                     view -> showPropertyHistoryDialog(offer)
@@ -1089,19 +1100,10 @@ public class MainActivity extends AlertouActivity {
             titleAndBadges.addView(badge, badgeParams);
         }
 
-        if (newLowestMarketReference) {
-            TextView badge = createPropertyNewLowestBadge(offer);
-            LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            badgeParams.leftMargin = dp(5);
-            titleAndBadges.addView(badge, badgeParams);
-        }
-
         if (Double.compare(propertyPriceChange, 0d) != 0) {
             TextView badge = createPropertyPriceChangeBadge(
-                    propertyPriceChange, propertyPriceChangePercentage, propertyHistoryClick);
+                    propertyPriceChange, propertyPriceChangePercentage,
+                    newLowestMarketReference, propertyHistoryClick);
             LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1235,32 +1237,18 @@ public class MainActivity extends AlertouActivity {
         return badge;
     }
 
-    private TextView createPropertyNewLowestBadge(ObservedOffer offer) {
-        TextView badge = new TextView(this);
-        badge.setText(R.string.property_new_lowest_badge);
-        badge.setTextColor(getColor(R.color.action_green));
-        badge.setTextSize(10.5f);
-        badge.setTypeface(null, android.graphics.Typeface.BOLD);
-        badge.setSingleLine(true);
-        badge.setBackgroundResource(R.drawable.bg_property_new_badge);
-        badge.setPadding(dp(6), dp(1), dp(6), dp(1));
-        badge.setClickable(true);
-        badge.setFocusable(true);
-        badge.setContentDescription(getString(R.string.property_new_lowest_badge_description));
-        badge.setOnClickListener(view -> showPropertyNewLowestDialog(offer));
-        return badge;
-    }
-
     private TextView createPropertyPriceChangeBadge(double priceChange, double percentage,
+                                                    boolean referenceReplaced,
                                                     View.OnClickListener listener) {
         TextView badge = new TextView(this);
         boolean increase = priceChange > 0d;
         NumberFormat percentageNumber = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         percentageNumber.setMaximumFractionDigits(1);
-        badge.setText(getString(increase
+        String change = getString(increase
                         ? R.string.property_price_rise_badge_compact
                         : R.string.property_price_drop_badge_compact,
-                percentageNumber.format(Math.abs(percentage))));
+                percentageNumber.format(Math.abs(percentage)));
+        badge.setText(referenceReplaced ? change + " ⇄" : change);
         badge.setContentDescription(formatPropertyPriceChange(priceChange, percentage)
                 + ". " + getString(R.string.property_price_change_badge_description));
         badge.setTextColor(getColor(increase ? R.color.danger : R.color.action_green));
@@ -1575,8 +1563,22 @@ public class MainActivity extends AlertouActivity {
         return separator < 0 ? source : source.substring(0, separator).trim();
     }
 
+    private ObservedOffer recoverPreviousMarketReference(ObservedOffer offer,
+                                                          PropertyHistoryRepository historyRepository) {
+        ObservedOffer previous = PropertyMarketWinnerStore.getPreviousReference(this, offer);
+        if (previous != null) return previous;
+        PropertyMarketWinnerStore.WinnerInfo winner = PropertyMarketWinnerStore.get(this, offer);
+        if (winner == null) return null;
+        previous = historyRepository.findPreviousMarketReference(offer, winner.wonAt);
+        if (previous != null) {
+            PropertyMarketWinnerStore.rememberPreviousReference(this, offer, previous);
+        }
+        return previous;
+    }
+
     private void showPropertyHistoryDialog(ObservedOffer offer) {
-        PropertyHistoryEntry entry = new PropertyHistoryRepository(this).getForOffer(offer);
+        PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(this);
+        PropertyHistoryEntry entry = historyRepository.getForOffer(offer);
         if (entry == null) {
             Toast.makeText(this, R.string.property_history_empty, Toast.LENGTH_SHORT).show();
             return;
@@ -1629,6 +1631,64 @@ public class MainActivity extends AlertouActivity {
         summary.setTextSize(14);
         summary.setPadding(0, dp(6), 0, dp(8));
         content.addView(summary);
+
+        boolean referenceReplaced = PropertyMarketWinnerStore.isActive(this, offer);
+        ObservedOffer previousReference = recoverPreviousMarketReference(offer, historyRepository);
+        if (referenceReplaced) {
+            TextView exchangeNotice = new TextView(this);
+            exchangeNotice.setText(R.string.property_history_reference_replaced);
+            exchangeNotice.setTextColor(getColor(R.color.text_secondary));
+            exchangeNotice.setTextSize(13);
+            exchangeNotice.setPadding(0, 0, 0, dp(4));
+            content.addView(exchangeNotice);
+        }
+        if (previousReference != null && !previousReference.getLink().trim().isEmpty()) {
+            String previousTitle = previousReference.getProductTitle().trim().isEmpty()
+                    ? previousReference.getLink() : previousReference.getProductTitle();
+            TextView previousSummary = new TextView(this);
+            previousSummary.setText(getString(R.string.property_history_previous_reference_summary,
+                    previousTitle,
+                    PropertyOfferDisplay.formatPrice(this, previousReference, null, currency),
+                    previousReference.getSource()));
+            previousSummary.setTextColor(getColor(R.color.text_secondary));
+            previousSummary.setTextSize(13);
+            previousSummary.setPadding(0, 0, 0, dp(3));
+            content.addView(previousSummary);
+
+            TextView previousOfferLink = new TextView(this);
+            previousOfferLink.setText(R.string.property_history_open_previous_reference);
+            previousOfferLink.setTextColor(getColor(R.color.action_green));
+            previousOfferLink.setTextSize(13);
+            previousOfferLink.setTypeface(null, android.graphics.Typeface.BOLD);
+            previousOfferLink.setClickable(true);
+            previousOfferLink.setFocusable(true);
+            previousOfferLink.setPadding(0, 0, 0, dp(4));
+            previousOfferLink.setOnClickListener(view -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW,
+                            Uri.parse(previousReference.getLink())));
+                } catch (RuntimeException exception) {
+                    AppErrorStore.recordSerious(this, "Imóveis",
+                            getString(R.string.property_history_open_previous_reference_failed));
+                }
+            });
+            content.addView(previousOfferLink);
+        }
+        if (previousReference != null && historyRepository.getForOffer(previousReference) != null) {
+            TextView previousLink = new TextView(this);
+            previousLink.setText(R.string.property_history_previous_reference);
+            previousLink.setTextColor(getColor(R.color.action_green));
+            previousLink.setTextSize(13);
+            previousLink.setTypeface(null, android.graphics.Typeface.BOLD);
+            previousLink.setClickable(true);
+            previousLink.setFocusable(true);
+            previousLink.setPadding(0, 0, 0, dp(8));
+            previousLink.setOnClickListener(view -> {
+                dialog.dismiss();
+                showPropertyHistoryDialog(previousReference);
+            });
+            content.addView(previousLink);
+        }
 
         TextView code = new TextView(this);
         code.setText(getString(R.string.property_listing_code, entry.getListingId()));

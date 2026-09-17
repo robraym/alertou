@@ -616,9 +616,12 @@
     <string name="property_notification_explanation">%1$s • %2$s m² • %3$s</string>
     <string name="property_notification_explanation_many">Novas opções de compra em %1$s.</string>
     <string name="property_new_ad_badge">Novo</string>
-    <string name="property_new_lowest_badge">Baixou</string>
-    <string name="property_new_lowest_badge_description">Ver quando este imóvel assumiu o menor preço</string>
-    <string name="property_new_lowest_dialog_title">Preço baixou</string>
+    <string name="property_history_previous_reference">⇄ Ver imóvel anterior</string>
+    <string name="property_history_previous_reference_summary">Anúncio anterior: %1$s\n%2$s • %3$s</string>
+    <string name="property_history_open_previous_reference">↗ Abrir anúncio anterior</string>
+    <string name="property_history_open_previous_reference_failed">Não foi possível abrir o anúncio anterior.</string>
+    <string name="property_history_reference_replaced">⇄ Este anúncio substituiu outro imóvel como a referência mais barata do filtro.</string>
+    <string name="property_new_lowest_dialog_title">Novo menor preço</string>
     <string name="property_price_dropped_dialog_title">Preço baixou</string>
     <string name="property_price_dropped_dialog_summary">%1$s\n%2$s • %3$s • %4$s</string>
     <string name="property_price_dropped_dialog_explanation">Este imóvel passou a ter o menor preço observado.</string>

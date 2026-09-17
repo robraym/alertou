@@ -186,6 +186,36 @@ final class PropertyHistoryRepository {
         return entry != null && entry.isRecent(System.currentTimeMillis());
     }
 
+    synchronized ObservedOffer findPreviousMarketReference(ObservedOffer current, long beforeAt) {
+        if (current == null || current.getInterestId() <= 0L) return null;
+        JSONObject best = null;
+        long bestSeenAt = 0L;
+        String currentIdentity = PropertyHistorySync.identity(current.getLink(), "");
+        JSONArray entries = readEntries();
+        for (int index = 0; index < entries.length(); index++) {
+            JSONObject item = entries.optJSONObject(index);
+            if (item == null || item.optLong("interest_id", 0L) != current.getInterestId()) continue;
+            String itemIdentity = PropertyHistorySync.identity(item.optString("url", ""),
+                    item.optString("listing_id", ""));
+            if (!itemIdentity.isEmpty() && itemIdentity.equals(currentIdentity)) continue;
+            long seenAt = item.optLong("last_seen_at", 0L);
+            if (seenAt > bestSeenAt && (beforeAt <= 0L || seenAt <= beforeAt)) {
+                best = item;
+                bestSeenAt = seenAt;
+            }
+        }
+        PropertyHistoryEntry entry = toEntry(best);
+        if (entry == null || entry.getUrl().isEmpty() || entry.getPoints().isEmpty()) return null;
+        PropertyHistoryPoint latest = entry.getPoints().get(entry.getPoints().size() - 1);
+        if (latest.getPrice() <= 0d) return null;
+        String source = PropertyPageClient.getSourceName(entry.getUrl());
+        if (latest.getArea() > 0d) source += " • " + Math.round(latest.getArea()) + " m²";
+        return new ObservedOffer(
+                PropertyMarketReferenceSettings.createOfferId(current.getInterestId(), entry.getListingId()),
+                current.getInterestId(), current.getInterest(), source, latest.getPrice(),
+                current.getMaximumPrice(), entry.getLastSeenAt(), entry.getUrl(), "", entry.getTitle());
+    }
+
     private JSONArray readEntries() {
         synchronized (preferences) {
             try {
