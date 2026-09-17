@@ -1205,6 +1205,7 @@ public class MainActivity extends AlertouActivity {
                 || id.startsWith("promobit|")
                 || id.startsWith("kabum|")
                 || id.startsWith("kabum_catalog|")
+                || id.startsWith("kabum_catalog_api|")
                 || id.startsWith("motorola|")
                 || id.startsWith("claro|")
                 || id.startsWith("samsung|")

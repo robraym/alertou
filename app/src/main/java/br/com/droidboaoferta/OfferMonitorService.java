@@ -110,6 +110,8 @@ public class OfferMonitorService extends Service {
         }
         if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().start(this);
         else KabumCatalogMonitor.getInstance().stop();
+        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title) && KabumCatalogApiSource.isConfigured(this)) KabumCatalogApiMonitor.getInstance().start(this);
+        else KabumCatalogApiMonitor.getInstance().stop();
         if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this)) {
             MotorolaOfferMonitor.getInstance().start(this);
         } else {

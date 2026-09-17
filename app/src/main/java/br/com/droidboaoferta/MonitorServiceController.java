@@ -62,6 +62,7 @@ final class MonitorServiceController {
                 || PromobitSource.isConfigured(context)
                 || KabumOfferSource.isConfigured(context)
                 || KabumCatalogSource.isConfigured(context)
+                || KabumCatalogApiSource.isConfigured(context)
                 || MotorolaOfferSource.isConfigured(context)
                 || SamsungOfferSource.isConfigured(context)
                 || SamsungDiscountOfferSource.isConfigured(context)

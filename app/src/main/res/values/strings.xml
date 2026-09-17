@@ -116,6 +116,15 @@
     <string name="kabum_catalog_edit_link">Editar catálogo da KaBuM</string>
     <string name="kabum_catalog_dialog_title">Catálogo da KaBuM</string>
     <string name="kabum_catalog_dialog_summary">O Alertou pesquisa cada produto cadastrado usando este endereço-base.</string>
+    <string name="kabum_catalog_api_source_title">KaBuM Catálogo API</string>
+    <string name="kabum_catalog_api_source_not_configured">Cadastre o endereço da API do catálogo</string>
+    <string name="kabum_catalog_api_source_check_pending">Aguardando primeira consulta</string>
+    <string name="kabum_catalog_api_source_check_succeeded">Última consulta: %1$s</string>
+    <string name="kabum_catalog_api_source_check_failed">Última consulta válida: %1$s</string>
+    <string name="kabum_catalog_api_edit_link">Editar API do catálogo da KaBuM</string>
+    <string name="kabum_catalog_api_link_hint">URL da API de catálogo da KaBuM</string>
+    <string name="kabum_catalog_api_dialog_title">API de catálogo da KaBuM</string>
+    <string name="kabum_catalog_api_dialog_summary">O Alertou pesquisa cada produto cadastrado pela API geral da KaBuM. Você pode atualizar o endereço se ele mudar.</string>
     <string name="kabum_offer_link_unsupported">Informe um endereço válido.</string>
     <string name="kabum_offer_dialog_title">API da KaBuM</string>
     <string name="kabum_offer_dialog_summary">O Alertou consulta este endereço. Você pode substituí-lo ou alterar os parâmetros quando a KaBuM mudar.</string>
@@ -325,6 +334,8 @@
     <string name="kabum_offer_interval_default">A cada 1 minuto</string>
     <string name="kabum_catalog_interval_title">KaBuM Catálogo</string>
     <string name="kabum_catalog_interval_dialog_title">Intervalo de consulta da KaBuM Catálogo</string>
+    <string name="kabum_catalog_api_interval_title">KaBuM Catálogo API</string>
+    <string name="kabum_catalog_api_interval_dialog_title">Intervalo de consulta da API de catálogo da KaBuM</string>
     <string name="motorola_offer_interval_title">Motorola</string>
     <string name="motorola_offer_interval_dialog_title">Intervalo de consulta da Motorola</string>
     <string name="motorola_offer_interval_summary">Consulta a cada %1$d minutos</string>

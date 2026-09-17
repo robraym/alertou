@@ -94,6 +94,9 @@ final class AppStatusIndicator {
         if (KabumCatalogSource.isConfigured(activity)) addSite(rows, R.string.kabum_catalog_source_title,
                 KabumCatalogSource.getLastSuccessfulCheckAt(activity), KabumCatalogSource.hasLastCheckFailed(activity),
                 KabumCatalogSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
+        if (KabumCatalogApiSource.isConfigured(activity)) addSite(rows, R.string.kabum_catalog_api_source_title,
+                KabumCatalogApiSource.getLastSuccessfulCheckAt(activity), KabumCatalogApiSource.hasLastCheckFailed(activity),
+                KabumCatalogApiSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);
         if (MotorolaOfferSource.isConfigured(activity)) addSite(rows, R.string.motorola_offer_source_title,
                 MotorolaOfferSource.getLastSuccessfulCheckAt(activity), MotorolaOfferSource.hasLastCheckFailed(activity),
                 MotorolaOfferSource.getCheckIntervalSeconds(activity) * 1000L, price, running, monitorText);

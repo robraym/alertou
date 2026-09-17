@@ -40,6 +40,7 @@ final class StoreSourceControl {
         if (sourceTitleResource == R.string.claro_offer_source_title) return 1 << 7;
         if (sourceTitleResource == R.string.samsung_offer_source_title) return 1 << 8;
         if (sourceTitleResource == R.string.samsung_discount_offer_source_title) return 1 << 9;
+        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) return 1 << 10;
         throw new IllegalArgumentException("Fonte de loja desconhecida");
     }
 }

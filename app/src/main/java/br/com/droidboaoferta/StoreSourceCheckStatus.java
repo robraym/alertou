@@ -168,6 +168,7 @@ final class StoreSourceCheckStatus {
         if (PromobitSource.isConfigured(context)) titles.add(R.string.promobit_source_title);
         if (KabumOfferSource.isConfigured(context)) titles.add(R.string.kabum_offer_source_title);
         if (KabumCatalogSource.isConfigured(context)) titles.add(R.string.kabum_catalog_source_title);
+        if (KabumCatalogApiSource.isConfigured(context)) titles.add(R.string.kabum_catalog_api_source_title);
         if (MotorolaOfferSource.isConfigured(context)) titles.add(R.string.motorola_offer_source_title);
         if (ClaroOfferSource.isConfigured(context)) titles.add(R.string.claro_offer_source_title);
         if (SamsungOfferSource.isConfigured(context)) titles.add(R.string.samsung_offer_source_title);

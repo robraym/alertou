@@ -104,6 +104,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView promobitIntervalSummary;
     private TextView kabumOfferIntervalSummary;
     private TextView kabumCatalogIntervalSummary;
+    private TextView kabumCatalogApiIntervalSummary;
     private TextView motorolaOfferIntervalSummary;
     private TextView claroOfferIntervalSummary;
     private TextView samsungOfferIntervalSummary;
@@ -150,6 +151,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         promobitIntervalSummary = findViewById(R.id.text_promobit_interval_summary);
         kabumOfferIntervalSummary = findViewById(R.id.text_kabum_offer_interval_summary);
         kabumCatalogIntervalSummary = findViewById(R.id.text_kabum_catalog_interval_summary);
+        kabumCatalogApiIntervalSummary = findViewById(R.id.text_kabum_catalog_api_interval_summary);
         motorolaOfferIntervalSummary = findViewById(R.id.text_motorola_offer_interval_summary);
         claroOfferIntervalSummary = findViewById(R.id.text_claro_offer_interval_summary);
         samsungOfferIntervalSummary = findViewById(R.id.text_samsung_offer_interval_summary);
@@ -230,6 +232,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         );
         findViewById(R.id.row_kabum_catalog_interval).setOnClickListener(
                 view -> showKabumCatalogIntervalDialog()
+        );
+        findViewById(R.id.row_kabum_catalog_api_interval).setOnClickListener(
+                view -> showKabumCatalogApiIntervalDialog()
         );
         findViewById(R.id.row_motorola_offer_interval).setOnClickListener(
                 view -> showMotorolaOfferIntervalDialog()
@@ -446,6 +451,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         promobitIntervalSummary.setText(formatStoreInterval(R.string.promobit_source_title, PromobitSource.getCheckIntervalSeconds(this)));
         kabumOfferIntervalSummary.setText(formatStoreInterval(R.string.kabum_offer_source_title, KabumOfferSource.getCheckIntervalSeconds(this)));
         kabumCatalogIntervalSummary.setText(formatStoreInterval(R.string.kabum_catalog_source_title, KabumCatalogSource.getCheckIntervalSeconds(this)));
+        kabumCatalogApiIntervalSummary.setText(formatStoreInterval(R.string.kabum_catalog_api_source_title, KabumCatalogApiSource.getCheckIntervalSeconds(this)));
         motorolaOfferIntervalSummary.setText(formatStoreInterval(R.string.motorola_offer_source_title, MotorolaOfferSource.getCheckIntervalSeconds(this)));
         claroOfferIntervalSummary.setText(formatStoreInterval(R.string.claro_offer_source_title, ClaroOfferSource.getCheckIntervalSeconds(this)));
         samsungOfferIntervalSummary.setText(formatStoreInterval(R.string.samsung_offer_source_title, SamsungOfferSource.getCheckIntervalSeconds(this)));
@@ -470,6 +476,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 StoreDisplayName.get(this, R.string.kabum_offer_source_title));
         ((TextView) findViewById(R.id.text_kabum_catalog_interval_title)).setText(
                 StoreDisplayName.get(this, R.string.kabum_catalog_source_title));
+        ((TextView) findViewById(R.id.text_kabum_catalog_api_interval_title)).setText(
+                StoreDisplayName.get(this, R.string.kabum_catalog_api_source_title));
         backupScheduleSummary.setText(getBackupScheduleSummary());
     }
 
@@ -1012,6 +1020,47 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         if (dialog.getWindow()!=null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.show();
         if (dialog.getWindow()!=null) { WindowManager.LayoutParams params=new WindowManager.LayoutParams(); params.copyFrom(dialog.getWindow().getAttributes()); params.width=getResources().getDisplayMetrics().widthPixels-dp(44); params.height=WindowManager.LayoutParams.WRAP_CONTENT; params.dimAmount=0.65f; dialog.getWindow().setAttributes(params); dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND); }
+    }
+
+    private void showKabumCatalogApiIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        TextView title = new TextView(this);
+        title.setText(R.string.kabum_catalog_api_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+        int savedInterval = KabumCatalogApiSource.getCheckIntervalSeconds(this);
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    isStoreIntervalSelected(R.string.kabum_catalog_api_source_title, interval, savedInterval));
+            option.setOnClickListener(view -> {
+                StoreSourceControl.setEnabled(this, R.string.kabum_catalog_api_source_title, true);
+                KabumCatalogApiSource.saveCheckIntervalSeconds(this, interval);
+                kabumCatalogApiIntervalSummary.setText(formatStoreInterval(
+                        R.string.kabum_catalog_api_source_title, interval));
+                KabumCatalogApiMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        addNeverConsultOption(options, R.string.kabum_catalog_api_source_title,
+                kabumCatalogApiIntervalSummary, dialog,
+                () -> KabumCatalogApiMonitor.getInstance().rescheduleIfRunning(this));
+        content.addView(options);
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
     }
 
     private void showClaroOfferIntervalDialog() {
