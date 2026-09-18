@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 final class PropertyPageMonitor {
+    static final String ACTION_MARKET_REFERENCE_PROGRESS =
+            "br.com.droidboaoferta.PROPERTY_MARKET_REFERENCE_PROGRESS";
     private static final String STATUS_PREFS = "property_market_check_status";
     private static final String KEY_LAST_DURATION = "last_duration";
     private static final String PREFS = "property_page_monitor";
@@ -38,6 +40,7 @@ final class PropertyPageMonitor {
     private volatile long checkingMarketReferenceInterestId;
     private volatile int checkingMarketReferencePosition;
     private volatile int checkingMarketReferenceTotal;
+    private volatile long marketReferencesStartedAt;
 
     private PropertyPageMonitor() {
     }
@@ -68,6 +71,12 @@ final class PropertyPageMonitor {
 
     int getCheckingMarketReferenceTotal() {
         return marketReferencesRunning ? checkingMarketReferenceTotal : 0;
+    }
+
+    long getCurrentMarketReferencesDurationMillis() {
+        long startedAt = marketReferencesStartedAt;
+        return !marketReferencesRunning || startedAt <= 0L ? 0L
+                : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
     }
 
     synchronized void checkNow(Context context) {
@@ -154,6 +163,7 @@ final class PropertyPageMonitor {
                 new InterestRepository(context).getAll(), preferredInterestOrder);
         if (includeMarketReferences) {
             marketReferencesRunning = true;
+            marketReferencesStartedAt = marketCheckStartedAt;
             checkingMarketReferenceInterestId = 0L;
             checkingMarketReferencePosition = 0;
             checkingMarketReferenceTotal = countCurrentPropertyInterests(context, orderedInterests);
@@ -169,7 +179,8 @@ final class PropertyPageMonitor {
                 checkingMarketReferencePosition++;
             }
             SourceCheckStatus.begin(context, interest.getId());
-            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+            // This is only a visual step change. It must not recreate the full list.
+            context.sendBroadcast(new Intent(ACTION_MARKET_REFERENCE_PROGRESS)
                     .setPackage(context.getPackageName()));
             try {
                 checkInterest(context, interest, includeMarketReferences);
@@ -195,6 +206,7 @@ final class PropertyPageMonitor {
                 checkingMarketReferenceInterestId = 0L;
                 checkingMarketReferencePosition = 0;
                 checkingMarketReferenceTotal = 0;
+                marketReferencesStartedAt = 0L;
                 marketReferencesRunning = false;
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));

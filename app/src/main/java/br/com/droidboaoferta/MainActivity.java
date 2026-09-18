@@ -68,16 +68,33 @@ public class MainActivity extends AlertouActivity {
     private static final int SORT_NAME = 1;
     private static final int SORT_PRICE_ASCENDING = 2;
     private static final int SORT_PRICE_DESCENDING = 3;
+    private static final String PROPERTY_MARKET_SUMMARY_TAG = "property_market_summary";
+    private static final String PROPERTY_MARKET_COUNT_TAG = "property_market_count";
+    private static final String PROPERTY_MARKET_CARD_TAG = "property_market_card";
+    private static final String PROPERTY_MARKET_ACTION_TAG = "property_market_action";
+    private static final String PROPERTY_MARKET_ROW_TAG_PREFIX = "property_market_row_";
     private final android.os.Handler dashboardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private boolean dashboardUpdatePending;
     private final Runnable dashboardUpdate = () -> {
         dashboardUpdatePending = false;
         refreshDashboard(false);
     };
+    private final Runnable propertyMarketProgressUpdate = new Runnable() {
+        @Override
+        public void run() {
+            if (!isPropertyMarketUpdating()) return;
+            refreshPropertyMarketProgressText();
+            dashboardHandler.postDelayed(this, 1000L);
+        }
+    };
 
     private final BroadcastReceiver offerReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS.equals(intent.getAction())) {
+                refreshPropertyMarketProgressVisuals();
+                return;
+            }
             if (!dashboardUpdatePending) {
                 dashboardUpdatePending = true;
                 dashboardHandler.postDelayed(dashboardUpdate, 250L);
@@ -91,6 +108,12 @@ public class MainActivity extends AlertouActivity {
     private TextView groupsSummary;
     private TextView alertsSummary;
     private LinearLayout offersContainer;
+    private TextView propertyMarketSummaryView;
+    private TextView propertyMarketCountView;
+    private View propertyMarketCardView;
+    private ImageButton propertyMarketActionView;
+    private ImageView propertyMarketSpinningIcon;
+    private ObjectAnimator propertyMarketRefreshAnimator;
     private EditText offersSearchInput;
     private FloatingSearchController floatingSearchController;
     private InterestRepository interestRepository;
@@ -139,6 +162,7 @@ public class MainActivity extends AlertouActivity {
         IntentFilter filter = new IntentFilter(OfferMonitor.ACTION_OFFER_FOUND);
         filter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
         filter.addAction(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED);
+        filter.addAction(PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS);
         ContextCompat.registerReceiver(
                 this,
                 offerReceiver,
@@ -157,6 +181,10 @@ public class MainActivity extends AlertouActivity {
     @Override
     protected void onStop() {
         dashboardHandler.removeCallbacks(dashboardUpdate);
+        dashboardHandler.removeCallbacks(propertyMarketProgressUpdate);
+        if (propertyMarketRefreshAnimator != null) propertyMarketRefreshAnimator.cancel();
+        propertyMarketRefreshAnimator = null;
+        propertyMarketSpinningIcon = null;
         dashboardUpdatePending = false;
         floatingSearchController.collapse(false);
         unregisterReceiver(offerReceiver);
@@ -174,6 +202,7 @@ public class MainActivity extends AlertouActivity {
 
         offerRepository.reconcileRecentWithInterests(interests);
         renderOffers(offerRepository.getRecent());
+        schedulePropertyMarketProgressUpdate();
 
         boolean hasCouponAlert = false;
         boolean hasPriceAlert = false;
@@ -501,6 +530,10 @@ public class MainActivity extends AlertouActivity {
 
     private void renderOffers(List<ObservedOffer> offers) {
         offerSectionCache.begin();
+        propertyMarketSummaryView = null;
+        propertyMarketCountView = null;
+        propertyMarketCardView = null;
+        propertyMarketActionView = null;
         displayedOffers = offers;
         List<ObservedOffer> visibleOffers = new java.util.ArrayList<>(
                 filterOffers(offers, offersSearchInput.getText().toString())
@@ -559,6 +592,12 @@ public class MainActivity extends AlertouActivity {
                 propertyHistoryRepository, expanded, sectionSummary);
         View cached = offerSectionCache.find(preferenceKey, renderingSectionFingerprint);
         if (cached != null) {
+            if (titleResource == R.string.property_market_alerts_list_title) {
+                propertyMarketCardView = cached;
+                propertyMarketSummaryView = cached.findViewWithTag(PROPERTY_MARKET_SUMMARY_TAG);
+                propertyMarketCountView = cached.findViewWithTag(PROPERTY_MARKET_COUNT_TAG);
+                propertyMarketActionView = cached.findViewWithTag(PROPERTY_MARKET_ACTION_TAG);
+            }
             offerSectionCache.attach(offersContainer, preferenceKey, renderingSectionFingerprint, cached);
             return;
         }
@@ -577,10 +616,16 @@ public class MainActivity extends AlertouActivity {
         header.setPadding(dp(4), dp(2), 0, dp(3));
 
         boolean propertyMarketSection = titleResource == R.string.property_market_alerts_list_title;
+        if (propertyMarketSection) {
+            card.setTag(PROPERTY_MARKET_CARD_TAG);
+            propertyMarketCardView = card;
+        }
         ImageButton sectionAction = new ImageButton(this);
         sectionAction.setPadding(dp(7), dp(7), dp(7), dp(7));
         sectionAction.setScaleType(ImageView.ScaleType.CENTER);
         if (propertyMarketSection) {
+            sectionAction.setTag(PROPERTY_MARKET_ACTION_TAG);
+            propertyMarketActionView = sectionAction;
             boolean updatingPropertyMarket = isPropertyMarketUpdating();
             sectionAction.setImageResource(updatingPropertyMarket
                     ? R.drawable.ic_sync : R.drawable.ic_property_alert);
@@ -619,27 +664,13 @@ public class MainActivity extends AlertouActivity {
         ));
 
         TextView count = new TextView(this);
-        int checkingPosition = propertyMarketSection
-                ? PropertyPageMonitor.getInstance().getCheckingMarketReferencePosition() : 0;
-        int checkingTotal = propertyMarketSection
-                ? PropertyPageMonitor.getInstance().getCheckingMarketReferenceTotal() : 0;
-        if (propertyMarketSection && isPropertyMarketUpdating()
-                && checkingPosition > 0 && checkingTotal > 0) {
-            count.setText(getResources().getQuantityString(
-                    R.plurals.property_market_reference_section_progress,
-                    checkingTotal,
-                    checkingPosition,
-                    checkingTotal
-            ));
-        } else {
-            count.setText(getResources().getQuantityString(
-                    R.plurals.dashboard_offer_section_count,
-                    offers.size(),
-                    offers.size()
-            ));
-        }
+        count.setText(getPropertyMarketCountText(propertyMarketSection, offers.size()));
         count.setTextColor(getColor(R.color.action));
         count.setTextSize(14);
+        if (propertyMarketSection) {
+            count.setTag(PROPERTY_MARKET_COUNT_TAG);
+            propertyMarketCountView = count;
+        }
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -663,6 +694,10 @@ public class MainActivity extends AlertouActivity {
             summary.setIncludeFontPadding(false);
             summary.setSingleLine(true);
             summary.setEllipsize(TextUtils.TruncateAt.END);
+            if (propertyMarketSection) {
+                summary.setTag(PROPERTY_MARKET_SUMMARY_TAG);
+                propertyMarketSummaryView = summary;
+            }
             summaryLine.addView(summary, new LinearLayout.LayoutParams(
                     0,
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -859,8 +894,11 @@ public class MainActivity extends AlertouActivity {
                     && offer.getInterestId() == checkingInterestId) {
                 String area = getPropertyMarketReferenceArea(offer);
                 if (!area.isEmpty()) {
-                    return getString(R.string.property_market_reference_section_updating_property,
-                            offer.getInterest(), area);
+                    return appendCheckDuration(getString(
+                            R.string.property_market_reference_section_updating_property,
+                            offer.getInterest(), area),
+                            PropertyPageMonitor.getInstance()
+                                    .getCurrentMarketReferencesDurationMillis());
                 }
             }
         }
@@ -871,10 +909,120 @@ public class MainActivity extends AlertouActivity {
             String name = PropertyPageResult.normalizeCondominiumName(interest.getPropertyName());
             String area = formatPropertyAreaRange(interest);
             return name.isEmpty() || area.isEmpty() ? ""
-                    : getString(R.string.property_market_reference_section_updating_property,
-                    name, area);
+                    : appendCheckDuration(getString(
+                    R.string.property_market_reference_section_updating_property, name, area),
+                    PropertyPageMonitor.getInstance().getCurrentMarketReferencesDurationMillis());
         }
         return "";
+    }
+
+    private void schedulePropertyMarketProgressUpdate() {
+        dashboardHandler.removeCallbacks(propertyMarketProgressUpdate);
+        if (isPropertyMarketUpdating()) {
+            dashboardHandler.postDelayed(propertyMarketProgressUpdate, 1000L);
+        }
+    }
+
+    private void refreshPropertyMarketProgressText() {
+        if (propertyMarketSummaryView == null) {
+            refreshDashboard(false);
+            return;
+        }
+        propertyMarketSummaryView.setText(getPropertyMarketLastCheckSummary(displayedOffers));
+        propertyMarketSummaryView.setTextColor(getColor(R.color.action_green));
+        if (propertyMarketCountView != null) {
+            propertyMarketCountView.setText(getPropertyMarketCountText(true,
+                    getPropertyMarketReferenceOfferCount(displayedOffers)));
+        }
+    }
+
+    /** Updates only the two rows involved in a property-reference step. */
+    private void refreshPropertyMarketProgressVisuals() {
+        if (propertyMarketCardView == null || propertyMarketSummaryView == null) {
+            // First step after opening Alertou: create the card once. Later steps reuse it.
+            refreshDashboard(false);
+            return;
+        }
+        refreshPropertyMarketProgressText();
+        long checkingInterestId = PropertyPageMonitor.getInstance()
+                .getCheckingMarketReferenceInterestId();
+        for (ObservedOffer offer : displayedOffers) {
+            if (!PropertyMarketReferenceSettings.isReference(offer)) continue;
+            View taggedRow = propertyMarketCardView.findViewWithTag(
+                    PROPERTY_MARKET_ROW_TAG_PREFIX + offer.getInterestId());
+            if (taggedRow instanceof LinearLayout) {
+                updatePropertyMarketRowVisual((LinearLayout) taggedRow,
+                        offer.getInterestId() == checkingInterestId);
+            }
+        }
+        updatePropertyMarketActionVisual();
+    }
+
+    private void updatePropertyMarketRowVisual(LinearLayout mainLine, boolean checking) {
+        if (mainLine.getChildCount() < 2) return;
+        View titleAndBadges = mainLine.getChildAt(0);
+        if (titleAndBadges instanceof LinearLayout
+                && ((LinearLayout) titleAndBadges).getChildCount() > 0
+                && ((LinearLayout) titleAndBadges).getChildAt(0) instanceof TextView) {
+            ((TextView) ((LinearLayout) titleAndBadges).getChildAt(0)).setTextColor(
+                    getColor(checking ? R.color.action_green : R.color.text_primary));
+        }
+        View priceView = mainLine.getChildAt(1);
+        boolean alreadyRolling = priceView instanceof RollingPriceView;
+        if (checking == alreadyRolling || !(priceView instanceof TextView)) return;
+        String price = ((TextView) priceView).getText().toString();
+        mainLine.removeViewAt(1);
+        View replacement;
+        if (checking) {
+            replacement = createRollingPriceView(price);
+        } else {
+            TextView staticPrice = new TextView(this);
+            staticPrice.setText(price);
+            staticPrice.setTextColor(getColor(R.color.text_primary));
+            staticPrice.setTextSize(14);
+            staticPrice.setSingleLine(true);
+            staticPrice.setPadding(dp(6), 0, 0, 0);
+            replacement = staticPrice;
+        }
+        mainLine.addView(replacement, 1);
+    }
+
+    private void updatePropertyMarketActionVisual() {
+        if (propertyMarketActionView == null) return;
+        if (isPropertyMarketUpdating()) {
+            propertyMarketActionView.setImageResource(R.drawable.ic_sync);
+            animatePropertyMarketRefreshIcon(propertyMarketActionView);
+        } else {
+            if (propertyMarketRefreshAnimator != null) propertyMarketRefreshAnimator.cancel();
+            propertyMarketRefreshAnimator = null;
+            propertyMarketSpinningIcon = null;
+            propertyMarketActionView.setRotation(0f);
+            propertyMarketActionView.setImageResource(R.drawable.ic_property_alert);
+        }
+    }
+
+    private String getPropertyMarketCountText(boolean propertyMarketSection, int offerCount) {
+        int checkingPosition = propertyMarketSection
+                ? PropertyPageMonitor.getInstance().getCheckingMarketReferencePosition() : 0;
+        int checkingTotal = propertyMarketSection
+                ? PropertyPageMonitor.getInstance().getCheckingMarketReferenceTotal() : 0;
+        if (propertyMarketSection && isPropertyMarketUpdating()
+                && checkingPosition > 0 && checkingTotal > 0) {
+            return getResources().getQuantityString(
+                    R.plurals.property_market_reference_section_progress,
+                    checkingTotal, checkingPosition, checkingTotal
+            );
+        }
+        return getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
+                offerCount, offerCount);
+    }
+
+    private int getPropertyMarketReferenceOfferCount(List<ObservedOffer> offers) {
+        int count = 0;
+        for (ObservedOffer offer : offers) {
+            if (PropertyMarketReferenceSettings.isReference(offer)) count++;
+        }
+        return count;
     }
 
     private String getPropertyMarketReferenceArea(ObservedOffer offer) {
@@ -918,21 +1066,27 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void animatePropertyMarketRefreshIcon(ImageView icon) {
+        if (propertyMarketSpinningIcon == icon && propertyMarketRefreshAnimator != null
+                && propertyMarketRefreshAnimator.isRunning()) return;
+        if (propertyMarketRefreshAnimator != null) propertyMarketRefreshAnimator.cancel();
         ObjectAnimator spin = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f);
         spin.setDuration(900L);
         spin.setInterpolator(new LinearInterpolator());
         spin.setRepeatCount(ValueAnimator.INFINITE);
+        propertyMarketSpinningIcon = icon;
+        propertyMarketRefreshAnimator = spin;
         icon.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
             public void onViewAttachedToWindow(View view) {
-                spin.start();
+                if (propertyMarketSpinningIcon == icon) spin.start();
             }
 
             @Override
             public void onViewDetachedFromWindow(View view) {
-                spin.cancel();
+                if (propertyMarketSpinningIcon == icon) spin.cancel();
             }
         });
+        if (icon.isAttachedToWindow()) spin.start();
     }
 
     private List<ObservedOffer> filterOffers(List<ObservedOffer> offers, String query) {
@@ -1113,6 +1267,10 @@ public class MainActivity extends AlertouActivity {
         }
         mainLine.addView(titleAndBadges, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        if (propertyMarketReference) {
+            mainLine.setTag(PROPERTY_MARKET_ROW_TAG_PREFIX + interestId);
+        }
 
         boolean updatingThisProperty = propertyMarketReference
                 && SourceCheckStatus.isRunning(this, interestId);

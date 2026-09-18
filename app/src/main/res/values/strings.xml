@@ -369,7 +369,7 @@
     <string name="check_duration_seconds">%1$d s</string>
     <string name="check_duration_minutes_seconds">%1$d min %2$d s</string>
     <string name="property_market_reference_section_updating">Consultando imóveis agora…</string>
-    <string name="property_market_reference_section_updating_property">Consultando %1$s · %2$s…</string>
+    <string name="property_market_reference_section_updating_property">Consultando %1$s · %2$s</string>
     <string name="profile_check_interval_summary">Consulta a cada %1$s</string>
     <string name="profile_check_interval_option">A cada %1$s</string>
     <string name="profile_check_interval_seconds">%1$d segundos</string>

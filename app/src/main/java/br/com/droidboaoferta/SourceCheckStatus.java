@@ -2,6 +2,7 @@ package br.com.droidboaoferta;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.SystemClock;
 
 final class SourceCheckStatus {
     private SourceCheckStatus() { }
@@ -12,6 +13,7 @@ final class SourceCheckStatus {
         prefs(context).edit()
                 .putBoolean(id + ":failed", false)
                 .putBoolean(id + ":running", true)
+                .putLong(id + ":started_at", SystemClock.elapsedRealtime())
                 .apply();
     }
     static void failed(Context context, long id, Exception error) {
@@ -26,6 +28,7 @@ final class SourceCheckStatus {
         SharedPreferences preferences = prefs(context);
         SharedPreferences.Editor editor = preferences.edit()
                 .putBoolean(id + ":running", false)
+                .remove(id + ":started_at")
                 .putLong(id + ":next", System.currentTimeMillis() + intervalMs);
         if (!preferences.getBoolean(id + ":failed", false)) {
             editor.putLong(id + ":success", System.currentTimeMillis());
@@ -35,8 +38,16 @@ final class SourceCheckStatus {
     static boolean isRunning(Context context, long id) {
         return prefs(context).getBoolean(id + ":running", false);
     }
+
+    static long getCurrentDurationMillis(Context context, long id) {
+        long startedAt = prefs(context).getLong(id + ":started_at", 0L);
+        return startedAt <= 0L ? 0L
+                : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
+    }
+
     static void cancel(Context context, long id) {
-        prefs(context).edit().putBoolean(id + ":running", false).apply();
+        prefs(context).edit().putBoolean(id + ":running", false)
+                .remove(id + ":started_at").apply();
     }
     static String summary(Context context, long id) {
         SharedPreferences preferences = prefs(context);
