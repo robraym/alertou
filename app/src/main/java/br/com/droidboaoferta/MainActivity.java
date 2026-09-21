@@ -1348,7 +1348,7 @@ public class MainActivity extends AlertouActivity {
 
         TextView timeView = new TextView(this);
         timeView.setText(time);
-        timeView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.action));
+        timeView.setTextColor(getColor(R.color.text_secondary));
         timeView.setTextSize(11.5f);
         timeView.setSingleLine(true);
         metaLine.addView(timeView);
@@ -1388,7 +1388,7 @@ public class MainActivity extends AlertouActivity {
         if (!propertyArea.isEmpty()) {
             TextView areaView = new TextView(this);
             areaView.setText(" • " + propertyArea);
-            areaView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.action));
+            areaView.setTextColor(getColor(R.color.text_secondary));
             areaView.setTextSize(11.5f);
             areaView.setSingleLine(true);
             metaLine.addView(areaView);
@@ -1396,7 +1396,7 @@ public class MainActivity extends AlertouActivity {
         if (!propertyUnitPrice.isEmpty()) {
             TextView unitPriceView = new TextView(this);
             unitPriceView.setText(" • " + propertyUnitPrice);
-            unitPriceView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.action));
+            unitPriceView.setTextColor(getColor(R.color.text_secondary));
             unitPriceView.setTextSize(11.5f);
             unitPriceView.setTypeface(null, android.graphics.Typeface.NORMAL);
             unitPriceView.setSingleLine(true);
