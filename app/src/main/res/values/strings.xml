@@ -652,7 +652,9 @@
     <string name="property_history_first_seen">Visto primeiro</string>
     <string name="property_history_last_seen">Última leitura</string>
     <string name="property_history_published">Anunciado em</string>
-    <string name="property_history_chart_title">Evolução do preço</string>
+    <string name="property_history_chart_title">Histórico de preço</string>
+    <string name="property_history_chart_old_price">Preço antigo</string>
+    <string name="property_history_chart_new_price">Preço novo</string>
     <string name="property_history_readings_title">Últimas leituras</string>
     <string name="property_history_point">%1$s • %2$s m²</string>
     <string name="property_history_unknown_date">Data indisponível</string>

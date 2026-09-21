@@ -1305,14 +1305,48 @@ public class MainActivity extends AlertouActivity {
                         formatPropertyMarketPublishedDate(propertyPublishedAt))
                 : getString(R.string.property_published_line,
                         formatPropertyPublishedLineDate(propertyPublishedAt)) : "";
+        String sourceLabel = source;
+        String propertyArea = "";
+        if (isPropertyOffer(offer)) {
+            int areaSeparator = source.lastIndexOf(" • ");
+            if (areaSeparator >= 0) {
+                String candidate = source.substring(areaSeparator + 3).trim();
+                if (candidate.contains("m²")) {
+                    sourceLabel = source.substring(0, areaSeparator).trim();
+                    propertyArea = candidate;
+                }
+            }
+        }
         TextView sourceView = new TextView(this);
-        sourceView.setText("• " + source + (publication.isEmpty() ? "" : " · " + publication));
+        sourceView.setText("• " + sourceLabel);
         sourceView.setTextColor(getColor(R.color.text_secondary));
         sourceView.setTextSize(11.5f);
         sourceView.setSingleLine(true);
         sourceView.setEllipsize(TextUtils.TruncateAt.END);
         sourceView.setPadding(dp(4), 0, 0, 0);
-        metaLine.addView(sourceView, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        metaLine.addView(sourceView, new LinearLayout.LayoutParams(
+                propertyArea.isEmpty() && publication.isEmpty() ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                propertyArea.isEmpty() && publication.isEmpty() ? 1 : 0
+        ));
+        if (!propertyArea.isEmpty()) {
+            TextView areaView = new TextView(this);
+            areaView.setText(" • " + propertyArea);
+            areaView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.action));
+            areaView.setTextSize(11.5f);
+            areaView.setSingleLine(true);
+            metaLine.addView(areaView);
+        }
+        if (!publication.isEmpty()) {
+            TextView publicationView = new TextView(this);
+            publicationView.setText(" · " + publication);
+            publicationView.setTextColor(getColor(R.color.text_secondary));
+            publicationView.setTextSize(11.5f);
+            publicationView.setSingleLine(true);
+            publicationView.setEllipsize(TextUtils.TruncateAt.END);
+            metaLine.addView(publicationView, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        }
         row.addView(metaLine);
         if (!offer.getProductTitle().isEmpty()) {
             TextView productView = new TextView(this);
@@ -1384,8 +1418,12 @@ public class MainActivity extends AlertouActivity {
     }
 
     private TextView createPropertyNewBadge() {
+        return createPropertyStatusBadge(R.string.property_new_ad_badge);
+    }
+
+    private TextView createPropertyStatusBadge(int labelResource) {
         TextView badge = new TextView(this);
-        badge.setText(R.string.property_new_ad_badge);
+        badge.setText(labelResource);
         badge.setTextColor(getColor(R.color.action_green));
         badge.setTextSize(10.5f);
         badge.setTypeface(null, android.graphics.Typeface.BOLD);

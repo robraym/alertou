@@ -80,6 +80,13 @@ final class PropertyPriceTrendView extends View {
                     / (maximum - minimum) * (bottom - top));
             canvas.drawCircle(x, y, dp(5), dot);
             if (index == 0 || index == points.size() - 1 || index % labelStep == 0) {
+                if (points.size() > 1 && index == 0) {
+                    canvas.drawText(getContext().getString(R.string.property_history_chart_old_price),
+                            x, y - dp(28), label);
+                } else if (points.size() > 1 && index == points.size() - 1) {
+                    canvas.drawText(getContext().getString(R.string.property_history_chart_new_price),
+                            x, y - dp(28), label);
+                }
                 canvas.drawText(currency.format(point.getPrice()), x, y - dp(13), label);
                 canvas.drawText(date.format(point.getObservedAt()), x, bottom + dp(27), label);
             }
