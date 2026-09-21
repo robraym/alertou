@@ -269,6 +269,8 @@
         <item>Nome (A–Z)</item>
         <item>Preço: crescente</item>
         <item>Preço: decrescente</item>
+        <item>Valor por m²: menor</item>
+        <item>Valor por m²: maior</item>
     </string-array>
     <string-array name="sources_sort_options">
         <item>Ranking</item>

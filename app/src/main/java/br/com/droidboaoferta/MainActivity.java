@@ -68,6 +68,8 @@ public class MainActivity extends AlertouActivity {
     private static final int SORT_NAME = 1;
     private static final int SORT_PRICE_ASCENDING = 2;
     private static final int SORT_PRICE_DESCENDING = 3;
+    private static final int SORT_PRICE_PER_SQUARE_METER_ASCENDING = 4;
+    private static final int SORT_PRICE_PER_SQUARE_METER_DESCENDING = 5;
     private static final String PROPERTY_MARKET_SUMMARY_TAG = "property_market_summary";
     private static final String PROPERTY_MARKET_COUNT_TAG = "property_market_count";
     private static final String PROPERTY_MARKET_CARD_TAG = "property_market_card";
@@ -1128,6 +1130,10 @@ public class MainActivity extends AlertouActivity {
                 int byPrice = Double.compare(second.getPrice(), first.getPrice());
                 return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
+        } else if (sortOrder == SORT_PRICE_PER_SQUARE_METER_ASCENDING
+                || sortOrder == SORT_PRICE_PER_SQUARE_METER_DESCENDING) {
+            boolean ascending = sortOrder == SORT_PRICE_PER_SQUARE_METER_ASCENDING;
+            comparator = (first, second) -> comparePropertyUnitPrices(first, second, ascending);
         } else {
             comparator = (first, second) -> {
                 long firstRecentAt = getRecentSortTimestamp(first, propertyHistoryRepository);
@@ -1138,6 +1144,53 @@ public class MainActivity extends AlertouActivity {
             };
         }
         offers.sort(comparator);
+    }
+
+    private int comparePropertyUnitPrices(ObservedOffer first, ObservedOffer second,
+                                          boolean ascending) {
+        double firstUnitPrice = getPropertyUnitPrice(first);
+        double secondUnitPrice = getPropertyUnitPrice(second);
+        boolean firstValid = firstUnitPrice > 0d;
+        boolean secondValid = secondUnitPrice > 0d;
+        if (firstValid && secondValid) {
+            int byUnitPrice = ascending
+                    ? Double.compare(firstUnitPrice, secondUnitPrice)
+                    : Double.compare(secondUnitPrice, firstUnitPrice);
+            return byUnitPrice != 0 ? byUnitPrice
+                    : Long.compare(second.getObservedAt(), first.getObservedAt());
+        }
+        if (firstValid != secondValid) return firstValid ? -1 : 1;
+        return Long.compare(second.getObservedAt(), first.getObservedAt());
+    }
+
+    private double getPropertyUnitPrice(ObservedOffer offer) {
+        if (!isPropertyOffer(offer)) return -1d;
+        double area = getPropertyAreaSquareMeters(offer.getSource());
+        return area > 0d && offer.getPrice() > 0d ? offer.getPrice() / area : -1d;
+    }
+
+    private double getPropertyAreaSquareMeters(String source) {
+        if (source == null) return -1d;
+        java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(
+                "([0-9]+(?:[,.][0-9]+)?)\\s*m²").matcher(source);
+        double area = -1d;
+        while (matcher.find()) {
+            try {
+                area = Double.parseDouble(matcher.group(1).replace(',', '.'));
+            } catch (NumberFormatException ignored) {
+                // Keep looking in case the source has another valid area.
+            }
+        }
+        return area;
+    }
+
+    private String formatPropertyUnitPrice(ObservedOffer offer) {
+        double unitPrice = getPropertyUnitPrice(offer);
+        if (unitPrice <= 0d) return "";
+        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        currency.setMaximumFractionDigits(0);
+        currency.setMinimumFractionDigits(0);
+        return currency.format(unitPrice) + "/m²";
     }
 
     private long getRecentSortTimestamp(ObservedOffer offer,
@@ -1280,6 +1333,7 @@ public class MainActivity extends AlertouActivity {
             TextView priceView = new TextView(this);
             priceView.setText(price);
             priceView.setTextColor(getColor(R.color.text_primary));
+            priceView.setTypeface(null, android.graphics.Typeface.NORMAL);
             priceView.setTextSize(14);
             priceView.setSingleLine(true);
             priceView.setPadding(dp(6), 0, 0, 0);
@@ -1307,6 +1361,7 @@ public class MainActivity extends AlertouActivity {
                         formatPropertyPublishedLineDate(propertyPublishedAt)) : "";
         String sourceLabel = source;
         String propertyArea = "";
+        String propertyUnitPrice = "";
         if (isPropertyOffer(offer)) {
             int areaSeparator = source.lastIndexOf(" • ");
             if (areaSeparator >= 0) {
@@ -1314,6 +1369,7 @@ public class MainActivity extends AlertouActivity {
                 if (candidate.contains("m²")) {
                     sourceLabel = source.substring(0, areaSeparator).trim();
                     propertyArea = candidate;
+                    propertyUnitPrice = formatPropertyUnitPrice(offer);
                 }
             }
         }
@@ -1325,9 +1381,9 @@ public class MainActivity extends AlertouActivity {
         sourceView.setEllipsize(TextUtils.TruncateAt.END);
         sourceView.setPadding(dp(4), 0, 0, 0);
         metaLine.addView(sourceView, new LinearLayout.LayoutParams(
-                propertyArea.isEmpty() && publication.isEmpty() ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT,
+                propertyArea.isEmpty() ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                propertyArea.isEmpty() && publication.isEmpty() ? 1 : 0
+                propertyArea.isEmpty() ? 1 : 0
         ));
         if (!propertyArea.isEmpty()) {
             TextView areaView = new TextView(this);
@@ -1337,17 +1393,25 @@ public class MainActivity extends AlertouActivity {
             areaView.setSingleLine(true);
             metaLine.addView(areaView);
         }
+        if (!propertyUnitPrice.isEmpty()) {
+            TextView unitPriceView = new TextView(this);
+            unitPriceView.setText(" • " + propertyUnitPrice);
+            unitPriceView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.action));
+            unitPriceView.setTextSize(11.5f);
+            unitPriceView.setTypeface(null, android.graphics.Typeface.NORMAL);
+            unitPriceView.setSingleLine(true);
+            metaLine.addView(unitPriceView);
+        }
+        row.addView(metaLine);
         if (!publication.isEmpty()) {
             TextView publicationView = new TextView(this);
-            publicationView.setText(" · " + publication);
+            publicationView.setText(publication);
             publicationView.setTextColor(getColor(R.color.text_secondary));
             publicationView.setTextSize(11.5f);
             publicationView.setSingleLine(true);
-            publicationView.setEllipsize(TextUtils.TruncateAt.END);
-            metaLine.addView(publicationView, new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+            publicationView.setPadding(0, dp(2), 0, 0);
+            row.addView(publicationView);
         }
-        row.addView(metaLine);
         if (!offer.getProductTitle().isEmpty()) {
             TextView productView = new TextView(this);
             productView.setText(offer.getProductTitle());
