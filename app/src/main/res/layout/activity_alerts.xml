@@ -120,10 +120,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
                         android:text="@string/coupon_alerts_list_title"
@@ -132,13 +132,13 @@
 
                     <TextView
                         android:id="@+id/text_coupon_alerts_count"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
+                        android:layout_marginTop="1dp"
                         android:singleLine="true"
                         android:text="@string/coupon_alerts_registered_count_empty"
-                        android:textColor="@color/action"
-                    android:textSize="14sp" />
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <ImageButton
@@ -202,10 +202,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
                         android:text="@string/property_alerts_list_title"
@@ -214,13 +214,13 @@
 
                     <TextView
                         android:id="@+id/text_property_alerts_count"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
+                        android:layout_marginTop="1dp"
                         android:singleLine="true"
                         android:text="@string/property_alerts_registered_count_empty"
-                        android:textColor="@color/action"
-                    android:textSize="14sp" />
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <ImageButton
@@ -284,10 +284,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    android:orientation="vertical">
 
                     <TextView
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:singleLine="true"
                         android:text="@string/product_alerts_list_title"
@@ -296,13 +296,13 @@
 
                     <TextView
                         android:id="@+id/text_price_alerts_count"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
+                        android:layout_marginTop="1dp"
                         android:singleLine="true"
                         android:text="@string/price_alerts_registered_count_empty"
-                        android:textColor="@color/action"
-                    android:textSize="14sp" />
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
                 </LinearLayout>
 
                 <ImageButton
