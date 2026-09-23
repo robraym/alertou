@@ -1837,6 +1837,10 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void showPropertyHistoryDialog(ObservedOffer offer) {
+        showPropertyHistoryDialog(offer, false);
+    }
+
+    private void showPropertyHistoryDialog(ObservedOffer offer, boolean showListingAction) {
         PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(this);
         PropertyHistoryEntry entry = historyRepository.getForOffer(offer);
         if (entry == null) {
@@ -1894,60 +1898,35 @@ public class MainActivity extends AlertouActivity {
 
         boolean referenceReplaced = PropertyMarketWinnerStore.isActive(this, offer);
         ObservedOffer previousReference = recoverPreviousMarketReference(offer, historyRepository);
-        if (referenceReplaced) {
-            TextView exchangeNotice = new TextView(this);
-            exchangeNotice.setText(R.string.property_history_reference_replaced);
-            exchangeNotice.setTextColor(getColor(R.color.text_secondary));
-            exchangeNotice.setTextSize(13);
-            exchangeNotice.setPadding(0, 0, 0, dp(4));
-            content.addView(exchangeNotice);
+        if (previousReference != null && historyRepository.getForOffer(previousReference) != null) {
+            TextView previousButton = createInlineAction(R.string.property_history_previous_reference);
+            previousButton.setOnClickListener(view -> {
+                dialog.dismiss();
+                showPropertyHistoryDialog(previousReference, true);
+            });
+            LinearLayout.LayoutParams previousButtonParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            previousButtonParams.bottomMargin = dp(8);
+            content.addView(previousButton, previousButtonParams);
         }
-        if (previousReference != null && !previousReference.getLink().trim().isEmpty()) {
-            String previousTitle = previousReference.getProductTitle().trim().isEmpty()
-                    ? previousReference.getLink() : previousReference.getProductTitle();
-            TextView previousSummary = new TextView(this);
-            previousSummary.setText(getString(R.string.property_history_previous_reference_summary,
-                    previousTitle,
-                    PropertyOfferDisplay.formatPrice(this, previousReference, null, currency),
-                    previousReference.getSource()));
-            previousSummary.setTextColor(getColor(R.color.text_secondary));
-            previousSummary.setTextSize(13);
-            previousSummary.setPadding(0, 0, 0, dp(3));
-            content.addView(previousSummary);
-
-            TextView previousOfferLink = new TextView(this);
-            previousOfferLink.setText(R.string.property_history_open_previous_reference);
-            previousOfferLink.setTextColor(getColor(R.color.action_green));
-            previousOfferLink.setTextSize(13);
-            previousOfferLink.setTypeface(null, android.graphics.Typeface.BOLD);
-            previousOfferLink.setClickable(true);
-            previousOfferLink.setFocusable(true);
-            previousOfferLink.setPadding(0, 0, 0, dp(4));
-            previousOfferLink.setOnClickListener(view -> {
+        if (showListingAction && !offer.getLink().trim().isEmpty()) {
+            TextView openListing = createInlineAction(R.string.property_history_open_listing);
+            openListing.setOnClickListener(view -> {
                 try {
-                    startActivity(new Intent(Intent.ACTION_VIEW,
-                            Uri.parse(previousReference.getLink())));
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink())));
                 } catch (RuntimeException exception) {
                     AppErrorStore.recordSerious(this, "Imóveis",
-                            getString(R.string.property_history_open_previous_reference_failed));
+                            getString(R.string.property_history_open_listing_failed));
                 }
             });
-            content.addView(previousOfferLink);
-        }
-        if (previousReference != null && historyRepository.getForOffer(previousReference) != null) {
-            TextView previousLink = new TextView(this);
-            previousLink.setText(R.string.property_history_previous_reference);
-            previousLink.setTextColor(getColor(R.color.action_green));
-            previousLink.setTextSize(13);
-            previousLink.setTypeface(null, android.graphics.Typeface.BOLD);
-            previousLink.setClickable(true);
-            previousLink.setFocusable(true);
-            previousLink.setPadding(0, 0, 0, dp(8));
-            previousLink.setOnClickListener(view -> {
-                dialog.dismiss();
-                showPropertyHistoryDialog(previousReference);
-            });
-            content.addView(previousLink);
+            LinearLayout.LayoutParams openListingParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            openListingParams.bottomMargin = dp(8);
+            content.addView(openListing, openListingParams);
         }
 
         TextView code = new TextView(this);
@@ -1971,12 +1950,16 @@ public class MainActivity extends AlertouActivity {
             description.setText(getString(R.string.property_history_listing_title, entry.getTitle()));
             description.setTextColor(getColor(R.color.text_secondary));
             description.setTextSize(13);
-            description.setMaxLines(2);
-            description.setEllipsize(TextUtils.TruncateAt.END);
             description.setPadding(0, 0, 0, dp(10));
             content.addView(description);
         }
 
+        if (entry.getFirstPublicationAt() > 0L) {
+            content.addView(createPropertyHistoryFact(
+                    R.string.property_history_published,
+                    formatPropertyHistoryDate(entry.getFirstPublicationAt())
+            ));
+        }
         content.addView(createPropertyHistoryFact(
                 R.string.property_history_first_seen,
                 formatPropertyHistoryDate(entry.getFirstSeenAt())
@@ -1985,15 +1968,38 @@ public class MainActivity extends AlertouActivity {
                 R.string.property_history_last_seen,
                 formatPropertyHistoryDate(entry.getLastSeenAt())
         ));
-        if (entry.getFirstPublicationAt() > 0L) {
-            content.addView(createPropertyHistoryFact(
-                    R.string.property_history_published,
-                    formatPropertyHistoryDate(entry.getFirstPublicationAt())
-            ));
-        }
 
         List<PropertyHistoryPoint> visibleHistoryPoints = getDistinctConsecutivePropertyHistoryPoints(
                 entry.getPoints());
+        if (referenceReplaced && previousReference != null) {
+            PropertyMarketWinnerStore.WinnerInfo winner = PropertyMarketWinnerStore.get(this, offer);
+            if (winner != null) {
+                double previousArea = 0d;
+                PropertyHistoryEntry previousHistory = historyRepository.getForOffer(previousReference);
+                if (previousHistory != null && !previousHistory.getPoints().isEmpty()) {
+                    previousArea = previousHistory.getPoints()
+                            .get(previousHistory.getPoints().size() - 1).getArea();
+                }
+                List<PropertyHistoryPoint> comparisonPoints = new java.util.ArrayList<>();
+                comparisonPoints.add(new PropertyHistoryPoint(
+                        winner.wonAt,
+                        previousReference.getPrice(),
+                        previousArea,
+                        true
+                ));
+                if (visibleHistoryPoints.size() == 1) {
+                    PropertyHistoryPoint currentPoint = visibleHistoryPoints.get(0);
+                    comparisonPoints.add(new PropertyHistoryPoint(
+                            winner.wonAt,
+                            currentPoint.getPrice(),
+                            currentPoint.getArea()
+                    ));
+                } else {
+                    comparisonPoints.addAll(visibleHistoryPoints);
+                }
+                visibleHistoryPoints = comparisonPoints;
+            }
+        }
         if (!visibleHistoryPoints.isEmpty()) {
             TextView chartTitle = new TextView(this);
             chartTitle.setText(R.string.property_history_chart_title);
@@ -2006,7 +2012,7 @@ public class MainActivity extends AlertouActivity {
             trendView.setPoints(visibleHistoryPoints);
             content.addView(trendView, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    dp(visibleHistoryPoints.size() <= 2 ? 120 : 180)
+                    dp(visibleHistoryPoints.size() <= 2 ? 140 : 180)
             ));
 
             TextView readingsTitle = new TextView(this);

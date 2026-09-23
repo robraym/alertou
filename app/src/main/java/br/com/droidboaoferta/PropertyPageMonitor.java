@@ -361,6 +361,7 @@ final class PropertyPageMonitor {
         boolean marketReferenceEnabled = includeMarketReferences
                 && PropertyMarketReferenceSettings.isEnabled(context);
         PropertyPageListing lowestMarketListing = null;
+        int lowestMarketHistoryChange = PropertyHistoryRepository.UNCHANGED;
         for (PropertyPageListing listing : historyRepository.getTrackedListings(interest.getId())) {
             candidates.put(listing.getId(), listing);
         }
@@ -400,14 +401,17 @@ final class PropertyPageMonitor {
                     interest.getMinimumArea(), interest.getMaximumArea());
             boolean eligible = currentListing.matches(interest.getMinimumArea(),
                     interest.getMaximumArea(), interest.getMaximumPrice());
+            int historyChange = PropertyHistoryRepository.UNCHANGED;
+            if (previouslyObserved || eligible || (marketReferenceEnabled && matchesArea)) {
+                historyChange = historyRepository.recordObservation(
+                        interest.getId(), currentListing, observedAt, metadata);
+                historyChanges.put(currentListing.getId(), historyChange);
+            }
             if (marketReferenceEnabled && matchesArea
                     && (lowestMarketListing == null
                     || currentListing.getSalePrice() < lowestMarketListing.getSalePrice())) {
                 lowestMarketListing = currentListing;
-            }
-            if (previouslyObserved || eligible || (marketReferenceEnabled && matchesArea)) {
-                historyChanges.put(currentListing.getId(), historyRepository.recordObservation(
-                        interest.getId(), currentListing, observedAt, metadata));
+                lowestMarketHistoryChange = historyChange;
             }
             if (previouslyObserved && !eligible) {
                 noLongerEligibleOfferIds.add("property|" + interest.getId() + "|" + currentListing.getId());
@@ -432,6 +436,7 @@ final class PropertyPageMonitor {
                         interest,
                         propertyName,
                         lowestMarketListing,
+                        lowestMarketHistoryChange,
                         observedAt
                 );
         if (matches.isEmpty()) {
@@ -521,6 +526,7 @@ final class PropertyPageMonitor {
                                                   Interest interest,
                                                   String propertyName,
                                                   PropertyPageListing listing,
+                                                  int listingHistoryChange,
                                                   long observedAt) {
         if (!PropertyMarketReferenceSettings.isEnabled(context)) {
             return repository.clearPropertyMarketReferences();
@@ -549,13 +555,20 @@ final class PropertyPageMonitor {
                 ""
         );
         ObservedOffer previousReference = repository.getPropertyMarketReference(interest.getId());
-        boolean newLowest = isNewLowestMarketReference(previousReference, marketReference);
+        boolean lowerReferenceReplacement = isNewLowestMarketReference(
+                previousReference, marketReference);
+        boolean shouldNotifyNewLowest = isNewLowestMarketReference(
+                previousReference, marketReference, listingHistoryChange);
         boolean changed = previousReference == null
                 || !previousReference.getId().equals(marketReference.getId())
                 || Double.compare(previousReference.getPrice(), marketReference.getPrice()) != 0;
         repository.replacePropertyMarketReference(marketReference);
-        if (newLowest) {
+        // A referência anterior continua disponível no histórico mesmo se o anúncio
+        // mais barato já era conhecido. O que muda é apenas a notificação.
+        if (lowerReferenceReplacement) {
             PropertyMarketWinnerStore.record(context, marketReference, previousReference);
+        }
+        if (shouldNotifyNewLowest) {
             showNewLowestMarketNotification(context, interest, propertyName, listing,
                     previousReference.getPrice());
         }
@@ -566,6 +579,14 @@ final class PropertyPageMonitor {
         return previous != null && replacement != null
                 && !previous.getId().equals(replacement.getId())
                 && replacement.getPrice() < previous.getPrice();
+    }
+
+    static boolean isNewLowestMarketReference(ObservedOffer previous,
+                                              ObservedOffer replacement,
+                                              int replacementHistoryChange) {
+        return isNewLowestMarketReference(previous, replacement)
+                && (replacementHistoryChange == PropertyHistoryRepository.CREATED
+                || replacementHistoryChange == PropertyHistoryRepository.CHANGED);
     }
 
     static PropertyPageListing resolveCurrentListing(PropertyPageListing listing,

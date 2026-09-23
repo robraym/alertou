@@ -76,4 +76,19 @@ public class PropertyPageMonitorTest {
         assertFalse(PropertyPageMonitor.isNewLowestMarketReference(previous, sameListingLowerPrice));
         assertFalse(PropertyPageMonitor.isNewLowestMarketReference(null, cheaper));
     }
+
+    @Test
+    public void doesNotNotifyWhenAnAlreadyKnownListingBecomesTheReference() {
+        ObservedOffer previous = new ObservedOffer("property_market|9|old", 9L,
+                "Edifício Sol", "QuintoAndar", 650000d, 700000d, 1L,
+                "https://example.com/old", "");
+        ObservedOffer knownListing = new ObservedOffer("property_market|9|known", 9L,
+                "Edifício Sol", "QuintoAndar", 595000d, 700000d, 2L,
+                "https://example.com/known", "");
+
+        assertFalse(PropertyPageMonitor.isNewLowestMarketReference(
+                previous, knownListing, PropertyHistoryRepository.UNCHANGED));
+        assertTrue(PropertyPageMonitor.isNewLowestMarketReference(
+                previous, knownListing, PropertyHistoryRepository.CREATED));
+    }
 }

@@ -109,7 +109,9 @@ final class PropertyHistoryRepository {
                         .put("url", normalizeListingUrl(listing.getUrl()))
                         .put("first_seen_at", item.optLong("first_seen_at", observedAt))
                         .put("last_seen_at", observedAt)
-                        .put("new_ad", listing.isNewAd());
+                        // "Novo" indica que o Alertou encontrou o anúncio agora, não uma
+                        // etiqueta permanente que a página de origem possa reutilizar.
+                        .put("new_ad", created || item.optBoolean("new_ad", false));
                 if (requiresIdentity) {
                     item.put("identity_validation_version", 1)
                             .put("validation_status", "available");

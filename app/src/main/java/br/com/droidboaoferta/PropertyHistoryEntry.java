@@ -121,6 +121,6 @@ final class PropertyHistoryEntry {
     boolean isRecent(long now) {
         if (isUnavailable() || isPendingValidation()) return false;
         long reference = firstPublicationAt > 0L ? firstPublicationAt : firstSeenAt;
-        return newAd && reference > 0L && now - reference <= 7L * 24L * 60L * 60L * 1000L;
+        return newAd && reference > 0L && now - reference <= 24L * 60L * 60L * 1000L;
     }
 }

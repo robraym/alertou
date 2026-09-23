@@ -15,6 +15,7 @@ import java.util.Locale;
 final class PropertyPriceTrendView extends View {
     private final Paint line = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint dot = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint previousReferenceDot = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
@@ -29,6 +30,7 @@ final class PropertyPriceTrendView extends View {
         line.setStrokeWidth(dp(3));
         line.setStyle(Paint.Style.STROKE);
         dot.setColor(context.getColor(R.color.action_green));
+        previousReferenceDot.setColor(context.getColor(R.color.action_blue));
         label.setColor(context.getColor(R.color.text_secondary));
         label.setTextSize(dp(11));
         label.setTextAlign(Paint.Align.CENTER);
@@ -47,7 +49,7 @@ final class PropertyPriceTrendView extends View {
         }
         float left = dp(48);
         float right = getWidth() - dp(48);
-        float top = dp(34);
+        float top = dp(50);
         float bottom = getHeight() - dp(48);
         double minimum = Double.MAX_VALUE;
         double maximum = -Double.MAX_VALUE;
@@ -78,7 +80,8 @@ final class PropertyPriceTrendView extends View {
             float x = xAt(index, left, right);
             float y = (float) (bottom - (point.getPrice() - minimum)
                     / (maximum - minimum) * (bottom - top));
-            canvas.drawCircle(x, y, dp(5), dot);
+            canvas.drawCircle(x, y, dp(5),
+                    point.isPreviousReference() ? previousReferenceDot : dot);
             if (index == 0 || index == points.size() - 1 || index % labelStep == 0) {
                 if (points.size() > 1 && index == 0) {
                     canvas.drawText(getContext().getString(R.string.property_history_chart_old_price),

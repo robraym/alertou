@@ -620,8 +620,8 @@
     <string name="property_new_ad_badge">Novo</string>
     <string name="property_history_previous_reference">⇄ Ver imóvel anterior</string>
     <string name="property_history_previous_reference_summary">Anúncio anterior: %1$s\n%2$s • %3$s</string>
-    <string name="property_history_open_previous_reference">↗ Abrir anúncio anterior</string>
-    <string name="property_history_open_previous_reference_failed">Não foi possível abrir o anúncio anterior.</string>
+    <string name="property_history_open_listing">Abrir anúncio</string>
+    <string name="property_history_open_listing_failed">Não foi possível abrir o anúncio.</string>
     <string name="property_history_reference_replaced">⇄ Este anúncio substituiu outro imóvel como a referência mais barata do filtro.</string>
     <string name="property_new_lowest_dialog_title">Novo menor preço</string>
     <string name="property_price_dropped_dialog_title">Preço baixou</string>
