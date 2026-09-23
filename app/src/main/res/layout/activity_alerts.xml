@@ -255,6 +255,88 @@
             android:paddingBottom="6dp">
 
             <LinearLayout
+                android:id="@+id/header_property_zip_alerts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_row_pressed"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="4dp"
+                android:paddingTop="2dp"
+                android:paddingEnd="0dp"
+                android:paddingBottom="3dp">
+
+                <ImageButton
+                    android:id="@+id/button_add_property_zip_interest"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_icon_circle"
+                    android:contentDescription="@string/property_zip_alerts_list_title"
+                    android:padding="7dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_property_zip_alert" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center_vertical"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:singleLine="true"
+                        android:text="@string/property_zip_alerts_list_title"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+
+                    <TextView
+                        android:id="@+id/text_property_zip_alerts_count"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="1dp"
+                        android:singleLine="true"
+                        android:text="@string/property_zip_alerts_registered_count_empty"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+                <ImageButton
+                    android:id="@+id/button_toggle_property_zip_alerts"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="@drawable/bg_icon_circle"
+                    android:contentDescription="@string/alerts_section_collapse"
+                    android:padding="7dp"
+                    android:rotation="90"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_chevron_right" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/container_property_zip_interests"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/screen_card_gap"
+            android:background="@drawable/bg_card_compact"
+            android:orientation="vertical"
+            android:paddingStart="6dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="6dp">
+
+            <LinearLayout
                 android:id="@+id/header_price_alerts"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -35,6 +35,12 @@ final class PropertyPageParser {
             }
             JSONObject listings = findObjectContainingArray(root, "saleListings");
             String condominiumName = findString(root, "nameFormatted");
+            if (listings == null) {
+                List<PropertyPageListing> searchListings = parseGoodPriceSearchListings(root);
+                if (!searchListings.isEmpty()) {
+                    return new PropertyPageResult("", searchListings);
+                }
+            }
             List<PropertyPageListing> parsed = new ArrayList<>();
             Set<String> seenIds = new HashSet<>();
             if (listings == null) {
@@ -78,6 +84,22 @@ final class PropertyPageParser {
         }
     }
 
+    static PropertyPageResult parseGoodPriceSearch(String html) {
+        if (html == null || html.trim().isEmpty()) {
+            return new PropertyPageResult("", new ArrayList<>());
+        }
+        Matcher matcher = NEXT_DATA.matcher(html);
+        if (!matcher.find()) {
+            return new PropertyPageResult("", new ArrayList<>());
+        }
+        try {
+            JSONObject root = new JSONObject(matcher.group(1));
+            return new PropertyPageResult("", parseGoodPriceSearchListings(root));
+        } catch (Exception ignored) {
+            return new PropertyPageResult("", new ArrayList<>());
+        }
+    }
+
     static PropertyPageResult parseLoftApiResponse(String json) {
         if (json == null || json.trim().isEmpty()) {
             return new PropertyPageResult("", new ArrayList<>());
@@ -96,6 +118,174 @@ final class PropertyPageParser {
     private static boolean isQuintoAndarClassified(JSONObject wrapper, JSONObject source) {
         return "CLASSIFIED".equals(wrapper.optString("origin", ""))
                 || containsTag(source.optJSONArray("listingTags"), "CLASSIFIED");
+    }
+
+    private static List<PropertyPageListing> parseGoodPriceSearchListings(Object value) {
+        List<PropertyPageListing> parsed = new ArrayList<>();
+        collectGoodPriceSearchListings(value, parsed, new HashSet<>());
+        return parsed;
+    }
+
+    private static void collectGoodPriceSearchListings(Object value,
+                                                       List<PropertyPageListing> parsed,
+                                                       Set<String> seenIds) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            JSONObject source = object.optJSONObject("_source");
+            JSONObject listing = source == null ? object : source;
+            String id = object.optString("_id", listing.optString("id", ""));
+            double area = listing.optDouble("area", Double.NaN);
+            double salePrice = listing.optDouble("salePrice", Double.NaN);
+            if (!id.isEmpty()
+                    && Boolean.TRUE.equals(listing.opt("forSale"))
+                    && area > 0d
+                    && salePrice > 0d
+                    && containsTag(listing.optJSONArray("listingTags"), "SALE_GOOD_PRICE")
+                    && seenIds.add(id)) {
+                String title = firstNonBlank(
+                        findCondominiumName(listing),
+                        findString(listing, "condominiumName"),
+                        findString(listing, "condominium_name"),
+                        findString(listing, "buildingName"),
+                        listing.optString("shortSaleDescription", ""),
+                        listing.optString("description", "")
+                );
+                parsed.add(new PropertyPageListing(
+                        id,
+                        area,
+                        salePrice,
+                        title,
+                        PropertyPageClient.buildListingUrl(
+                                id,
+                                isQuintoAndarClassified(object, listing)
+                        ),
+                        containsTag(listing.optJSONArray("listingTags"), "NEW_AD"),
+                        true,
+                        buildListingAddress(listing)
+                ));
+            }
+            Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                collectGoodPriceSearchListings(object.opt(keys.next()), parsed, seenIds);
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int index = 0; index < array.length(); index++) {
+                collectGoodPriceSearchListings(array.opt(index), parsed, seenIds);
+            }
+        }
+    }
+
+    private static String findCondominiumName(Object value) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                String key = keys.next();
+                Object child = object.opt(key);
+                String normalizedKey = key.toLowerCase(java.util.Locale.ROOT);
+                if (child instanceof JSONObject
+                        && (normalizedKey.contains("condominium")
+                        || normalizedKey.contains("building"))) {
+                    JSONObject childObject = (JSONObject) child;
+                    String name = firstNonBlank(
+                            childObject.optString("nameFormatted", ""),
+                            childObject.optString("name", ""),
+                            childObject.optString("title", "")
+                    );
+                    if (!name.isEmpty()) {
+                        return name;
+                    }
+                }
+                String found = findCondominiumName(child);
+                if (!found.isEmpty()) {
+                    return found;
+                }
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int index = 0; index < array.length(); index++) {
+                String found = findCondominiumName(array.opt(index));
+                if (!found.isEmpty()) {
+                    return found;
+                }
+            }
+        }
+        return "";
+    }
+
+    private static String buildListingAddress(JSONObject listing) {
+        String street = firstNonBlank(
+                findString(listing, "street"),
+                findString(listing, "streetName"),
+                findString(listing, "addressStreet"),
+                findString(listing, "logradouro"),
+                findNestedAddressValue(listing, "street"),
+                findNestedAddressValue(listing, "streetName"),
+                findNestedAddressValue(listing, "logradouro")
+        );
+        String number = firstNonBlank(
+                findString(listing, "number"),
+                findString(listing, "streetNumber"),
+                findString(listing, "addressNumber"),
+                findString(listing, "numero"),
+                findNestedAddressValue(listing, "number"),
+                findNestedAddressValue(listing, "streetNumber"),
+                findNestedAddressValue(listing, "numero")
+        );
+        String fullAddress = firstNonBlank(
+                findString(listing, "address"),
+                findString(listing, "fullAddress"),
+                findNestedAddressValue(listing, "fullAddress"),
+                findNestedAddressValue(listing, "label")
+        );
+        if (street.isEmpty()) {
+            return fullAddress;
+        }
+        return number.isEmpty() ? street : street + ", " + number;
+    }
+
+    private static String findNestedAddressValue(JSONObject listing, String key) {
+        JSONObject address = findAddressObject(listing);
+        return address == null ? "" : address.optString(key, "");
+    }
+
+    private static JSONObject findAddressObject(Object value) {
+        if (value instanceof JSONObject) {
+            JSONObject object = (JSONObject) value;
+            JSONObject direct = object.optJSONObject("address");
+            if (direct != null) {
+                return direct;
+            }
+            Iterator<String> keys = object.keys();
+            while (keys.hasNext()) {
+                JSONObject found = findAddressObject(object.opt(keys.next()));
+                if (found != null) {
+                    return found;
+                }
+            }
+        } else if (value instanceof JSONArray) {
+            JSONArray array = (JSONArray) value;
+            for (int index = 0; index < array.length(); index++) {
+                JSONObject found = findAddressObject(array.opt(index));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static String firstNonBlank(String... values) {
+        if (values == null) {
+            return "";
+        }
+        for (String value : values) {
+            if (value != null && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+        return "";
     }
 
     private static PropertyPageResult parseLoft(JSONObject root, String html) {

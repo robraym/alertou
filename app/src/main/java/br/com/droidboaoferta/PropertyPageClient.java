@@ -6,6 +6,7 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
 import java.util.Locale;
 
 final class PropertyPageClient {
@@ -31,20 +32,40 @@ final class PropertyPageClient {
                 path = path.substring(0, path.length() - 1);
             }
             if (!"https".equals(scheme)
-                    || !path.startsWith("/condominio/")
-                    || path.length() <= "/condominio/".length()) {
+                    || !(isCondominiumPath(path) || isSearchPath(path))) {
                 return null;
             }
             if ("quintoandar.com.br".equals(host) || "www.quintoandar.com.br".equals(host)) {
                 return "https://www.quintoandar.com.br" + path;
             }
-            if ("loft.com.br".equals(host) || "www.loft.com.br".equals(host)) {
+            if (isCondominiumPath(path)
+                    && ("loft.com.br".equals(host) || "www.loft.com.br".equals(host))) {
                 return "https://loft.com.br" + path;
             }
             return null;
         } catch (IllegalArgumentException ignored) {
             return null;
         }
+    }
+
+    static String buildQuintoAndarSearchUrl(String street, String neighborhood, String city,
+                                            String state, double minimumArea, double maximumArea,
+                                            double maximumPrice) {
+        String location = slugify(street) + "-" + slugify(neighborhood) + "-"
+                + slugify(city) + "-" + slugify(state) + "-brasil";
+        location = location.replaceAll("-+", "-").replaceAll("^-|-$", "");
+        long minArea = Math.round(minimumArea);
+        long maxArea = Math.round(maximumArea);
+        long maxPrice = Math.round(maximumPrice);
+        return "https://www.quintoandar.com.br/comprar/imovel/"
+                + location
+                + "/apartamento/casa/kitnet/casacondominio/de-"
+                + minArea
+                + "-a-"
+                + maxArea
+                + "-m2/de-0-a-"
+                + maxPrice
+                + "-venda/todos-tipos-entrada";
     }
 
     static PropertyPageResult fetch(String rawUrl) throws Exception {
@@ -55,6 +76,9 @@ final class PropertyPageClient {
         String loftDataUrl = buildLoftDataUrl(normalizedUrl);
         if (loftDataUrl != null) {
             return PropertyPageParser.parseLoftApiResponse(fetchHtml(loftDataUrl));
+        }
+        if (isSearchPath(URI.create(normalizedUrl).getPath())) {
+            return PropertyPageParser.parseGoodPriceSearch(fetchHtml(normalizedUrl));
         }
         return PropertyPageParser.parse(fetchHtml(normalizedUrl));
     }
@@ -132,6 +156,30 @@ final class PropertyPageClient {
             return "";
         }
         return buildListingUrl(parts[2]);
+    }
+
+    private static boolean isCondominiumPath(String path) {
+        return path != null
+                && path.startsWith("/condominio/")
+                && path.length() > "/condominio/".length();
+    }
+
+    private static boolean isSearchPath(String path) {
+        return path != null
+                && path.startsWith("/comprar/imovel/")
+                && path.length() > "/comprar/imovel/".length();
+    }
+
+    private static String slugify(String value) {
+        String normalized = Normalizer.normalize(value == null ? "" : value.trim(),
+                Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "")
+                .toLowerCase(Locale.ROOT);
+        normalized = normalized.replaceAll("\\br\\.", "rua")
+                .replaceAll("\\bav\\.", "avenida");
+        return normalized.replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 
     static String getSourceName(String rawUrl) {

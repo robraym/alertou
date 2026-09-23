@@ -40,6 +40,8 @@ final class PropertyPageMonitor {
     private volatile long checkingMarketReferenceInterestId;
     private volatile int checkingMarketReferencePosition;
     private volatile int checkingMarketReferenceTotal;
+    private volatile int checkingPropertyZipPosition;
+    private volatile int checkingPropertyZipTotal;
     private volatile long marketReferencesStartedAt;
 
     private PropertyPageMonitor() {
@@ -71,6 +73,14 @@ final class PropertyPageMonitor {
 
     int getCheckingMarketReferenceTotal() {
         return marketReferencesRunning ? checkingMarketReferenceTotal : 0;
+    }
+
+    int getCheckingPropertyZipPosition() {
+        return marketReferencesRunning ? checkingPropertyZipPosition : 0;
+    }
+
+    int getCheckingPropertyZipTotal() {
+        return marketReferencesRunning ? checkingPropertyZipTotal : 0;
     }
 
     long getCurrentMarketReferencesDurationMillis() {
@@ -166,7 +176,11 @@ final class PropertyPageMonitor {
             marketReferencesStartedAt = marketCheckStartedAt;
             checkingMarketReferenceInterestId = 0L;
             checkingMarketReferencePosition = 0;
-            checkingMarketReferenceTotal = countCurrentPropertyInterests(context, orderedInterests);
+            checkingMarketReferenceTotal = countCurrentPropertyInterests(
+                    context, orderedInterests, false);
+            checkingPropertyZipPosition = 0;
+            checkingPropertyZipTotal = countCurrentPropertyInterests(
+                    context, orderedInterests, true);
         }
         try {
         for (Interest interest : orderedInterests) {
@@ -174,16 +188,21 @@ final class PropertyPageMonitor {
                 continue;
             }
             if (!MonitorRunPolicy.isCurrent(context, interest)) continue;
-            if (includeMarketReferences) {
+            boolean includeMarketReferenceForInterest = includeMarketReferences;
+            if (includeMarketReferenceForInterest) {
                 checkingMarketReferenceInterestId = interest.getId();
-                checkingMarketReferencePosition++;
+                if (interest.isPropertyZip()) {
+                    checkingPropertyZipPosition++;
+                } else if (interest.isPropertyCondominium()) {
+                    checkingMarketReferencePosition++;
+                }
             }
             SourceCheckStatus.begin(context, interest.getId());
             // This is only a visual step change. It must not recreate the full list.
             context.sendBroadcast(new Intent(ACTION_MARKET_REFERENCE_PROGRESS)
                     .setPackage(context.getPackageName()));
             try {
-                checkInterest(context, interest, includeMarketReferences);
+                checkInterest(context, interest, includeMarketReferenceForInterest);
             } catch (Exception error) {
                 if (MonitorRunPolicy.canRun(context)) SourceCheckStatus.failed(context, interest.getId(), error);
             } finally {
@@ -206,6 +225,8 @@ final class PropertyPageMonitor {
                 checkingMarketReferenceInterestId = 0L;
                 checkingMarketReferencePosition = 0;
                 checkingMarketReferenceTotal = 0;
+                checkingPropertyZipPosition = 0;
+                checkingPropertyZipTotal = 0;
                 marketReferencesStartedAt = 0L;
                 marketReferencesRunning = false;
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
@@ -214,10 +235,13 @@ final class PropertyPageMonitor {
         }
     }
 
-    private int countCurrentPropertyInterests(Context context, List<Interest> interests) {
+    private int countCurrentPropertyInterests(Context context, List<Interest> interests,
+                                              boolean zipInterests) {
         int total = 0;
         for (Interest interest : interests) {
-            if (interest.isProperty() && MonitorRunPolicy.isCurrent(context, interest)) {
+            if (MonitorRunPolicy.isCurrent(context, interest)
+                    && (zipInterests ? interest.isPropertyZip()
+                    : interest.isPropertyCondominium())) {
                 total++;
             }
         }
@@ -485,10 +509,13 @@ final class PropertyPageMonitor {
         areaFormat.setMaximumFractionDigits(1);
         String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
         for (PropertyPageListing listing : changed) {
+            boolean zipInterest = interest.isPropertyZip();
             repository.add(new ObservedOffer(
                     "property|" + interest.getId() + "|" + listing.getId(),
                     interest.getId(),
-                    propertyName,
+                    zipInterest && !listing.getDescription().isEmpty()
+                            ? listing.getDescription()
+                            : propertyName,
                     context.getString(
                             R.string.property_offer_source,
                             sourceName,
@@ -498,7 +525,8 @@ final class PropertyPageMonitor {
                     interest.getMaximumPrice(),
                     observedAt,
                     listing.getUrl(),
-                    ""
+                    "",
+                    zipInterest ? listing.getAddress() : ""
             ));
         }
         showNotification(context, interest, result, changed);
@@ -539,10 +567,13 @@ final class PropertyPageMonitor {
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
+        boolean zipInterest = interest.isPropertyZip();
         ObservedOffer marketReference = new ObservedOffer(
                 PropertyMarketReferenceSettings.createOfferId(interest.getId(), listing.getId()),
                 interest.getId(),
-                propertyName,
+                zipInterest && !listing.getDescription().isEmpty()
+                        ? listing.getDescription()
+                        : propertyName,
                 context.getString(
                         R.string.property_market_reference_source,
                         sourceName,
@@ -552,7 +583,8 @@ final class PropertyPageMonitor {
                 interest.getMaximumPrice(),
                 observedAt,
                 listing.getUrl(),
-                ""
+                "",
+                zipInterest ? listing.getAddress() : ""
         );
         ObservedOffer previousReference = repository.getPropertyMarketReference(interest.getId());
         boolean lowerReferenceReplacement = isNewLowestMarketReference(

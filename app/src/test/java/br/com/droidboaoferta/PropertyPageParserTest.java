@@ -87,6 +87,52 @@ public class PropertyPageParserTest {
     }
 
     @Test
+    public void buildsQuintoAndarSearchUrlFromAddressFilters() {
+        String url = PropertyPageClient.buildQuintoAndarSearchUrl(
+                "R. Frei Caneca",
+                "Consolação",
+                "São Paulo",
+                "SP",
+                20d,
+                49d,
+                360000d
+        );
+
+        assertEquals(
+                "https://www.quintoandar.com.br/comprar/imovel/"
+                        + "rua-frei-caneca-consolacao-sao-paulo-sp-brasil/"
+                        + "apartamento/casa/kitnet/casacondominio/de-20-a-49-m2/"
+                        + "de-0-a-360000-venda/todos-tipos-entrada",
+                url
+        );
+        assertEquals(url, PropertyPageClient.normalizeSupportedUrl(url + "?pagina=2"));
+    }
+
+    @Test
+    public void parsesOnlyGoodPriceListingsFromSearchPages() {
+        String nextData = "{\"props\":{\"pageProps\":{\"results\":["
+                + "{\"id\":\"good-1\",\"area\":35,\"salePrice\":320000,\"forSale\":true,"
+                + "\"shortSaleDescription\":\"Apartamento perto do metrô\","
+                + "\"listingTags\":[\"SALE_GOOD_PRICE\",\"NEW_AD\"]},"
+                + "{\"id\":\"regular-1\",\"area\":36,\"salePrice\":310000,\"forSale\":true,"
+                + "\"listingTags\":[\"NEW_AD\"]},"
+                + "{\"id\":\"rent-1\",\"area\":37,\"salePrice\":300000,\"forSale\":false,"
+                + "\"listingTags\":[\"SALE_GOOD_PRICE\"]}]}}}";
+        String html = "<script id=\"__NEXT_DATA__\" type=\"application/json\">"
+                + nextData + "</script>";
+
+        List<PropertyPageListing> listings = PropertyPageParser.parseGoodPriceSearch(html)
+                .getSaleListings();
+
+        assertEquals(1, listings.size());
+        assertEquals("good-1", listings.get(0).getId());
+        assertEquals(35d, listings.get(0).getArea(), 0.001d);
+        assertEquals(320000d, listings.get(0).getSalePrice(), 0.001d);
+        assertEquals("Apartamento perto do metrô", listings.get(0).getDescription());
+        assertTrue(listings.get(0).isNewAd());
+    }
+
+    @Test
     public void normalizesQuintoAndarListingPages() {
         String expected = "https://www.quintoandar.com.br/imovel/114071763/comprar";
 

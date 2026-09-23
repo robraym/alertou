@@ -39,6 +39,14 @@ final class SourceCheckStatus {
         return prefs(context).getBoolean(id + ":running", false);
     }
 
+    static long getLastResultAt(Context context, long id) {
+        SharedPreferences preferences = prefs(context);
+        return Math.max(
+                preferences.getLong(id + ":success", 0L),
+                preferences.getLong(id + ":failure", 0L)
+        );
+    }
+
     static long getCurrentDurationMillis(Context context, long id) {
         long startedAt = prefs(context).getLong(id + ":started_at", 0L);
         return startedAt <= 0L ? 0L

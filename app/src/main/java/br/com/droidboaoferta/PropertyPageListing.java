@@ -7,6 +7,8 @@ final class PropertyPageListing {
     private final String description;
     private final String url;
     private final boolean newAd;
+    private final boolean goodPrice;
+    private final String address;
 
     PropertyPageListing(String id, double area, double salePrice,
                         String description, String url) {
@@ -15,12 +17,20 @@ final class PropertyPageListing {
 
     PropertyPageListing(String id, double area, double salePrice,
                         String description, String url, boolean newAd) {
+        this(id, area, salePrice, description, url, newAd, false, "");
+    }
+
+    PropertyPageListing(String id, double area, double salePrice,
+                        String description, String url, boolean newAd,
+                        boolean goodPrice, String address) {
         this.id = id == null ? "" : id.trim();
         this.area = area;
         this.salePrice = salePrice;
         this.description = description == null ? "" : description.trim();
         this.url = url == null ? "" : url.trim();
         this.newAd = newAd;
+        this.goodPrice = goodPrice;
+        this.address = address == null ? "" : address.trim();
     }
 
     String getId() {
@@ -47,9 +57,17 @@ final class PropertyPageListing {
         return newAd;
     }
 
+    boolean isGoodPrice() {
+        return goodPrice;
+    }
+
+    String getAddress() {
+        return address;
+    }
+
     PropertyPageListing withSalePrice(double updatedSalePrice) {
         return new PropertyPageListing(
-                id, area, updatedSalePrice, description, url, newAd
+                id, area, updatedSalePrice, description, url, newAd, goodPrice, address
         );
     }
 

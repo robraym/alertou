@@ -657,6 +657,26 @@ final class CloudSyncStore {
                     || !current.getCouponName().equals(previous.getCouponName())) {
                 fields.put("coupon_name", current.getCouponName());
             }
+            if (previous == null
+                    || !current.getPropertyZipCode().equals(previous.getPropertyZipCode())) {
+                fields.put("property_zip_code", current.getPropertyZipCode());
+            }
+            if (previous == null
+                    || !current.getPropertyStreet().equals(previous.getPropertyStreet())) {
+                fields.put("property_street", current.getPropertyStreet());
+            }
+            if (previous == null
+                    || !current.getPropertyNeighborhood().equals(previous.getPropertyNeighborhood())) {
+                fields.put("property_neighborhood", current.getPropertyNeighborhood());
+            }
+            if (previous == null
+                    || !current.getPropertyCity().equals(previous.getPropertyCity())) {
+                fields.put("property_city", current.getPropertyCity());
+            }
+            if (previous == null
+                    || !current.getPropertyState().equals(previous.getPropertyState())) {
+                fields.put("property_state", current.getPropertyState());
+            }
         } catch (Exception ignored) {
         }
         return fields;
