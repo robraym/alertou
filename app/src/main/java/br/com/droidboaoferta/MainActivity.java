@@ -1926,13 +1926,16 @@ public class MainActivity extends AlertouActivity {
 
     private TextView createPropertyGoodPriceBadge() {
         TextView badge = createPropertyStatusBadge(R.string.property_good_price_badge);
-        badge.setTextSize(8.5f);
+        badge.setText(getString(R.string.property_good_price_badge).replace(" ", "\n"));
+        badge.setTextSize(8f);
         badge.setSingleLine(false);
-        badge.setMaxLines(2);
+        badge.setLines(2);
         badge.setGravity(Gravity.CENTER);
         badge.setIncludeFontPadding(false);
         badge.setLineSpacing(0f, 0.9f);
-        badge.setPadding(dp(5), dp(2), dp(5), dp(2));
+        badge.setMinWidth(dp(46));
+        badge.setMinHeight(dp(28));
+        badge.setPadding(dp(4), dp(2), dp(4), dp(2));
         return badge;
     }
 
