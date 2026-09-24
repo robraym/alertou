@@ -18,7 +18,7 @@ final class PropertyPriceTrendView extends View {
     private final Paint previousReferenceDot = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint label = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
-    private final NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+    private final NumberFormat currency = CurrencyTextFormatter.displayFormatter();
     private final SimpleDateFormat date = new SimpleDateFormat("dd/MM", new Locale("pt", "BR"));
     private List<PropertyHistoryPoint> points = new ArrayList<>();
 

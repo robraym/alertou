@@ -254,7 +254,7 @@ final class VivoOutletMonitor {
                 openPage,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         String explanation = context.getString(
                 R.string.offer_notification_explanation,
                 currency.format(offer.getPrice()),

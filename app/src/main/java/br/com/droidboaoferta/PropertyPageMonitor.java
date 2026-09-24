@@ -864,7 +864,7 @@ final class PropertyPageMonitor {
                 openPage,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String title = listings.size() == 1
@@ -914,7 +914,7 @@ final class PropertyPageMonitor {
                 openPage,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String explanation = context.getString(R.string.property_new_lowest_notification_explanation,

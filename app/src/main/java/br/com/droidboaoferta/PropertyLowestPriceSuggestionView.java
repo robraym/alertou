@@ -175,7 +175,7 @@ final class PropertyLowestPriceSuggestionView extends LinearLayout {
     }
 
     private String formatCurrency(double price) {
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         currency.setMaximumFractionDigits(0);
         return currency.format(price);
     }

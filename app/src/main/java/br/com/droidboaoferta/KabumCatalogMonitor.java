@@ -61,7 +61,7 @@ final class KabumCatalogMonitor {
         if(!MonitorRunPolicy.canRun(context)) return;
         Intent intent=new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink())); int id=offer.getId().hashCode();
         PendingIntent pending=PendingIntent.getActivity(context,id,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        NumberFormat currency=NumberFormat.getCurrencyInstance(new Locale("pt","BR"));
+        NumberFormat currency=CurrencyTextFormatter.displayFormatter();
         String text=context.getString(R.string.offer_notification_explanation,currency.format(offer.getPrice()),currency.format(offer.getMaximumPrice()),offer.getSource());
         AlertSoundController.configureNotificationChannel(context);
         NotificationCompat.Builder builder=new NotificationCompat.Builder(context,AlertSoundController.getChannelId(context)).setSmallIcon(R.drawable.ic_notification_offer).setContentTitle(offer.getDisplayTitle()).setContentText(text).setStyle(new NotificationCompat.BigTextStyle().bigText(text)).setPriority(NotificationCompat.PRIORITY_HIGH).setSound(AlertSoundController.getSoundUri(context)).setAutoCancel(true).setContentIntent(pending);

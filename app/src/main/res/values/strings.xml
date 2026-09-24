@@ -649,6 +649,7 @@
     <string name="property_notification_explanation">%1$s • %2$s m² • %3$s</string>
     <string name="property_notification_explanation_many">Novas opções de compra em %1$s.</string>
     <string name="property_new_ad_badge">Novo</string>
+    <string name="currency_symbol">R$</string>
     <string name="property_good_price_badge">Ótimo&#10;preço</string>
     <string name="property_history_previous_reference">⇄ Ver imóvel anterior</string>
     <string name="property_history_previous_reference_summary">Anúncio anterior: %1$s\n%2$s • %3$s</string>

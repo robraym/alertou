@@ -118,7 +118,7 @@ final class KabumCatalogApiMonitor {
         Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink()));
         PendingIntent pending = PendingIntent.getActivity(context, offer.getId().hashCode(), intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         String text = context.getString(R.string.offer_notification_explanation,
                 currency.format(offer.getPrice()), currency.format(offer.getMaximumPrice()), offer.getSource());
         AlertSoundController.configureNotificationChannel(context);

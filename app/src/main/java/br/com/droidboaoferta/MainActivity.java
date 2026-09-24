@@ -595,7 +595,7 @@ public class MainActivity extends AlertouActivity {
             return;
         }
 
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         PropertyHistoryRepository propertyHistoryRepository = new PropertyHistoryRepository(this);
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         List<ObservedOffer> couponOffers = new java.util.ArrayList<>();
@@ -1256,7 +1256,8 @@ public class MainActivity extends AlertouActivity {
             ((TextView) ((LinearLayout) titleAndBadges).getChildAt(0)).setTextColor(
                     getColor(checking ? R.color.action_green : R.color.text_primary));
         }
-        // The price stays static. Only the refresh icon and status communicate progress.
+        setPrimaryPriceColor(mainLine.getChildAt(1),
+                getColor(checking ? R.color.action_green : R.color.text_primary));
     }
 
     private void updatePropertyMarketActionVisual() {
@@ -1461,7 +1462,7 @@ public class MainActivity extends AlertouActivity {
         if (normalizedQuery.isEmpty()) {
             return offers;
         }
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         List<ObservedOffer> filtered = new java.util.ArrayList<>();
         for (ObservedOffer offer : offers) {
             String text = offer.getDisplayTitle() + " " + offer.getInterest() + " " + offer.getSource() + " "
@@ -1552,7 +1553,7 @@ public class MainActivity extends AlertouActivity {
     private String formatPropertyUnitPrice(ObservedOffer offer) {
         double unitPrice = getPropertyUnitPrice(offer);
         if (unitPrice <= 0d) return "";
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         currency.setMaximumFractionDigits(0);
         currency.setMinimumFractionDigits(0);
         return currency.format(unitPrice) + "/m²";
@@ -1697,7 +1698,7 @@ public class MainActivity extends AlertouActivity {
         row.setClickable(true);
         row.setFocusable(true);
         row.setMinimumHeight(dp(52));
-        row.setPadding(dp(6), dp(7), dp(6), dp(7));
+        row.setPadding(0, dp(7), 0, dp(7));
         row.setContentDescription(contentDescription);
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         Interest zipInterest = interestsById.get(interestId);
@@ -1714,7 +1715,7 @@ public class MainActivity extends AlertouActivity {
         TextView titleView = new TextView(this);
         titleView.setText(propertyZipOffer ? getPropertyZipTitle(zipInterest, title) : title);
         titleView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.text_primary));
-        titleView.setTextSize(14);
+        titleView.setTextSize(13);
         titleView.setSingleLine(true);
         titleView.setEllipsize(TextUtils.TruncateAt.END);
         titleView.setMaxEms(18);
@@ -1762,12 +1763,7 @@ public class MainActivity extends AlertouActivity {
             mainLine.setTag(PROPERTY_MARKET_ROW_TAG_PREFIX + interestId);
         }
 
-        TextView priceView = new TextView(this);
-        priceView.setText(price);
-        priceView.setTextColor(getColor(R.color.text_primary));
-        priceView.setTypeface(null, android.graphics.Typeface.NORMAL);
-        priceView.setTextSize(14);
-        priceView.setSingleLine(true);
+        View priceView = createPrimaryPriceView(price, getColor(R.color.text_primary));
         priceView.setPadding(dp(6), 0, 0, 0);
         mainLine.addView(priceView);
         row.addView(mainLine);
@@ -1918,6 +1914,50 @@ public class MainActivity extends AlertouActivity {
                 || id.startsWith("coupon|")
                 || id.startsWith("property|")
                 || id.startsWith("market_reference|"));
+    }
+
+    private View createPrimaryPriceView(String value, int color) {
+        if (value == null || !value.startsWith("R$")) {
+            TextView text = new TextView(this);
+            text.setText(value);
+            text.setTextColor(color);
+            text.setTextSize(14);
+            text.setSingleLine(true);
+            return text;
+        }
+        LinearLayout price = new LinearLayout(this);
+        price.setGravity(Gravity.CENTER_VERTICAL);
+        price.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView symbol = new TextView(this);
+        symbol.setText(R.string.currency_symbol);
+        symbol.setTextColor(color);
+        symbol.setTextSize(10);
+        symbol.setSingleLine(true);
+        price.addView(symbol);
+
+        TextView amount = new TextView(this);
+        amount.setText(value.substring(2).trim());
+        amount.setTextColor(color);
+        amount.setTextSize(14);
+        amount.setSingleLine(true);
+        amount.setPadding(dp(3), 0, 0, 0);
+        price.addView(amount);
+        return price;
+    }
+
+    private void setPrimaryPriceColor(View price, int color) {
+        if (price instanceof TextView) {
+            ((TextView) price).setTextColor(color);
+            return;
+        }
+        if (price instanceof LinearLayout) {
+            LinearLayout container = (LinearLayout) price;
+            for (int index = 0; index < container.getChildCount(); index++) {
+                View child = container.getChildAt(index);
+                if (child instanceof TextView) ((TextView) child).setTextColor(color);
+            }
+        }
     }
 
     private TextView createPropertyNewBadge() {
@@ -2200,7 +2240,7 @@ public class MainActivity extends AlertouActivity {
         if (winner == null || Double.isNaN(winner.previousPrice)) {
             return;
         }
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         NumberFormat percentage = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         percentage.setMaximumFractionDigits(1);
         String wonAt = new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
@@ -2224,7 +2264,7 @@ public class MainActivity extends AlertouActivity {
         title.setTextSize(21);
         content.addView(title);
 
-        NumberFormat compactCurrency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat compactCurrency = CurrencyTextFormatter.displayFormatter();
         compactCurrency.setMaximumFractionDigits(0);
         TextView summary = new TextView(this);
         summary.setText(getString(R.string.property_price_dropped_dialog_summary,
@@ -2337,7 +2377,7 @@ public class MainActivity extends AlertouActivity {
         }
         content.addView(titleLine);
 
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         currency.setMaximumFractionDigits(0);
         TextView summary = new TextView(this);
         summary.setText(getString(

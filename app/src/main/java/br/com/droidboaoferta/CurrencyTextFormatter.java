@@ -1,5 +1,9 @@
 package br.com.droidboaoferta;
 
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
+
 import java.math.BigInteger;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -69,6 +73,20 @@ final class CurrencyTextFormatter {
             return "";
         }
         return formatter().format(Math.round(value));
+    }
+
+    static NumberFormat displayFormatter() {
+        return formatter();
+    }
+
+    static CharSequence withSmallCurrencySymbol(String formattedValue) {
+        if (formattedValue == null || !formattedValue.startsWith("R$")) {
+            return formattedValue;
+        }
+        SpannableString styled = new SpannableString(formattedValue);
+        styled.setSpan(new RelativeSizeSpan(0.7f), 0, 2,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return styled;
     }
 
     static String formatWholeReaisWithCents(double value) {

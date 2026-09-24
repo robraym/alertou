@@ -149,7 +149,7 @@ final class HighestCouponSuggestionView extends LinearLayout {
     }
 
     private String formatCurrency(double value) {
-        return NumberFormat.getCurrencyInstance(new Locale("pt", "BR")).format(value);
+        return CurrencyTextFormatter.displayFormatter().format(value);
     }
 
     private String formatPercentage(double value) {

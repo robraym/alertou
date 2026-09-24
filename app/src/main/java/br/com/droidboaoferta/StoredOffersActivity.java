@@ -411,7 +411,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     private void addOfferRows(LinearLayout container, List<ObservedOffer> offers) {
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         String previousGroup = null;
         for (int index = 0; index < offers.size(); index++) {
             ObservedOffer offer = offers.get(index);
@@ -499,7 +499,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         if (normalizedQuery.isEmpty()) {
             return offers;
         }
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         List<ObservedOffer> filtered = new java.util.ArrayList<>();
         for (ObservedOffer offer : offers) {
             String text = offer.getDisplayTitle() + " " + offer.getInterest() + " " + offer.getSource() + " "
@@ -649,7 +649,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         row.setBackgroundColor(getColor(R.color.card));
         row.setMinimumHeight(dp(52));
         boolean secondaryAtEnd = hasSecondaryAction() && !hasDeleteAction();
-        row.setPadding(dp(6), dp(7), secondaryAtEnd ? 0 : dp(6), dp(7));
+        row.setPadding(0, dp(7), 0, dp(7));
 
         if (hasLeadingAction()) {
             ImageButton leading = createActionButton(
@@ -677,18 +677,14 @@ abstract class StoredOffersActivity extends AlertouActivity {
         TextView titleView = new TextView(this);
         titleView.setText(offer.getInterest());
         titleView.setTextColor(getColor(R.color.text_primary));
-        titleView.setTextSize(14);
+        titleView.setTextSize(13);
         titleView.setSingleLine(true);
         titleView.setEllipsize(TextUtils.TruncateAt.END);
         mainLine.addView(titleView, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
-        TextView priceView = new TextView(this);
-        priceView.setText(PropertyOfferDisplay.formatPrice(this, offer,
+        View priceView = createPrimaryPriceView(PropertyOfferDisplay.formatPrice(this, offer,
                 new PropertyHistoryRepository(this).getForOffer(offer),
-                NumberFormat.getCurrencyInstance(new Locale("pt", "BR"))));
-        priceView.setTextColor(getColor(R.color.text_primary));
-        priceView.setTextSize(14);
-        priceView.setSingleLine(true);
+                CurrencyTextFormatter.displayFormatter()));
         priceView.setPadding(dp(6), 0, 0, 0);
         mainLine.addView(priceView);
         texts.addView(mainLine);
@@ -774,6 +770,36 @@ abstract class StoredOffersActivity extends AlertouActivity {
         return row;
     }
 
+    private View createPrimaryPriceView(String value) {
+        if (value == null || !value.startsWith("R$")) {
+            TextView text = new TextView(this);
+            text.setText(value);
+            text.setTextColor(getColor(R.color.text_primary));
+            text.setTextSize(14);
+            text.setSingleLine(true);
+            return text;
+        }
+        LinearLayout price = new LinearLayout(this);
+        price.setGravity(Gravity.CENTER_VERTICAL);
+        price.setOrientation(LinearLayout.HORIZONTAL);
+
+        TextView symbol = new TextView(this);
+        symbol.setText(R.string.currency_symbol);
+        symbol.setTextColor(getColor(R.color.text_primary));
+        symbol.setTextSize(10);
+        symbol.setSingleLine(true);
+        price.addView(symbol);
+
+        TextView amount = new TextView(this);
+        amount.setText(value.substring(2).trim());
+        amount.setTextColor(getColor(R.color.text_primary));
+        amount.setTextSize(14);
+        amount.setSingleLine(true);
+        amount.setPadding(dp(3), 0, 0, 0);
+        price.addView(amount);
+        return price;
+    }
+
     private void showLongPressActionsDialog(ObservedOffer offer) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
@@ -784,7 +810,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         TextView title = new TextView(this);
         title.setText(offer.getDisplayTitle());
         title.setTextColor(getColor(R.color.text_secondary));
-        title.setTextSize(14);
+        title.setTextSize(13);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
         title.setPadding(dp(8), 0, dp(8), dp(8));

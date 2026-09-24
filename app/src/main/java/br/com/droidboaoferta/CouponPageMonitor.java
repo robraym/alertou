@@ -187,7 +187,7 @@ final class CouponPageMonitor {
                 openPage,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         String title = context.getString(
                 R.string.coupon_notification_title,
                 brand,

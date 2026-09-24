@@ -290,7 +290,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         String explanation = appContext.getString(
                 R.string.offer_notification_explanation,
                 currency.format(offer.getPrice()),

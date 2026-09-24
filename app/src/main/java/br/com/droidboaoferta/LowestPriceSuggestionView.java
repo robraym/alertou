@@ -195,7 +195,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
     }
 
     private String formatCurrency(double price) {
-        return NumberFormat.getCurrencyInstance(new Locale("pt", "BR")).format(price);
+        return CurrencyTextFormatter.displayFormatter().format(price);
     }
 
     private void setSearching(boolean searching) {

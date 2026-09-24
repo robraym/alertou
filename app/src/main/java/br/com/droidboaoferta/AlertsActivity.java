@@ -277,7 +277,7 @@ public class AlertsActivity extends AlertouActivity {
             return;
         }
 
-        NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currencyFormat = CurrencyTextFormatter.displayFormatter();
         for (int index = 0; index < interests.size(); index++) {
             Interest interest = interests.get(index);
             LinearLayout row = createInterestRow(interest, currencyFormat);
@@ -364,7 +364,7 @@ public class AlertsActivity extends AlertouActivity {
         if (normalizedQuery.isEmpty()) {
             return interests;
         }
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         List<Interest> filtered = new java.util.ArrayList<>();
         for (Interest interest : interests) {
             String text = interest.getTerm() + " "
@@ -464,7 +464,7 @@ public class AlertsActivity extends AlertouActivity {
 
             TextView title = createInterestText();
             title.setText(getPropertyDisplayName(interest));
-            title.setTextSize(14);
+            title.setTextSize(13);
             title.setEllipsize(TextUtils.TruncateAt.END);
             textContainer.addView(title);
 

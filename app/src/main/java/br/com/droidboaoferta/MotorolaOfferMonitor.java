@@ -158,7 +158,7 @@ final class MotorolaOfferMonitor {
         Intent openPage = new Intent(Intent.ACTION_VIEW, Uri.parse(offer.getLink()));
         PendingIntent pendingIntent = PendingIntent.getActivity(context, offer.getId().hashCode(), openPage,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         String explanation = context.getString(R.string.offer_notification_explanation,
                 currency.format(offer.getPrice()), currency.format(offer.getMaximumPrice()), offer.getSource());
         AlertSoundController.configureNotificationChannel(context);
