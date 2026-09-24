@@ -142,6 +142,8 @@ public class MainActivity extends AlertouActivity {
     private TextView propertyZipCountView;
     private View propertyZipCardView;
     private ImageButton propertyZipActionView;
+    private final java.util.Map<TextView, Integer> propertyMarketRowOriginalTextColors =
+            new java.util.WeakHashMap<>();
     private ImageView propertyMarketSpinningIcon;
     private ObjectAnimator propertyMarketRefreshAnimator;
     private ImageView propertyZipSpinningIcon;
@@ -1248,16 +1250,29 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void updatePropertyMarketRowVisual(LinearLayout mainLine, boolean checking) {
-        if (mainLine.getChildCount() < 2) return;
-        View titleAndBadges = mainLine.getChildAt(0);
-        if (titleAndBadges instanceof LinearLayout
-                && ((LinearLayout) titleAndBadges).getChildCount() > 0
-                && ((LinearLayout) titleAndBadges).getChildAt(0) instanceof TextView) {
-            ((TextView) ((LinearLayout) titleAndBadges).getChildAt(0)).setTextColor(
-                    getColor(checking ? R.color.action_green : R.color.text_primary));
+        ViewParent parent = mainLine.getParent();
+        if (!(parent instanceof View)) return;
+        updatePropertyMarketRowTextColors((View) parent, checking);
+    }
+
+    private void updatePropertyMarketRowTextColors(View view, boolean checking) {
+        if (view instanceof TextView) {
+            TextView text = (TextView) view;
+            if (checking) {
+                propertyMarketRowOriginalTextColors.putIfAbsent(text, text.getCurrentTextColor());
+                text.setTextColor(getColor(R.color.action_green));
+            } else {
+                Integer original = propertyMarketRowOriginalTextColors.remove(text);
+                if (original != null) text.setTextColor(original);
+            }
+            return;
         }
-        setPrimaryPriceColor(mainLine.getChildAt(1),
-                getColor(checking ? R.color.action_green : R.color.text_primary));
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int index = 0; index < group.getChildCount(); index++) {
+                updatePropertyMarketRowTextColors(group.getChildAt(index), checking);
+            }
+        }
     }
 
     private void updatePropertyMarketActionVisual() {
@@ -1948,20 +1963,6 @@ public class MainActivity extends AlertouActivity {
         amountParams.leftMargin = -dp(2);
         price.addView(amount, amountParams);
         return price;
-    }
-
-    private void setPrimaryPriceColor(View price, int color) {
-        if (price instanceof TextView) {
-            ((TextView) price).setTextColor(color);
-            return;
-        }
-        if (price instanceof LinearLayout) {
-            LinearLayout container = (LinearLayout) price;
-            for (int index = 0; index < container.getChildCount(); index++) {
-                View child = container.getChildAt(index);
-                if (child instanceof TextView) ((TextView) child).setTextColor(color);
-            }
-        }
     }
 
     private TextView createPropertyNewBadge() {
