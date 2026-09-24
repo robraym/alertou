@@ -1751,8 +1751,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         storeSourcesOnlineText.setText(showingProgress
                 ? getString(R.string.source_status_dot_online_progress, online, onlineTotal)
                 : getString(R.string.source_status_dot_online, online));
-        storeSourcesOnlineText.setTextColor(getColor(R.color.action));
-        storeSourcesOnlineText.setTextSize(offline > 0 && countPausedStoreSources() > 0 ? 12f : 14f);
+        storeSourcesOnlineText.setTextColor(getColor(R.color.text_secondary));
+        storeSourcesOnlineText.setTextSize(12f);
         storeSourcesOnlineText.setVisibility(View.VISIBLE);
         int paused = countPausedStoreSources();
         if (offline > 0 || paused > 0) {
@@ -1770,7 +1770,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                         : getResources().getQuantityString(R.plurals.source_status_dot_paused, paused, paused));
             }
             storeSourcesOfflineText.setTextColor(getColor(offline > 0 ? R.color.danger : R.color.text_secondary));
-            storeSourcesOfflineText.setTextSize(offline > 0 && paused > 0 ? 12f : 14f);
+            storeSourcesOfflineText.setTextSize(13f);
             storeSourcesOfflineText.setVisibility(View.VISIBLE);
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);
