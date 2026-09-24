@@ -795,8 +795,12 @@ abstract class StoredOffersActivity extends AlertouActivity {
         amount.setTextColor(getColor(R.color.text_primary));
         amount.setTextSize(14);
         amount.setSingleLine(true);
-        amount.setPadding(dp(3), 0, 0, 0);
-        price.addView(amount);
+        LinearLayout.LayoutParams amountParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        amountParams.leftMargin = -dp(2);
+        price.addView(amount, amountParams);
         return price;
     }
 
