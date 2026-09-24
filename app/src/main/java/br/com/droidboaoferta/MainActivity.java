@@ -1088,11 +1088,10 @@ public class MainActivity extends AlertouActivity {
         }
         if (running != null) {
             if (zipSection) {
-                int position = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingPosition();
-                int total = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingTotal();
-                if (total > 0) {
+                String street = running.getPropertyStreet().trim();
+                if (!street.isEmpty()) {
                     return appendCheckDuration(getString(
-                            R.string.property_zip_section_updating_listings, position, total),
+                            R.string.property_zip_section_updating_street, street),
                             PropertyPageMonitor.getInstance().getCurrentMarketReferencesDurationMillis());
                 }
             }
@@ -1192,12 +1191,10 @@ public class MainActivity extends AlertouActivity {
         propertyZipSummaryView.setTextColor(getColor(monitor.isCheckingPropertyZip()
                 ? R.color.action_green : R.color.text_secondary));
         if (propertyZipCountView != null) {
-            int position = monitor.getCheckingPropertyZipListingPosition();
-            int total = monitor.getCheckingPropertyZipListingTotal();
-            if (total > 0) {
-                propertyZipCountView.setText(getResources().getQuantityString(
-                        R.plurals.property_zip_section_progress, total, position, total));
-            }
+            int offerCount = getPropertyZipReferenceOfferCount(displayedOffers)
+                    + getPropertyZipOfferCount(displayedOffers);
+            propertyZipCountView.setText(stripCountBullet(getPropertyReferenceCountText(
+                    SECTION_PROPERTY_ZIP_EXPANDED, offerCount)));
         }
         if (propertyZipActionView != null) {
             updatePropertyRefreshIcon(propertyZipActionView, monitor.isCheckingPropertyZip(),
@@ -1298,6 +1295,15 @@ public class MainActivity extends AlertouActivity {
 
     private String getPropertyReferenceCountText(String preferenceKey, int offerCount) {
         boolean propertyMarketSection = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey);
+        boolean propertyZipSection = SECTION_PROPERTY_ZIP_EXPANDED.equals(preferenceKey);
+        if (propertyZipSection && PropertyPageMonitor.getInstance().isCheckingPropertyZip()) {
+            int position = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingPosition();
+            int total = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingTotal();
+            if (position > 0 && total > 0) {
+                return getResources().getQuantityString(
+                        R.plurals.property_zip_offer_section_progress, total, position, total);
+            }
+        }
         int checkingPosition = propertyMarketSection
                 ? PropertyPageMonitor.getInstance().getCheckingMarketReferencePosition()
                 : 0;
@@ -1919,7 +1925,15 @@ public class MainActivity extends AlertouActivity {
     }
 
     private TextView createPropertyGoodPriceBadge() {
-        return createPropertyStatusBadge(R.string.property_good_price_badge);
+        TextView badge = createPropertyStatusBadge(R.string.property_good_price_badge);
+        badge.setTextSize(8.5f);
+        badge.setSingleLine(false);
+        badge.setMaxLines(2);
+        badge.setGravity(Gravity.CENTER);
+        badge.setIncludeFontPadding(false);
+        badge.setLineSpacing(0f, 0.9f);
+        badge.setPadding(dp(5), dp(2), dp(5), dp(2));
+        return badge;
     }
 
     private TextView createPropertyStatusBadge(int labelResource) {

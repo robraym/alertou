@@ -382,6 +382,7 @@
     <string name="property_market_reference_section_updating">Consultando imóveis agora…</string>
     <string name="property_market_reference_section_updating_property">Consultando %1$s · %2$s</string>
     <string name="property_zip_section_updating_listings">Consultando %1$d de %2$d imóveis</string>
+    <string name="property_zip_section_updating_street">Consultando %1$s</string>
     <string name="profile_check_interval_summary">Consulta a cada %1$s</string>
     <string name="profile_check_interval_option">A cada %1$s</string>
     <string name="profile_check_interval_seconds">%1$d segundos</string>
@@ -545,6 +546,10 @@
         <item quantity="one">• %1$d de %2$d imóvel</item>
         <item quantity="other">• %1$d de %2$d imóveis</item>
     </plurals>
+    <plurals name="property_zip_offer_section_progress">
+        <item quantity="one">%1$d de %2$d oferta</item>
+        <item quantity="other">%1$d de %2$d ofertas</item>
+    </plurals>
     <string name="archived_screen_title">Salvas</string>
     <string name="archived_card_title">Ofertas salvas</string>
     <string name="archived_empty">Nenhuma oferta salva.</string>
@@ -644,7 +649,7 @@
     <string name="property_notification_explanation">%1$s • %2$s m² • %3$s</string>
     <string name="property_notification_explanation_many">Novas opções de compra em %1$s.</string>
     <string name="property_new_ad_badge">Novo</string>
-    <string name="property_good_price_badge">Ótimo preço</string>
+    <string name="property_good_price_badge">Ótimo&#10;preço</string>
     <string name="property_history_previous_reference">⇄ Ver imóvel anterior</string>
     <string name="property_history_previous_reference_summary">Anúncio anterior: %1$s\n%2$s • %3$s</string>
     <string name="property_history_open_listing">Abrir anúncio</string>
