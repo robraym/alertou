@@ -6,6 +6,8 @@ import android.content.SharedPreferences;
 final class PropertyMarketReferenceSettings {
     private static final String PREFS = "property_market_reference";
     private static final String KEY_ENABLED = "enabled";
+    private static final String KEY_SHOW_CONDOMINIUM = "show_condominium";
+    private static final String KEY_SHOW_ZIP = "show_zip";
     private static final String KEY_CHECK_INTERVAL_MINUTES = "check_interval_minutes";
     private static final String KEY_CHECK_INTERVAL_SECONDS = "check_interval_seconds";
     static final int DEFAULT_CHECK_INTERVAL_MINUTES = 15;
@@ -23,8 +25,38 @@ final class PropertyMarketReferenceSettings {
         SettingsBackup.changed(context);
     }
 
+    static boolean isCondominiumVisible(Context context) {
+        return preferences(context).getBoolean(KEY_SHOW_CONDOMINIUM, true);
+    }
+
+    static void setCondominiumVisible(Context context, boolean visible) {
+        preferences(context).edit().putBoolean(KEY_SHOW_CONDOMINIUM, visible).apply();
+        SettingsBackup.changed(context);
+    }
+
+    static boolean isZipVisible(Context context) {
+        return preferences(context).getBoolean(KEY_SHOW_ZIP, true);
+    }
+
+    static void setZipVisible(Context context, boolean visible) {
+        preferences(context).edit().putBoolean(KEY_SHOW_ZIP, visible).apply();
+        SettingsBackup.changed(context);
+    }
+
     static int getSummaryResource(Context context) {
         return isEnabled(context)
+                ? R.string.property_market_reference_enabled
+                : R.string.property_market_reference_disabled;
+    }
+
+    static int getCondominiumVisibilitySummaryResource(Context context) {
+        return isCondominiumVisible(context)
+                ? R.string.property_market_reference_enabled
+                : R.string.property_market_reference_disabled;
+    }
+
+    static int getZipVisibilitySummaryResource(Context context) {
+        return isZipVisible(context)
                 ? R.string.property_market_reference_enabled
                 : R.string.property_market_reference_disabled;
     }

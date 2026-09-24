@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.SystemClock;
-import android.content.SharedPreferences;
 import android.net.Uri;
 
 import androidx.core.app.NotificationCompat;
@@ -22,11 +21,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 final class PropertyPageMonitor {
     static final String ACTION_MARKET_REFERENCE_PROGRESS =
             "br.com.droidboaoferta.PROPERTY_MARKET_REFERENCE_PROGRESS";
+    static final String EXTRA_PROGRESS_IS_ZIP = "property_zip_progress";
     private static final String STATUS_PREFS = "property_market_check_status";
     private static final String KEY_LAST_DURATION = "last_duration";
     private static final String PREFS = "property_page_monitor";
@@ -36,13 +38,24 @@ final class PropertyPageMonitor {
 
     private Context appContext;
     private final CoalescingCheckScheduler scheduler = new CoalescingCheckScheduler();
+    private ExecutorService manualCheckExecutor = Executors.newFixedThreadPool(2);
     private volatile boolean marketReferencesRunning;
     private volatile long checkingMarketReferenceInterestId;
     private volatile int checkingMarketReferencePosition;
     private volatile int checkingMarketReferenceTotal;
     private volatile int checkingPropertyZipPosition;
     private volatile int checkingPropertyZipTotal;
+    private volatile boolean checkingPropertyZip;
+    private volatile int checkingPropertyZipListingPosition;
+    private volatile int checkingPropertyZipListingTotal;
     private volatile long marketReferencesStartedAt;
+    private volatile boolean manualZipCheckRunning;
+    private volatile long manualZipCheckStartedAt;
+    private volatile int manualZipListingPosition;
+    private volatile int manualZipListingTotal;
+    private volatile boolean manualCondominiumCheckRunning;
+    private volatile long manualCondominiumCheckStartedAt;
+    private volatile long manualCondominiumInterestId;
 
     private PropertyPageMonitor() {
     }
@@ -57,14 +70,26 @@ final class PropertyPageMonitor {
         scheduler.start(this::checkAllSafely, TimeUnit.SECONDS.toMillis(PropertyMarketReferenceSettings.getCheckIntervalSeconds(appContext)));
     }
 
-    synchronized void stop() { scheduler.stop(); }
+    synchronized void stop() {
+        scheduler.stop();
+        manualCheckExecutor.shutdownNow();
+        manualCheckExecutor = Executors.newFixedThreadPool(2);
+        manualZipCheckRunning = false;
+        manualZipCheckStartedAt = 0L;
+        manualZipListingPosition = 0;
+        manualZipListingTotal = 0;
+        manualCondominiumCheckRunning = false;
+        manualCondominiumCheckStartedAt = 0L;
+        manualCondominiumInterestId = 0L;
+    }
 
     boolean isCheckingMarketReferences() {
-        return marketReferencesRunning;
+        return marketReferencesRunning || manualZipCheckRunning || manualCondominiumCheckRunning;
     }
 
     long getCheckingMarketReferenceInterestId() {
-        return marketReferencesRunning ? checkingMarketReferenceInterestId : 0L;
+        return marketReferencesRunning ? checkingMarketReferenceInterestId
+                : (manualCondominiumCheckRunning ? manualCondominiumInterestId : 0L);
     }
 
     int getCheckingMarketReferencePosition() {
@@ -83,7 +108,32 @@ final class PropertyPageMonitor {
         return marketReferencesRunning ? checkingPropertyZipTotal : 0;
     }
 
+    boolean isCheckingPropertyZip() {
+        return manualZipCheckRunning || (marketReferencesRunning && checkingPropertyZip);
+    }
+
+    boolean isCheckingPropertyCondominium() {
+        return manualCondominiumCheckRunning || (marketReferencesRunning
+                && checkingMarketReferenceInterestId != 0L && !checkingPropertyZip);
+    }
+
+    int getCheckingPropertyZipListingPosition() {
+        if (manualZipCheckRunning) return manualZipListingPosition;
+        return isCheckingPropertyZip() ? checkingPropertyZipListingPosition : 0;
+    }
+
+    int getCheckingPropertyZipListingTotal() {
+        if (manualZipCheckRunning) return manualZipListingTotal;
+        return isCheckingPropertyZip() ? checkingPropertyZipListingTotal : 0;
+    }
+
     long getCurrentMarketReferencesDurationMillis() {
+        if (manualZipCheckRunning && manualZipCheckStartedAt > 0L) {
+            return Math.max(0L, SystemClock.elapsedRealtime() - manualZipCheckStartedAt);
+        }
+        if (manualCondominiumCheckRunning && manualCondominiumCheckStartedAt > 0L) {
+            return Math.max(0L, SystemClock.elapsedRealtime() - manualCondominiumCheckStartedAt);
+        }
         long startedAt = marketReferencesStartedAt;
         return !marketReferencesRunning || startedAt <= 0L ? 0L
                 : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
@@ -99,6 +149,10 @@ final class PropertyPageMonitor {
         List<Long> order = preferredInterestOrder == null
                 ? Collections.emptyList()
                 : new ArrayList<>(new LinkedHashSet<>(preferredInterestOrder));
+        if (!order.isEmpty()) {
+            manualCheckExecutor.execute(() -> checkSelectedInterestsSafely(order));
+            return;
+        }
         Runnable requestedCheck = () -> checkAllSafely(order);
         if (!scheduler.isStarted()) {
             scheduler.start(this::checkAllSafely,
@@ -171,6 +225,11 @@ final class PropertyPageMonitor {
         long marketCheckStartedAt = includeMarketReferences ? SystemClock.elapsedRealtime() : 0L;
         List<Interest> orderedInterests = orderPropertyInterests(
                 new InterestRepository(context).getAll(), preferredInterestOrder);
+        // Uma consulta disparada pelo botão de uma seção deve consultar somente os alertas
+        // daquela seção. A ordem preferida não pode fazer os demais imóveis rodarem depois.
+        if (preferredInterestOrder != null && !preferredInterestOrder.isEmpty()) {
+            orderedInterests.removeIf(interest -> !preferredInterestOrder.contains(interest.getId()));
+        }
         if (includeMarketReferences) {
             marketReferencesRunning = true;
             marketReferencesStartedAt = marketCheckStartedAt;
@@ -181,6 +240,9 @@ final class PropertyPageMonitor {
             checkingPropertyZipPosition = 0;
             checkingPropertyZipTotal = countCurrentPropertyInterests(
                     context, orderedInterests, true);
+            checkingPropertyZip = false;
+            checkingPropertyZipListingPosition = 0;
+            checkingPropertyZipListingTotal = 0;
         }
         try {
         for (Interest interest : orderedInterests) {
@@ -191,6 +253,9 @@ final class PropertyPageMonitor {
             boolean includeMarketReferenceForInterest = includeMarketReferences;
             if (includeMarketReferenceForInterest) {
                 checkingMarketReferenceInterestId = interest.getId();
+                checkingPropertyZip = interest.isPropertyZip();
+                checkingPropertyZipListingPosition = 0;
+                checkingPropertyZipListingTotal = 0;
                 if (interest.isPropertyZip()) {
                     checkingPropertyZipPosition++;
                 } else if (interest.isPropertyCondominium()) {
@@ -199,8 +264,7 @@ final class PropertyPageMonitor {
             }
             SourceCheckStatus.begin(context, interest.getId());
             // This is only a visual step change. It must not recreate the full list.
-            context.sendBroadcast(new Intent(ACTION_MARKET_REFERENCE_PROGRESS)
-                    .setPackage(context.getPackageName()));
+            sendProgressBroadcast(context, interest.isPropertyZip());
             try {
                 checkInterest(context, interest, includeMarketReferenceForInterest);
             } catch (Exception error) {
@@ -227,6 +291,9 @@ final class PropertyPageMonitor {
                 checkingMarketReferenceTotal = 0;
                 checkingPropertyZipPosition = 0;
                 checkingPropertyZipTotal = 0;
+                checkingPropertyZip = false;
+                checkingPropertyZipListingPosition = 0;
+                checkingPropertyZipListingTotal = 0;
                 marketReferencesStartedAt = 0L;
                 marketReferencesRunning = false;
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
@@ -392,8 +459,18 @@ final class PropertyPageMonitor {
         for (PropertyPageListing listing : result.getSaleListings()) {
             candidates.put(listing.getId(), listing);
         }
+        List<PropertyPageListing> addressCandidates = new ArrayList<>();
         for (PropertyPageListing listing : candidates.values()) {
+            if (matchesPropertyZipAddress(interest, listing)) {
+                addressCandidates.add(listing);
+            }
+        }
+        updatePropertyZipListingProgress(context, interest, 0, addressCandidates.size());
+        int addressCandidatePosition = 0;
+        for (PropertyPageListing listing : addressCandidates) {
             if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+            updatePropertyZipListingProgress(context, interest,
+                    ++addressCandidatePosition, addressCandidates.size());
             boolean previouslyObserved = historyRepository.contains(
                     interest.getId(), listing);
             boolean matchesArea = listing.matchesArea(
@@ -421,6 +498,7 @@ final class PropertyPageMonitor {
             }
             PropertyPageListing currentListing = resolveCurrentListing(listing, metadata);
             if (currentListing == null) continue;
+            if (!matchesPropertyZipAddress(interest, currentListing)) continue;
             matchesArea = currentListing.matchesArea(
                     interest.getMinimumArea(), interest.getMaximumArea());
             boolean eligible = currentListing.matches(interest.getMinimumArea(),
@@ -465,8 +543,7 @@ final class PropertyPageMonitor {
                 );
         if (matches.isEmpty()) {
             if (removedStaleOffer || changedMarketReference) {
-                context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
-                        .setPackage(context.getPackageName()));
+                notifyPropertyOfferChanges(context);
             }
             return;
         }
@@ -499,8 +576,7 @@ final class PropertyPageMonitor {
         preferences.edit().putString(stateKey, notifiedPrices.toString()).apply();
         if (changed.isEmpty()) {
             if (removedStaleOffer || changedMarketReference) {
-                context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
-                        .setPackage(context.getPackageName()));
+                notifyPropertyOfferChanges(context);
             }
             return;
         }
@@ -530,6 +606,17 @@ final class PropertyPageMonitor {
             ));
         }
         showNotification(context, interest, result, changed);
+        notifyPropertyOfferChanges(context);
+    }
+
+    /**
+     * A market refresh can update many CEP listings. Rebuilding Alertou for every listing
+     * blocks touch handling; the final broadcast at the end of the refresh renders all data.
+     */
+    private void notifyPropertyOfferChanges(Context context) {
+        if (marketReferencesRunning || manualZipCheckRunning || manualCondominiumCheckRunning) {
+            return;
+        }
         context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                 .setPackage(context.getPackageName()));
     }
@@ -621,6 +708,96 @@ final class PropertyPageMonitor {
                 || replacementHistoryChange == PropertyHistoryRepository.CHANGED);
     }
 
+    private void checkSelectedInterestsSafely(List<Long> interestIds) {
+        Context context = appContext;
+        if (!MonitorRunPolicy.canRun(context)) return;
+        try {
+            for (Long interestId : interestIds) {
+                for (Interest interest : new InterestRepository(context).getAll()) {
+                    if (interest.getId() != interestId || !interest.isProperty()) continue;
+                    if (interest.isPropertyZip()) {
+                        manualZipCheckRunning = true;
+                        manualZipCheckStartedAt = SystemClock.elapsedRealtime();
+                        manualZipListingPosition = 0;
+                        manualZipListingTotal = 0;
+                    } else if (interest.isPropertyCondominium()) {
+                        manualCondominiumCheckRunning = true;
+                        manualCondominiumCheckStartedAt = SystemClock.elapsedRealtime();
+                        manualCondominiumInterestId = interest.getId();
+                    }
+                    SourceCheckStatus.begin(context, interest.getId());
+                    sendProgressBroadcast(context, interest.isPropertyZip());
+                    try {
+                        checkInterest(context, interest, true);
+                    } catch (Exception error) {
+                        SourceCheckStatus.failed(context, interest.getId(), error);
+                    } finally {
+                        SourceCheckStatus.finish(context, interest.getId(),
+                                TimeUnit.SECONDS.toMillis(
+                                        PropertyMarketReferenceSettings.getCheckIntervalSeconds(context)));
+                        if (interest.isPropertyZip()) {
+                            manualZipCheckRunning = false;
+                            manualZipCheckStartedAt = 0L;
+                            manualZipListingPosition = 0;
+                            manualZipListingTotal = 0;
+                        } else if (interest.isPropertyCondominium()) {
+                            manualCondominiumCheckRunning = false;
+                            manualCondominiumCheckStartedAt = 0L;
+                            manualCondominiumInterestId = 0L;
+                        }
+                        sendProgressBroadcast(context, interest.isPropertyZip());
+                    }
+                    break;
+                }
+            }
+            PropertyHistoryRepository.publishPendingChanges(context);
+            context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                    .setPackage(context.getPackageName()));
+        } finally {
+            // Each interest clears only its own state above, so concurrent CEP and
+            // condominium requests cannot hide one another's progress.
+        }
+    }
+
+    static boolean matchesPropertyZipAddress(Interest interest, PropertyPageListing listing) {
+        if (interest == null || !interest.isPropertyZip()) return true;
+        if (listing == null) return false;
+        String requestedStreet = normalizeStreetForPropertyZip(interest.getPropertyStreet());
+        String listingAddress = normalizeStreetForPropertyZip(listing.getAddress());
+        return !requestedStreet.isEmpty()
+                && !listingAddress.isEmpty()
+                && listingAddress.contains(requestedStreet);
+    }
+
+    private void updatePropertyZipListingProgress(Context context, Interest interest,
+                                                  int position, int total) {
+        if (!interest.isPropertyZip()) return;
+        if (manualZipCheckRunning) {
+            manualZipListingPosition = Math.max(0, position);
+            manualZipListingTotal = Math.max(0, total);
+        } else {
+            checkingPropertyZipListingPosition = Math.max(0, position);
+            checkingPropertyZipListingTotal = Math.max(0, total);
+        }
+        sendProgressBroadcast(context, true);
+    }
+
+    private static void sendProgressBroadcast(Context context, boolean propertyZip) {
+        context.sendBroadcast(new Intent(ACTION_MARKET_REFERENCE_PROGRESS)
+                .putExtra(EXTRA_PROGRESS_IS_ZIP, propertyZip)
+                .setPackage(context.getPackageName()));
+    }
+
+    private static String normalizeStreetForPropertyZip(String value) {
+        String normalized = OfferTextParser.normalize(value)
+                .replaceAll("\\b(dr|drs)\\b", "doutor")
+                .replaceAll("\\b(prof|profa)\\b", "professor")
+                .replaceAll("\\b(rua|r|avenida|av|alameda|travessa|estrada|rodovia)\\b", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+        return normalized;
+    }
+
     static PropertyPageListing resolveCurrentListing(PropertyPageListing listing,
                                                        PropertyListingMetadata metadata) {
         String normalizedUrl = PropertyPageClient.normalizeListingUrl(listing.getUrl());
@@ -628,7 +805,8 @@ final class PropertyPageMonitor {
         if ("Loft".equals(PropertyPageClient.getSourceName(normalizedUrl))) return listing;
         if (metadata == null || !metadata.isVerifiedFor(listing.getId())) return null;
         return new PropertyPageListing(listing.getId(), metadata.getArea(), metadata.getSalePrice(),
-                listing.getDescription(), listing.getUrl(), listing.isNewAd());
+                listing.getDescription(), listing.getUrl(), listing.isNewAd(),
+                listing.isGoodPrice(), listing.getAddress());
     }
 
     private void forgetUnavailableNotification(Context context, long interestId, String listingId) {

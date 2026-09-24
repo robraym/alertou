@@ -109,27 +109,30 @@ public class PropertyPageParserTest {
     }
 
     @Test
-    public void parsesOnlyGoodPriceListingsFromSearchPages() {
+    public void parsesAllSaleListingsFromSearchPages() {
         String nextData = "{\"props\":{\"pageProps\":{\"results\":["
                 + "{\"id\":\"good-1\",\"area\":35,\"salePrice\":320000,\"forSale\":true,"
                 + "\"shortSaleDescription\":\"Apartamento perto do metrô\","
                 + "\"listingTags\":[\"SALE_GOOD_PRICE\",\"NEW_AD\"]},"
                 + "{\"id\":\"regular-1\",\"area\":36,\"salePrice\":310000,\"forSale\":true,"
+                + "\"address\":{\"address\":\"Rua Doutor Plínio Barreto\",\"city\":\"São Paulo\"},"
                 + "\"listingTags\":[\"NEW_AD\"]},"
                 + "{\"id\":\"rent-1\",\"area\":37,\"salePrice\":300000,\"forSale\":false,"
                 + "\"listingTags\":[\"SALE_GOOD_PRICE\"]}]}}}";
         String html = "<script id=\"__NEXT_DATA__\" type=\"application/json\">"
                 + nextData + "</script>";
 
-        List<PropertyPageListing> listings = PropertyPageParser.parseGoodPriceSearch(html)
+        List<PropertyPageListing> listings = PropertyPageParser.parseSearch(html)
                 .getSaleListings();
 
-        assertEquals(1, listings.size());
+        assertEquals(2, listings.size());
         assertEquals("good-1", listings.get(0).getId());
         assertEquals(35d, listings.get(0).getArea(), 0.001d);
         assertEquals(320000d, listings.get(0).getSalePrice(), 0.001d);
         assertEquals("Apartamento perto do metrô", listings.get(0).getDescription());
         assertTrue(listings.get(0).isNewAd());
+        assertEquals("regular-1", listings.get(1).getId());
+        assertEquals("Rua Doutor Plínio Barreto", listings.get(1).getAddress());
     }
 
     @Test

@@ -337,28 +337,30 @@ abstract class StoredOffersActivity extends AlertouActivity {
             header.addView(icon, iconParams);
         }
 
-        LinearLayout titleLine = new LinearLayout(this);
-        titleLine.setGravity(Gravity.CENTER_VERTICAL);
-        titleLine.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout titleColumn = new LinearLayout(this);
+        titleColumn.setGravity(Gravity.CENTER_VERTICAL);
+        titleColumn.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
         title.setText(titleResource);
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(16);
         title.setSingleLine(true);
         title.setEllipsize(TextUtils.TruncateAt.END);
-        titleLine.addView(title, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
+        titleColumn.addView(title, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         TextView count = new TextView(this);
         count.setText(getResources().getQuantityString(
-                R.plurals.dashboard_offer_section_count, offers.size(), offers.size()));
-        count.setTextColor(getColor(R.color.action));
-        count.setTextSize(14);
+                R.plurals.dashboard_offer_section_count, offers.size(), offers.size())
+                .replaceFirst("^•\\s*", ""));
+        count.setTextColor(getColor(R.color.text_secondary));
+        count.setTextSize(13);
+        count.setSingleLine(true);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        countParams.leftMargin = dp(6);
-        titleLine.addView(count, countParams);
-        header.addView(titleLine, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        countParams.topMargin = dp(2);
+        titleColumn.addView(count, countParams);
+        header.addView(titleColumn, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         ImageButton toggle = new ImageButton(this);

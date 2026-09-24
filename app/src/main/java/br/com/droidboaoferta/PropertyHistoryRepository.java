@@ -107,6 +107,8 @@ final class PropertyHistoryRepository {
                         .put("listing_id", listing.getId())
                         .put("title", listing.getDescription())
                         .put("url", normalizeListingUrl(listing.getUrl()))
+                        .put("address", listing.getAddress())
+                        .put("good_price", listing.isGoodPrice())
                         .put("first_seen_at", item.optLong("first_seen_at", observedAt))
                         .put("last_seen_at", observedAt)
                         // "Novo" indica que o Alertou encontrou o anúncio agora, não uma
@@ -357,7 +359,8 @@ final class PropertyHistoryRepository {
             double price = last == null ? item.optDouble("last_summary_price", 0d) : last.optDouble("price");
             if (area > 0d && price > 0d) {
                 listings.add(new PropertyPageListing(item.optString("listing_id"), area, price,
-                        item.optString("title"), item.optString("url")));
+                        item.optString("title"), item.optString("url"), false, false,
+                        item.optString("address")));
             }
         }
         return listings;
@@ -505,6 +508,7 @@ final class PropertyHistoryRepository {
                 item.optString("title", ""), normalizeListingUrl(item.optString("url", "")),
                 item.optLong("first_seen_at", 0L), item.optLong("last_seen_at", 0L),
                 item.optLong("first_publication_at", 0L), item.optBoolean("new_ad", false),
+                item.optBoolean("good_price", false),
                 points, item.optString("validation_status", "available"),
                 (item.optJSONObject("legacy_unverified") != null
                         && !item.optBoolean("legacy_history_restored", false))

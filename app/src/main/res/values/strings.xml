@@ -359,12 +359,16 @@
     <string name="samsung_discount_offer_source_title">Samsung Desconto</string>
     <string name="samsung_discount_offer_open_link">Editar página da Samsung Desconto</string>
     <string name="samsung_discount_offer_source_check_pending">Aguardando primeira consulta</string>
-    <string name="property_market_reference_title">Imóveis em oferta</string>
-    <string name="property_market_reference_dialog_title">Imóveis em oferta</string>
+    <string name="property_market_reference_title">Imóveis por condomínio</string>
+    <string name="property_market_reference_dialog_title">Imóveis por condomínio</string>
     <string name="property_market_reference_enabled">Mostrar no Alertou</string>
     <string name="property_market_reference_disabled">Não mostrar</string>
-    <string name="property_market_reference_enable">Mostrar imóveis em oferta</string>
-    <string name="property_market_reference_disable">Não mostrar imóveis em oferta</string>
+    <string name="property_market_reference_enable">Mostrar imóveis por condomínio</string>
+    <string name="property_market_reference_disable">Não mostrar imóveis por condomínio</string>
+    <string name="property_zip_display_title">Imóveis por CEP</string>
+    <string name="property_zip_display_dialog_title">Imóveis por CEP</string>
+    <string name="property_zip_display_enable">Mostrar imóveis por CEP</string>
+    <string name="property_zip_display_disable">Não mostrar imóveis por CEP</string>
     <string name="property_interval_title">Imóveis</string>
     <string name="property_interval_dialog_title">Intervalo de consulta dos imóveis</string>
     <string name="property_interval_summary">Consulta a cada %1$d minutos</string>
@@ -377,6 +381,7 @@
     <string name="check_duration_minutes_seconds">%1$d min %2$d s</string>
     <string name="property_market_reference_section_updating">Consultando imóveis agora…</string>
     <string name="property_market_reference_section_updating_property">Consultando %1$s · %2$s</string>
+    <string name="property_zip_section_updating_listings">Consultando %1$d de %2$d imóveis</string>
     <string name="profile_check_interval_summary">Consulta a cada %1$s</string>
     <string name="profile_check_interval_option">A cada %1$s</string>
     <string name="profile_check_interval_seconds">%1$d segundos</string>
@@ -535,6 +540,10 @@
     <plurals name="property_market_reference_section_progress">
         <item quantity="one">• %1$d de %2$d oferta</item>
         <item quantity="other">• %1$d de %2$d ofertas</item>
+    </plurals>
+    <plurals name="property_zip_section_progress">
+        <item quantity="one">• %1$d de %2$d imóvel</item>
+        <item quantity="other">• %1$d de %2$d imóveis</item>
     </plurals>
     <string name="archived_screen_title">Salvas</string>
     <string name="archived_card_title">Ofertas salvas</string>

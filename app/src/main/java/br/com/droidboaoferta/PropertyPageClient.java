@@ -78,7 +78,7 @@ final class PropertyPageClient {
             return PropertyPageParser.parseLoftApiResponse(fetchHtml(loftDataUrl));
         }
         if (isSearchPath(URI.create(normalizedUrl).getPath())) {
-            return PropertyPageParser.parseGoodPriceSearch(fetchHtml(normalizedUrl));
+            return PropertyPageParser.parseSearch(fetchHtml(normalizedUrl));
         }
         return PropertyPageParser.parse(fetchHtml(normalizedUrl));
     }

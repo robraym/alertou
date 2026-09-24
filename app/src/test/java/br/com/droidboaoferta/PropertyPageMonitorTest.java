@@ -91,4 +91,18 @@ public class PropertyPageMonitorTest {
         assertTrue(PropertyPageMonitor.isNewLowestMarketReference(
                 previous, knownListing, PropertyHistoryRepository.CREATED));
     }
+
+    @Test
+    public void propertyZipAcceptsOnlyTheRequestedStreet() {
+        Interest zipInterest = new Interest(9L, "https://example.com", 420000d,
+                Interest.TYPE_PROPERTY_ZIP, 15d, 40d, "Rua Doutor Plínio Barreto", "",
+                "01313020", "Rua Doutor Plínio Barreto", "Bela Vista", "São Paulo", "SP");
+        PropertyPageListing sameStreet = new PropertyPageListing("same", 22d, 365000d, "",
+                "https://example.com/same", false, false, "R. Dr. Plínio Barreto, 100");
+        PropertyPageListing otherStreet = new PropertyPageListing("other", 22d, 365000d, "",
+                "https://example.com/other", false, false, "Rua Treze de Maio, 100");
+
+        assertTrue(PropertyPageMonitor.matchesPropertyZipAddress(zipInterest, sameStreet));
+        assertFalse(PropertyPageMonitor.matchesPropertyZipAddress(zipInterest, otherStreet));
+    }
 }

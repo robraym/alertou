@@ -12,6 +12,7 @@ final class PropertyHistoryEntry {
     private final long lastSeenAt;
     private final long firstPublicationAt;
     private final boolean newAd;
+    private final boolean goodPrice;
     private final List<PropertyHistoryPoint> points;
     private final String validationStatus;
     private final boolean hasUnverifiedHistory;
@@ -20,12 +21,20 @@ final class PropertyHistoryEntry {
                          long firstSeenAt, long lastSeenAt, long firstPublicationAt,
                          boolean newAd, List<PropertyHistoryPoint> points) {
         this(interestId, listingId, title, url, firstSeenAt, lastSeenAt, firstPublicationAt,
-                newAd, points, "available", false);
+                newAd, false, points, "available", false);
     }
 
     PropertyHistoryEntry(long interestId, String listingId, String title, String url,
                          long firstSeenAt, long lastSeenAt, long firstPublicationAt,
                          boolean newAd, List<PropertyHistoryPoint> points,
+                         String validationStatus, boolean hasUnverifiedHistory) {
+        this(interestId, listingId, title, url, firstSeenAt, lastSeenAt, firstPublicationAt,
+                newAd, false, points, validationStatus, hasUnverifiedHistory);
+    }
+
+    PropertyHistoryEntry(long interestId, String listingId, String title, String url,
+                         long firstSeenAt, long lastSeenAt, long firstPublicationAt,
+                         boolean newAd, boolean goodPrice, List<PropertyHistoryPoint> points,
                          String validationStatus, boolean hasUnverifiedHistory) {
         this.interestId = interestId;
         this.listingId = listingId;
@@ -35,6 +44,7 @@ final class PropertyHistoryEntry {
         this.lastSeenAt = lastSeenAt;
         this.firstPublicationAt = firstPublicationAt;
         this.newAd = newAd;
+        this.goodPrice = goodPrice;
         this.points = points == null ? Collections.emptyList() : Collections.unmodifiableList(points);
         this.validationStatus = validationStatus;
         this.hasUnverifiedHistory = hasUnverifiedHistory;
@@ -48,6 +58,7 @@ final class PropertyHistoryEntry {
     long getLastSeenAt() { return lastSeenAt; }
     long getFirstPublicationAt() { return firstPublicationAt; }
     boolean isNewAd() { return newAd; }
+    boolean isGoodPrice() { return goodPrice; }
     List<PropertyHistoryPoint> getPoints() { return points; }
     boolean isUnavailable() { return "unavailable".equals(validationStatus); }
     boolean isPendingValidation() { return "pending".equals(validationStatus); }

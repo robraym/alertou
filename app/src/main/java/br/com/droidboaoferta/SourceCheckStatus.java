@@ -26,10 +26,16 @@ final class SourceCheckStatus {
     }
     static void finish(Context context, long id, long intervalMs) {
         SharedPreferences preferences = prefs(context);
+        long startedAt = preferences.getLong(id + ":started_at", 0L);
+        long duration = startedAt <= 0L ? 0L
+                : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
         SharedPreferences.Editor editor = preferences.edit()
                 .putBoolean(id + ":running", false)
                 .remove(id + ":started_at")
                 .putLong(id + ":next", System.currentTimeMillis() + intervalMs);
+        if (duration > 0L) {
+            editor.putLong(id + ":last_duration", duration);
+        }
         if (!preferences.getBoolean(id + ":failed", false)) {
             editor.putLong(id + ":success", System.currentTimeMillis());
         }
@@ -51,6 +57,10 @@ final class SourceCheckStatus {
         long startedAt = prefs(context).getLong(id + ":started_at", 0L);
         return startedAt <= 0L ? 0L
                 : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
+    }
+
+    static long getLastDurationMillis(Context context, long id) {
+        return prefs(context).getLong(id + ":last_duration", 0L);
     }
 
     static void cancel(Context context, long id) {

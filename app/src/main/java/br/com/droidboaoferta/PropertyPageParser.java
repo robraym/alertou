@@ -36,7 +36,7 @@ final class PropertyPageParser {
             JSONObject listings = findObjectContainingArray(root, "saleListings");
             String condominiumName = findString(root, "nameFormatted");
             if (listings == null) {
-                List<PropertyPageListing> searchListings = parseGoodPriceSearchListings(root);
+                List<PropertyPageListing> searchListings = parseSearchListings(root);
                 if (!searchListings.isEmpty()) {
                     return new PropertyPageResult("", searchListings);
                 }
@@ -84,7 +84,7 @@ final class PropertyPageParser {
         }
     }
 
-    static PropertyPageResult parseGoodPriceSearch(String html) {
+    static PropertyPageResult parseSearch(String html) {
         if (html == null || html.trim().isEmpty()) {
             return new PropertyPageResult("", new ArrayList<>());
         }
@@ -94,7 +94,7 @@ final class PropertyPageParser {
         }
         try {
             JSONObject root = new JSONObject(matcher.group(1));
-            return new PropertyPageResult("", parseGoodPriceSearchListings(root));
+            return new PropertyPageResult("", parseSearchListings(root));
         } catch (Exception ignored) {
             return new PropertyPageResult("", new ArrayList<>());
         }
@@ -120,15 +120,15 @@ final class PropertyPageParser {
                 || containsTag(source.optJSONArray("listingTags"), "CLASSIFIED");
     }
 
-    private static List<PropertyPageListing> parseGoodPriceSearchListings(Object value) {
+    private static List<PropertyPageListing> parseSearchListings(Object value) {
         List<PropertyPageListing> parsed = new ArrayList<>();
-        collectGoodPriceSearchListings(value, parsed, new HashSet<>());
+        collectSearchListings(value, parsed, new HashSet<>());
         return parsed;
     }
 
-    private static void collectGoodPriceSearchListings(Object value,
-                                                       List<PropertyPageListing> parsed,
-                                                       Set<String> seenIds) {
+    private static void collectSearchListings(Object value,
+                                              List<PropertyPageListing> parsed,
+                                              Set<String> seenIds) {
         if (value instanceof JSONObject) {
             JSONObject object = (JSONObject) value;
             JSONObject source = object.optJSONObject("_source");
@@ -140,7 +140,6 @@ final class PropertyPageParser {
                     && Boolean.TRUE.equals(listing.opt("forSale"))
                     && area > 0d
                     && salePrice > 0d
-                    && containsTag(listing.optJSONArray("listingTags"), "SALE_GOOD_PRICE")
                     && seenIds.add(id)) {
                 String title = firstNonBlank(
                         findCondominiumName(listing),
@@ -160,18 +159,18 @@ final class PropertyPageParser {
                                 isQuintoAndarClassified(object, listing)
                         ),
                         containsTag(listing.optJSONArray("listingTags"), "NEW_AD"),
-                        true,
+                        containsTag(listing.optJSONArray("listingTags"), "SALE_GOOD_PRICE"),
                         buildListingAddress(listing)
                 ));
             }
             Iterator<String> keys = object.keys();
             while (keys.hasNext()) {
-                collectGoodPriceSearchListings(object.opt(keys.next()), parsed, seenIds);
+                collectSearchListings(object.opt(keys.next()), parsed, seenIds);
             }
         } else if (value instanceof JSONArray) {
             JSONArray array = (JSONArray) value;
             for (int index = 0; index < array.length(); index++) {
-                collectGoodPriceSearchListings(array.opt(index), parsed, seenIds);
+                collectSearchListings(array.opt(index), parsed, seenIds);
             }
         }
     }
@@ -502,7 +501,11 @@ final class PropertyPageParser {
     private static String findString(Object value, String key) {
         if (value instanceof JSONObject) {
             JSONObject object = (JSONObject) value;
-            String direct = object.optString(key, "");
+            Object directValue = object.opt(key);
+            String direct = directValue instanceof String
+                    || directValue instanceof Number
+                    || directValue instanceof Boolean
+                    ? String.valueOf(directValue) : "";
             if (!direct.trim().isEmpty()) {
                 return direct;
             }

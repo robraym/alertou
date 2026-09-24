@@ -51,6 +51,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AlertouActivity {
+    static final String ACTION_PROPERTY_DISPLAY_SETTINGS_CHANGED =
+            "br.com.droidboaoferta.PROPERTY_DISPLAY_SETTINGS_CHANGED";
     private final OfferSectionCache offerSectionCache = new OfferSectionCache();
     private String renderingSectionKey;
     private String renderingSectionFingerprint;
@@ -80,8 +82,11 @@ public class MainActivity extends AlertouActivity {
     private static final String PROPERTY_ZIP_CARD_TAG = "property_zip_card";
     private static final String PROPERTY_ZIP_ACTION_TAG = "property_zip_action";
     private static final String PROPERTY_MARKET_ROW_TAG_PREFIX = "property_market_row_";
+    private static final String OFFER_SECTION_CONTENT_TAG_PREFIX = "offer_section_content_";
+    private static final String OFFER_SECTION_TOGGLE_TAG_PREFIX = "offer_section_toggle_";
     private final android.os.Handler dashboardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
     private boolean dashboardUpdatePending;
+    private boolean propertyZipProgressUpdatePending;
     private final Runnable dashboardUpdate = () -> {
         dashboardUpdatePending = false;
         refreshDashboard(false);
@@ -90,16 +95,30 @@ public class MainActivity extends AlertouActivity {
         @Override
         public void run() {
             if (!isPropertyMarketUpdating()) return;
-            refreshPropertyMarketProgressText();
+            if (PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()) {
+                refreshPropertyMarketProgressText();
+            }
+            if (PropertyPageMonitor.getInstance().isCheckingPropertyZip()
+                    && !propertyZipProgressUpdatePending) {
+                refreshPropertyZipProgressVisuals();
+            }
             dashboardHandler.postDelayed(this, 1000L);
         }
+    };
+    private final Runnable propertyZipProgressUpdate = () -> {
+        propertyZipProgressUpdatePending = false;
+        refreshPropertyZipProgressVisuals();
     };
 
     private final BroadcastReceiver offerReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS.equals(intent.getAction())) {
-                refreshPropertyMarketProgressVisuals();
+                if (intent.getBooleanExtra(PropertyPageMonitor.EXTRA_PROGRESS_IS_ZIP, false)) {
+                    schedulePropertyZipProgressUpdate();
+                } else {
+                    refreshPropertyMarketProgressVisuals();
+                }
                 return;
             }
             if (!dashboardUpdatePending) {
@@ -125,6 +144,8 @@ public class MainActivity extends AlertouActivity {
     private ImageButton propertyZipActionView;
     private ImageView propertyMarketSpinningIcon;
     private ObjectAnimator propertyMarketRefreshAnimator;
+    private ImageView propertyZipSpinningIcon;
+    private ObjectAnimator propertyZipRefreshAnimator;
     private EditText offersSearchInput;
     private FloatingSearchController floatingSearchController;
     private InterestRepository interestRepository;
@@ -171,6 +192,7 @@ public class MainActivity extends AlertouActivity {
         clientManager.start(this);
         clientManager.refreshCloudBackupSoon();
         IntentFilter filter = new IntentFilter(OfferMonitor.ACTION_OFFER_FOUND);
+        filter.addAction(ACTION_PROPERTY_DISPLAY_SETTINGS_CHANGED);
         filter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
         filter.addAction(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED);
         filter.addAction(PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS);
@@ -186,17 +208,26 @@ public class MainActivity extends AlertouActivity {
     protected void onResume() {
         super.onResume();
         BottomNavigationController.resetInitialFocus(this);
-        refreshDashboard();
+        // Rebuilding every card here blocks the first touch after returning to Alertou.
+        // Existing data is already kept in memory and normal monitor events refresh it.
+        if (displayedOffers.isEmpty()) {
+            refreshDashboard();
+        }
     }
 
     @Override
     protected void onStop() {
         dashboardHandler.removeCallbacks(dashboardUpdate);
         dashboardHandler.removeCallbacks(propertyMarketProgressUpdate);
+        dashboardHandler.removeCallbacks(propertyZipProgressUpdate);
         if (propertyMarketRefreshAnimator != null) propertyMarketRefreshAnimator.cancel();
+        if (propertyZipRefreshAnimator != null) propertyZipRefreshAnimator.cancel();
         propertyMarketRefreshAnimator = null;
+        propertyZipRefreshAnimator = null;
         propertyMarketSpinningIcon = null;
+        propertyZipSpinningIcon = null;
         dashboardUpdatePending = false;
+        propertyZipProgressUpdatePending = false;
         floatingSearchController.collapse(false);
         unregisterReceiver(offerReceiver);
         super.onStop();
@@ -591,17 +622,23 @@ public class MainActivity extends AlertouActivity {
                 productOffers.add(offer);
             }
         }
-        addOfferSection(R.string.property_alerts_list_title, propertyMarketOffers, currency,
-                propertyHistoryRepository, SECTION_PROPERTY_MARKET_EXPANDED,
-                getPropertyMarketLastCheckSummary(propertyMarketOffers), R.drawable.ic_property_alert);
+        if (PropertyMarketReferenceSettings.isCondominiumVisible(this)) {
+            addOfferSection(R.string.property_alerts_list_title, propertyMarketOffers, currency,
+                    propertyHistoryRepository, SECTION_PROPERTY_MARKET_EXPANDED,
+                    getPropertyMarketLastCheckSummary(propertyMarketOffers), R.drawable.ic_property_alert);
+        }
         addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
                 propertyHistoryRepository, SECTION_COUPONS_EXPANDED, "");
-        addOfferSection(R.string.property_alerts_list_title, propertyOffers, currency,
-                propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED,
-                getPropertySectionStatus(interestsById, false), R.drawable.ic_property_alert);
-        addOfferSection(R.string.property_zip_alerts_list_title, propertyZipOffers, currency,
-                propertyHistoryRepository, SECTION_PROPERTY_ZIP_EXPANDED,
-                getPropertySectionStatus(interestsById, true), R.drawable.ic_property_zip_alert);
+        if (PropertyMarketReferenceSettings.isCondominiumVisible(this)) {
+            addOfferSection(R.string.property_alerts_list_title, propertyOffers, currency,
+                    propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED,
+                    getPropertySectionStatus(interestsById, false), R.drawable.ic_property_alert);
+        }
+        if (PropertyMarketReferenceSettings.isZipVisible(this)) {
+            addOfferSection(R.string.property_zip_alerts_list_title, propertyZipOffers, currency,
+                    propertyHistoryRepository, SECTION_PROPERTY_ZIP_EXPANDED,
+                    getPropertySectionStatus(interestsById, true), R.drawable.ic_property_zip_alert);
+        }
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
                 propertyHistoryRepository, SECTION_PRODUCTS_EXPANDED, "");
         offerSectionCache.end(offersContainer);
@@ -702,9 +739,9 @@ public class MainActivity extends AlertouActivity {
                 sectionAction.setOnClickListener(view -> trashOfferSection(offers));
             } else if (propertyZipSection) {
                 sectionAction.setOnClickListener(view -> refreshPropertyMarketPrices(true));
-                if (isPropertyMarketUpdating()) {
+                if (PropertyPageMonitor.getInstance().isCheckingPropertyZip()) {
                     sectionAction.setImageResource(R.drawable.ic_sync);
-                    animatePropertyMarketRefreshIcon(sectionAction);
+                    animatePropertyZipRefreshIcon(sectionAction);
                 }
             } else {
                 sectionAction.setOnClickListener(view -> toggleOfferSection(preferenceKey));
@@ -815,6 +852,7 @@ public class MainActivity extends AlertouActivity {
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse
                 : R.string.alerts_section_expand));
+        toggle.setTag(OFFER_SECTION_TOGGLE_TAG_PREFIX + preferenceKey);
         toggle.setPadding(dp(7), dp(7), dp(7), dp(7));
         toggle.setScaleType(ImageView.ScaleType.CENTER);
         toggle.setRotation(expanded ? 90f : 0f);
@@ -826,22 +864,23 @@ public class MainActivity extends AlertouActivity {
         header.setOnClickListener(view -> toggleOfferSection(preferenceKey));
         toggle.setOnClickListener(view -> toggleOfferSection(preferenceKey));
 
-        if (!expanded) {
-            addOfferSectionCard(card);
-            return;
-        }
-
         LinearLayout content = new LinearLayout(this);
+        content.setTag(OFFER_SECTION_CONTENT_TAG_PREFIX + preferenceKey);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setVisibility(expanded ? View.VISIBLE : View.GONE);
 
+        List<ObservedOffer> sectionOffers = propertyZipSection
+                ? groupPropertyZipOffersByStreet(offers) : offers;
         String previousGroup = null;
-        for (int index = 0; index < offers.size(); index++) {
-            ObservedOffer offer = offers.get(index);
+        for (int index = 0; index < sectionOffers.size(); index++) {
+            ObservedOffer offer = sectionOffers.get(index);
             boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
             boolean newLowestMarketReference = propertyMarketReference
                     && PropertyMarketWinnerStore.isActive(this, offer);
-            String group = OfferDateFormatter.getGroupKey(offer.getObservedAt());
-            String groupLabel = OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
+            String group = propertyZipSection
+                    ? getPropertyZipGroupName(offer) : OfferDateFormatter.getGroupKey(offer.getObservedAt());
+            String groupLabel = propertyZipSection
+                    ? group : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
             if (propertyMarketReference && propertyMarketSection) {
                 if (index > 0) {
                     content.addView(createOfferDivider());
@@ -894,6 +933,7 @@ public class MainActivity extends AlertouActivity {
                     getPropertyListingCode(offer),
                     expired,
                     propertyHistory != null && propertyHistory.isRecent(System.currentTimeMillis()),
+                    propertyHistory != null && propertyHistory.isGoodPrice(),
                     propertyHistory == null ? 0L : propertyHistory.getFirstPublicationAt(),
                     propertyPriceChange,
                     propertyPriceChangePercentage,
@@ -953,9 +993,37 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void toggleOfferSection(String preferenceKey) {
+        Object cardTag = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey)
+                ? PROPERTY_MARKET_CARD_TAG
+                : SECTION_PROPERTY_ZIP_EXPANDED.equals(preferenceKey)
+                ? PROPERTY_ZIP_CARD_TAG : null;
+        View cachedCard = cardTag == null ? null : offersContainer.findViewWithTag(cardTag);
+        if (cachedCard == null) {
+            for (int index = 0; index < offersContainer.getChildCount(); index++) {
+                View candidate = offersContainer.getChildAt(index);
+                if (candidate.findViewWithTag(OFFER_SECTION_TOGGLE_TAG_PREFIX + preferenceKey) != null) {
+                    cachedCard = candidate;
+                    break;
+                }
+            }
+        }
+        boolean expand = !isOfferSectionExpanded(preferenceKey);
         getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
-                .putBoolean(preferenceKey, !isOfferSectionExpanded(preferenceKey))
+                .putBoolean(preferenceKey, expand)
                 .apply();
+        if (cachedCard != null) {
+            View content = cachedCard.findViewWithTag(
+                    OFFER_SECTION_CONTENT_TAG_PREFIX + preferenceKey);
+            View toggle = cachedCard.findViewWithTag(
+                    OFFER_SECTION_TOGGLE_TAG_PREFIX + preferenceKey);
+            if (content != null && toggle instanceof ImageButton) {
+                content.setVisibility(expand ? View.VISIBLE : View.GONE);
+                toggle.setRotation(expand ? 90f : 0f);
+                toggle.setContentDescription(getString(expand
+                        ? R.string.alerts_section_collapse : R.string.alerts_section_expand));
+                return;
+            }
+        }
         renderOffers(displayedOffers);
     }
 
@@ -1019,6 +1087,15 @@ public class MainActivity extends AlertouActivity {
             }
         }
         if (running != null) {
+            if (zipSection) {
+                int position = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingPosition();
+                int total = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingTotal();
+                if (total > 0) {
+                    return appendCheckDuration(getString(
+                            R.string.property_zip_section_updating_listings, position, total),
+                            PropertyPageMonitor.getInstance().getCurrentMarketReferencesDurationMillis());
+                }
+            }
             return getString(
                     R.string.property_market_reference_section_updating_property,
                     getPropertyStatusName(running),
@@ -1026,7 +1103,8 @@ public class MainActivity extends AlertouActivity {
             );
         }
         if (latest != null) {
-            return formatCompactCheckTime(latestAt);
+            return appendCheckDuration(formatCompactCheckTime(latestAt),
+                    SourceCheckStatus.getLastDurationMillis(this, latest.getId()));
         }
         return getString(R.string.property_alerts_status_empty);
     }
@@ -1103,36 +1181,56 @@ public class MainActivity extends AlertouActivity {
         }
     }
 
-    private void refreshPropertyMarketProgressText() {
-        if (propertyMarketSummaryView == null && propertyZipSummaryView == null) {
+    /** CEP only changes its own progress text; listing rows remain untouched while loading. */
+    private void refreshPropertyZipProgressVisuals() {
+        if (propertyZipSummaryView == null) {
             refreshDashboard(false);
             return;
         }
-        if (propertyMarketSummaryView != null) {
-            propertyMarketSummaryView.setText(getPropertyMarketLastCheckSummary(displayedOffers));
-            propertyMarketSummaryView.setTextColor(getColor(R.color.action_green));
+        PropertyPageMonitor monitor = PropertyPageMonitor.getInstance();
+        propertyZipSummaryView.setText(getPropertySectionStatus(getInterestsById(), true));
+        propertyZipSummaryView.setTextColor(getColor(monitor.isCheckingPropertyZip()
+                ? R.color.action_green : R.color.text_secondary));
+        if (propertyZipCountView != null) {
+            int position = monitor.getCheckingPropertyZipListingPosition();
+            int total = monitor.getCheckingPropertyZipListingTotal();
+            if (total > 0) {
+                propertyZipCountView.setText(getResources().getQuantityString(
+                        R.plurals.property_zip_section_progress, total, position, total));
+            }
         }
+        if (propertyZipActionView != null) {
+            updatePropertyRefreshIcon(propertyZipActionView, monitor.isCheckingPropertyZip(),
+                    R.drawable.ic_property_zip_alert, true);
+        }
+    }
+
+    /** Several CEP listings can arrive at once; render only the latest progress state. */
+    private void schedulePropertyZipProgressUpdate() {
+        if (propertyZipProgressUpdatePending) return;
+        propertyZipProgressUpdatePending = true;
+        dashboardHandler.postDelayed(propertyZipProgressUpdate, 180L);
+    }
+
+    private void refreshPropertyMarketProgressText() {
+        if (propertyMarketSummaryView == null) {
+            refreshDashboard(false);
+            return;
+        }
+        propertyMarketSummaryView.setText(getPropertyMarketLastCheckSummary(displayedOffers));
+        propertyMarketSummaryView.setTextColor(getColor(
+                PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
+                        ? R.color.action_green : R.color.text_secondary));
         if (propertyMarketCountView != null) {
             propertyMarketCountView.setText(stripCountBullet(getPropertyReferenceCountText(
                     SECTION_PROPERTY_MARKET_EXPANDED,
                     getPropertyMarketReferenceOfferCount(displayedOffers))));
         }
-        if (propertyZipSummaryView != null) {
-            java.util.Map<Long, Interest> interestsById = getInterestsById();
-            propertyZipSummaryView.setText(getPropertySectionStatus(interestsById, true));
-            propertyZipSummaryView.setTextColor(getColor(R.color.action_green));
-        }
-        if (propertyZipCountView != null) {
-            propertyZipCountView.setText(stripCountBullet(getPropertyReferenceCountText(
-                    SECTION_PROPERTY_ZIP_EXPANDED,
-                    getPropertyZipReferenceOfferCount(displayedOffers))));
-        }
     }
 
     /** Updates only the two rows involved in a property-reference step. */
     private void refreshPropertyMarketProgressVisuals() {
-        if ((propertyMarketCardView == null || propertyMarketSummaryView == null)
-                && (propertyZipCardView == null || propertyZipSummaryView == null)) {
+        if (propertyMarketCardView == null || propertyMarketSummaryView == null) {
             // First step after opening Alertou: create the card once. Later steps reuse it.
             refreshDashboard(false);
             return;
@@ -1148,13 +1246,6 @@ public class MainActivity extends AlertouActivity {
                 updatePropertyMarketRowVisual((LinearLayout) taggedRow,
                         offer.getInterestId() == checkingInterestId);
             }
-            View taggedZipRow = propertyZipCardView == null ? null
-                    : propertyZipCardView.findViewWithTag(
-                    PROPERTY_MARKET_ROW_TAG_PREFIX + offer.getInterestId());
-            if (taggedZipRow instanceof LinearLayout) {
-                updatePropertyMarketRowVisual((LinearLayout) taggedZipRow,
-                        offer.getInterestId() == checkingInterestId);
-            }
         }
         updatePropertyMarketActionVisual();
     }
@@ -1168,63 +1259,52 @@ public class MainActivity extends AlertouActivity {
             ((TextView) ((LinearLayout) titleAndBadges).getChildAt(0)).setTextColor(
                     getColor(checking ? R.color.action_green : R.color.text_primary));
         }
-        View priceView = mainLine.getChildAt(1);
-        boolean alreadyRolling = priceView instanceof RollingPriceView;
-        if (checking == alreadyRolling || !(priceView instanceof TextView)) return;
-        String price = ((TextView) priceView).getText().toString();
-        mainLine.removeViewAt(1);
-        View replacement;
-        if (checking) {
-            replacement = createRollingPriceView(price);
-        } else {
-            TextView staticPrice = new TextView(this);
-            staticPrice.setText(price);
-            staticPrice.setTextColor(getColor(R.color.text_primary));
-            staticPrice.setTextSize(14);
-            staticPrice.setSingleLine(true);
-            staticPrice.setPadding(dp(6), 0, 0, 0);
-            replacement = staticPrice;
-        }
-        mainLine.addView(replacement, 1);
+        // The price stays static. Only the refresh icon and status communicate progress.
     }
 
     private void updatePropertyMarketActionVisual() {
-        if (isPropertyMarketUpdating()) {
-            if (propertyMarketActionView != null) {
-                propertyMarketActionView.setImageResource(R.drawable.ic_sync);
-                animatePropertyMarketRefreshIcon(propertyMarketActionView);
-            }
-            if (propertyZipActionView != null) {
-                propertyZipActionView.setImageResource(R.drawable.ic_sync);
-                animatePropertyMarketRefreshIcon(propertyZipActionView);
-            }
+        boolean checkingCondominium = PropertyPageMonitor.getInstance().isCheckingPropertyCondominium();
+        boolean checkingZip = PropertyPageMonitor.getInstance().isCheckingPropertyZip();
+        if (propertyMarketActionView != null) {
+            updatePropertyRefreshIcon(propertyMarketActionView, checkingCondominium,
+                    R.drawable.ic_property_alert, false);
+        }
+        if (propertyZipActionView != null) {
+            updatePropertyRefreshIcon(propertyZipActionView, checkingZip,
+                    R.drawable.ic_property_zip_alert, true);
+        }
+    }
+
+    private void updatePropertyRefreshIcon(ImageView icon, boolean checking,
+                                           int restingIcon, boolean zipIcon) {
+        if (checking) {
+            icon.setImageResource(R.drawable.ic_sync);
+            if (zipIcon) animatePropertyZipRefreshIcon(icon);
+            else animatePropertyMarketRefreshIcon(icon);
+            return;
+        }
+        if (zipIcon) {
+            if (propertyZipRefreshAnimator != null) propertyZipRefreshAnimator.cancel();
+            propertyZipRefreshAnimator = null;
+            propertyZipSpinningIcon = null;
         } else {
             if (propertyMarketRefreshAnimator != null) propertyMarketRefreshAnimator.cancel();
             propertyMarketRefreshAnimator = null;
             propertyMarketSpinningIcon = null;
-            if (propertyMarketActionView != null) {
-                propertyMarketActionView.setRotation(0f);
-                propertyMarketActionView.setImageResource(R.drawable.ic_property_alert);
-            }
-            if (propertyZipActionView != null) {
-                propertyZipActionView.setRotation(0f);
-                propertyZipActionView.setImageResource(R.drawable.ic_property_zip_alert);
-            }
         }
+        icon.setRotation(0f);
+        icon.setImageResource(restingIcon);
     }
 
     private String getPropertyReferenceCountText(String preferenceKey, int offerCount) {
         boolean propertyMarketSection = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey);
-        boolean propertyZipSection = SECTION_PROPERTY_ZIP_EXPANDED.equals(preferenceKey);
         int checkingPosition = propertyMarketSection
                 ? PropertyPageMonitor.getInstance().getCheckingMarketReferencePosition()
-                : (propertyZipSection
-                ? PropertyPageMonitor.getInstance().getCheckingPropertyZipPosition() : 0);
+                : 0;
         int checkingTotal = propertyMarketSection
                 ? PropertyPageMonitor.getInstance().getCheckingMarketReferenceTotal()
-                : (propertyZipSection
-                ? PropertyPageMonitor.getInstance().getCheckingPropertyZipTotal() : 0);
-        if ((propertyMarketSection || propertyZipSection) && isPropertyMarketUpdating()
+                : 0;
+        if (propertyMarketSection && PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
                 && checkingPosition > 0 && checkingTotal > 0) {
             return getResources().getQuantityString(
                     R.plurals.property_market_reference_section_progress,
@@ -1253,6 +1333,17 @@ public class MainActivity extends AlertouActivity {
         for (ObservedOffer offer : offers) {
             if (PropertyMarketReferenceSettings.isReference(offer)
                     && isZipInterest(interestsById, offer.getInterestId())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private int getPropertyZipOfferCount(List<ObservedOffer> offers) {
+        java.util.Map<Long, Interest> interestsById = getInterestsById();
+        int count = 0;
+        for (ObservedOffer offer : offers) {
+            if (isPropertyOffer(offer) && isZipInterest(interestsById, offer.getInterestId())) {
                 count++;
             }
         }
@@ -1288,21 +1379,27 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void refreshPropertyMarketPrices(boolean zipSection) {
-        if (!isPropertyMarketUpdating()) {
-            List<ObservedOffer> orderedOffers = new java.util.ArrayList<>(filterOffers(
-                    displayedOffers, offersSearchInput.getText().toString()));
-            sortOffers(orderedOffers);
-            java.util.Map<Long, Interest> interestsById = getInterestsById();
-            List<Long> visiblePropertyAlertIds = new java.util.ArrayList<>();
-            for (ObservedOffer offer : orderedOffers) {
-                if ((PropertyMarketReferenceSettings.isReference(offer) || isPropertyOffer(offer))
-                        && zipSection == isZipInterest(interestsById, offer.getInterestId())
-                        && !visiblePropertyAlertIds.contains(offer.getInterestId())) {
-                    visiblePropertyAlertIds.add(offer.getInterestId());
-                }
+        List<ObservedOffer> orderedOffers = new java.util.ArrayList<>(filterOffers(
+                displayedOffers, offersSearchInput.getText().toString()));
+        sortOffers(orderedOffers);
+        java.util.Map<Long, Interest> interestsById = getInterestsById();
+        List<Long> visiblePropertyAlertIds = new java.util.ArrayList<>();
+        for (ObservedOffer offer : orderedOffers) {
+            if ((PropertyMarketReferenceSettings.isReference(offer) || isPropertyOffer(offer))
+                    && zipSection == isZipInterest(interestsById, offer.getInterestId())
+                    && !visiblePropertyAlertIds.contains(offer.getInterestId())) {
+                visiblePropertyAlertIds.add(offer.getInterestId());
             }
-            PropertyPageMonitor.getInstance().checkNow(this, visiblePropertyAlertIds);
         }
+        for (Interest interest : interestRepository.getAll()) {
+            if (interest.isProperty()
+                    && zipSection == interest.isPropertyZip()
+                    && !visiblePropertyAlertIds.contains(interest.getId())) {
+                visiblePropertyAlertIds.add(interest.getId());
+            }
+        }
+        // Uma consulta manual sempre entra na fila; ela não é descartada por uma automática em curso.
+        PropertyPageMonitor.getInstance().checkNow(this, visiblePropertyAlertIds);
     }
 
     private void animatePropertyMarketRefreshIcon(ImageView icon) {
@@ -1324,6 +1421,30 @@ public class MainActivity extends AlertouActivity {
             @Override
             public void onViewDetachedFromWindow(View view) {
                 if (propertyMarketSpinningIcon == icon) spin.cancel();
+            }
+        });
+        if (icon.isAttachedToWindow()) spin.start();
+    }
+
+    private void animatePropertyZipRefreshIcon(ImageView icon) {
+        if (propertyZipSpinningIcon == icon && propertyZipRefreshAnimator != null
+                && propertyZipRefreshAnimator.isRunning()) return;
+        if (propertyZipRefreshAnimator != null) propertyZipRefreshAnimator.cancel();
+        ObjectAnimator spin = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f);
+        spin.setDuration(900L);
+        spin.setInterpolator(new LinearInterpolator());
+        spin.setRepeatCount(ValueAnimator.INFINITE);
+        propertyZipSpinningIcon = icon;
+        propertyZipRefreshAnimator = spin;
+        icon.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View view) {
+                if (propertyZipSpinningIcon == icon) spin.start();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View view) {
+                if (propertyZipSpinningIcon == icon) spin.cancel();
             }
         });
         if (icon.isAttachedToWindow()) spin.start();
@@ -1432,24 +1553,59 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getPropertyZipTitle(Interest interest, String fallbackTitle) {
-        String title = fallbackTitle == null ? "" : fallbackTitle.trim();
-        if (!title.isEmpty()) {
-            return title;
+        if (interest != null && !interest.getPropertyStreet().isEmpty()) {
+            String compact = interest.getPropertyStreet()
+                    .replaceFirst("(?i)^\\s*(rua|r\\.)\\s*", "")
+                    .replaceFirst("(?i)^doutor\\s+", "").trim();
+            if (!compact.isEmpty()) return compact;
         }
-        return interest == null || interest.getPropertyStreet().isEmpty()
-                ? getString(R.string.property_interest_unknown_name)
-                : interest.getPropertyStreet();
+        String title = fallbackTitle == null ? "" : fallbackTitle.trim();
+        return title.isEmpty() ? getString(R.string.property_interest_unknown_name) : title;
     }
 
     private String getPropertyZipAddress(ObservedOffer offer, Interest interest,
                                          String fallbackTitle) {
         if (offer != null && !offer.getProductTitle().isEmpty()) {
-            return offer.getProductTitle();
+            String address = offer.getProductTitle();
+            try {
+                address = new org.json.JSONObject(address).optString("address", address);
+            } catch (Exception ignored) {
+            }
+            if (interest != null && !interest.getPropertyNeighborhood().isEmpty()
+                    && !address.contains(interest.getPropertyNeighborhood())) {
+                address += " • " + interest.getPropertyNeighborhood();
+            }
+            return address;
         }
         if (interest != null && !interest.getPropertyStreet().isEmpty()) {
             return interest.getPropertyStreet();
         }
         return fallbackTitle == null ? "" : fallbackTitle.trim();
+    }
+
+    private String getPropertyZipGroupName(ObservedOffer offer) {
+        Interest interest = getInterestsById().get(offer.getInterestId());
+        return interest == null || interest.getPropertyStreet().isEmpty()
+                ? getString(R.string.property_interest_unknown_name)
+                : interest.getPropertyStreet();
+    }
+
+    private List<ObservedOffer> groupPropertyZipOffersByStreet(List<ObservedOffer> offers) {
+        java.util.LinkedHashMap<String, List<ObservedOffer>> grouped = new java.util.LinkedHashMap<>();
+        for (ObservedOffer offer : offers) {
+            String street = getPropertyZipGroupName(offer);
+            List<ObservedOffer> streetOffers = grouped.get(street);
+            if (streetOffers == null) {
+                streetOffers = new java.util.ArrayList<>();
+                grouped.put(street, streetOffers);
+            }
+            streetOffers.add(offer);
+        }
+        List<ObservedOffer> groupedOffers = new java.util.ArrayList<>();
+        for (List<ObservedOffer> streetOffers : grouped.values()) {
+            groupedOffers.addAll(streetOffers);
+        }
+        return groupedOffers;
     }
 
     private long getRecentSortTimestamp(ObservedOffer offer,
@@ -1522,7 +1678,8 @@ public class MainActivity extends AlertouActivity {
                                         String time, String source,
                                         String contentDescription, String propertyListingCode,
                                         boolean expired,
-                                        boolean newPropertyAd, long propertyPublishedAt,
+                                        boolean newPropertyAd, boolean propertyGoodPrice,
+                                        long propertyPublishedAt,
                                         double propertyPriceChange,
                                         double propertyPriceChangePercentage,
                                         boolean propertyMarketReference,
@@ -1559,7 +1716,7 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        if (propertyZipOffer) {
+        if (propertyGoodPrice) {
             TextView badge = createPropertyGoodPriceBadge();
             LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -1593,24 +1750,20 @@ public class MainActivity extends AlertouActivity {
         mainLine.addView(titleAndBadges, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
-        if (propertyMarketReference) {
+        // CEP is a changing search result, not a fixed property reference. Its price stays
+        // static while the search is running; the rolling animation belongs only to condos.
+        if (propertyMarketReference && !propertyZipOffer) {
             mainLine.setTag(PROPERTY_MARKET_ROW_TAG_PREFIX + interestId);
         }
 
-        boolean updatingThisProperty = propertyMarketReference
-                && SourceCheckStatus.isRunning(this, interestId);
-        if (updatingThisProperty) {
-            mainLine.addView(createRollingPriceView(price));
-        } else {
-            TextView priceView = new TextView(this);
-            priceView.setText(price);
-            priceView.setTextColor(getColor(R.color.text_primary));
-            priceView.setTypeface(null, android.graphics.Typeface.NORMAL);
-            priceView.setTextSize(14);
-            priceView.setSingleLine(true);
-            priceView.setPadding(dp(6), 0, 0, 0);
-            mainLine.addView(priceView);
-        }
+        TextView priceView = new TextView(this);
+        priceView.setText(price);
+        priceView.setTextColor(getColor(R.color.text_primary));
+        priceView.setTypeface(null, android.graphics.Typeface.NORMAL);
+        priceView.setTextSize(14);
+        priceView.setSingleLine(true);
+        priceView.setPadding(dp(6), 0, 0, 0);
+        mainLine.addView(priceView);
         row.addView(mainLine);
 
         String propertyZipAddress = propertyZipOffer
@@ -1759,14 +1912,6 @@ public class MainActivity extends AlertouActivity {
                 || id.startsWith("coupon|")
                 || id.startsWith("property|")
                 || id.startsWith("market_reference|"));
-    }
-
-    private RollingPriceView createRollingPriceView(String price) {
-        RollingPriceView rollingPrice = new RollingPriceView(this, price);
-        rollingPrice.setPadding(dp(6), 0, 0, 0);
-        rollingPrice.setContentDescription(getString(
-                R.string.property_market_reference_price_updating));
-        return rollingPrice;
     }
 
     private TextView createPropertyNewBadge() {

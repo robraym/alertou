@@ -17,7 +17,8 @@ final class SettingsBackup {
             "motorola_offer_check_interval_seconds", "claro_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds", "kabum_catalog_check_interval_seconds", "kabum_catalog_api_check_interval_seconds",
             "samsung_discount_offer_check_interval_seconds", StoreSourceControl.KEY_DISABLED_SOURCES_MASK};
-    private static final String[] PROPERTY_KEYS = {"enabled", "check_interval_minutes", "check_interval_seconds"};
+    private static final String[] PROPERTY_KEYS = {"enabled", "show_condominium", "show_zip",
+            "check_interval_minutes", "check_interval_seconds"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
     private static final String[] STORE_DISPLAY_KEYS = {
             "title_" + R.string.vivo_outlet_source_title,
