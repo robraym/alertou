@@ -1770,7 +1770,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                         : getResources().getQuantityString(R.plurals.source_status_dot_paused, paused, paused));
             }
             storeSourcesOfflineText.setTextColor(getColor(offline > 0 ? R.color.danger : R.color.text_secondary));
-            storeSourcesOfflineText.setTextSize(13f);
+            storeSourcesOfflineText.setTextSize(12f);
             storeSourcesOfflineText.setVisibility(View.VISIBLE);
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);
