@@ -10,6 +10,7 @@ final class PropertyMarketReferenceSettings {
     private static final String KEY_SHOW_ZIP = "show_zip";
     private static final String KEY_CHECK_INTERVAL_MINUTES = "check_interval_minutes";
     private static final String KEY_CHECK_INTERVAL_SECONDS = "check_interval_seconds";
+    private static final String KEY_ZIP_CHECK_INTERVAL_SECONDS = "zip_check_interval_seconds";
     static final int DEFAULT_CHECK_INTERVAL_MINUTES = 15;
     static final int DEFAULT_CHECK_INTERVAL_SECONDS = DEFAULT_CHECK_INTERVAL_MINUTES * 60;
 
@@ -74,7 +75,15 @@ final class PropertyMarketReferenceSettings {
     }
 
     static int getCheckIntervalSeconds(Context context) {
+        return getCheckIntervalSeconds(context, false);
+    }
+
+    static int getCheckIntervalSeconds(Context context, boolean zip) {
         SharedPreferences preferences = preferences(context);
+        if (zip) {
+            int zipSeconds = preferences.getInt(KEY_ZIP_CHECK_INTERVAL_SECONDS, 0);
+            if (isSupportedCheckIntervalSeconds(zipSeconds)) return zipSeconds;
+        }
         int seconds = preferences.getInt(KEY_CHECK_INTERVAL_SECONDS, 0);
         if (isSupportedCheckIntervalSeconds(seconds)) return seconds;
         int legacyMinutes = preferences.getInt(KEY_CHECK_INTERVAL_MINUTES,
@@ -85,11 +94,20 @@ final class PropertyMarketReferenceSettings {
     }
 
     static void saveCheckIntervalSeconds(Context context, int seconds) {
+        saveCheckIntervalSeconds(context, false, seconds);
+    }
+
+    static void saveCheckIntervalSeconds(Context context, boolean zip, int seconds) {
         if (!isSupportedCheckIntervalSeconds(seconds)) {
             throw new IllegalArgumentException("Unsupported property check interval");
         }
-        preferences(context).edit().putInt(KEY_CHECK_INTERVAL_SECONDS, seconds).apply();
+        preferences(context).edit().putInt(zip ? KEY_ZIP_CHECK_INTERVAL_SECONDS
+                : KEY_CHECK_INTERVAL_SECONDS, seconds).apply();
         SettingsBackup.changed(context);
+    }
+
+    static boolean isVisible(Context context, boolean zip) {
+        return zip ? isZipVisible(context) : isCondominiumVisible(context);
     }
 
     static boolean isReference(ObservedOffer offer) {

@@ -23,15 +23,38 @@ final class CoalescingCheckScheduler {
     }
 
     synchronized void start(Runnable check, long intervalMs, Runnable initialAction) {
+        start(check, intervalMs, initialAction, 0L);
+    }
+
+    synchronized void startDelayed(Runnable check, long intervalMs, long initialDelayMs) {
+        start(check, intervalMs, null, initialDelayMs);
+    }
+
+    private synchronized void start(Runnable check, long intervalMs, Runnable initialAction,
+                                    long initialDelayMs) {
         if (executor != null) return;
         this.check = check;
         this.intervalMs = intervalMs;
         this.requestedAction = initialAction;
-        executor = Executors.newSingleThreadScheduledExecutor();
-        schedule(0);
+        executor = Executors.newSingleThreadScheduledExecutor(task -> {
+            Thread thread = new Thread(task, "property-check");
+            thread.setPriority(Thread.MIN_PRIORITY);
+            return thread;
+        });
+        schedule(Math.max(0L, initialDelayMs));
     }
 
     synchronized boolean isStarted() { return executor != null; }
+
+    synchronized void updateInterval(long updatedIntervalMs) {
+        if (executor == null || updatedIntervalMs == intervalMs) return;
+        intervalMs = updatedIntervalMs;
+        if (running || next == null) return;
+        next.cancel(false);
+        long elapsedMs = lastCompletedNanos <= 0L ? 0L
+                : TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - lastCompletedNanos);
+        schedule(Math.max(0L, intervalMs - elapsedMs));
+    }
 
     synchronized void request(long freshnessMs) {
         request(freshnessMs, check);

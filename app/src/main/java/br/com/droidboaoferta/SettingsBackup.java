@@ -18,7 +18,7 @@ final class SettingsBackup {
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds", "kabum_catalog_check_interval_seconds", "kabum_catalog_api_check_interval_seconds",
             "samsung_discount_offer_check_interval_seconds", StoreSourceControl.KEY_DISABLED_SOURCES_MASK};
     private static final String[] PROPERTY_KEYS = {"enabled", "show_condominium", "show_zip",
-            "check_interval_minutes", "check_interval_seconds"};
+            "check_interval_minutes", "check_interval_seconds", "zip_check_interval_seconds"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
     private static final String[] STORE_DISPLAY_KEYS = {
             "title_" + R.string.vivo_outlet_source_title,
@@ -131,7 +131,9 @@ final class SettingsBackup {
                     && ((Number) value).intValue() <= 2
                     && ((Number) value).intValue() == ((Number) value).doubleValue();
         }
-        if (key.equals("enabled")) return value instanceof Boolean;
+        if (key.equals("enabled") || key.equals("show_condominium") || key.equals("show_zip")) {
+            return value instanceof Boolean;
+        }
         if (key.equals(StoreSourceControl.KEY_DISABLED_SOURCES_MASK)) {
             return value instanceof Number && ((Number) value).intValue() >= 0
                     && ((Number) value).intValue() <= 1023
@@ -167,6 +169,7 @@ final class SettingsBackup {
         switch (key) {
             case "check_interval_minutes": return PropertyMarketReferenceSettings.isSupportedCheckInterval(interval);
             case "check_interval_seconds": return PropertyMarketReferenceSettings.isSupportedCheckIntervalSeconds(interval);
+            case "zip_check_interval_seconds": return PropertyMarketReferenceSettings.isSupportedCheckIntervalSeconds(interval);
             case "vivo_outlet_check_interval_minutes": return VivoOutletSource.isSupportedCheckInterval(interval);
             case "vivo_madrugada_check_interval_minutes": return VivoMadrugadaSource.isSupportedCheckInterval(interval);
             case "vivo_outlet_check_interval_seconds": return VivoOutletSource.isSupportedCheckIntervalSeconds(interval);

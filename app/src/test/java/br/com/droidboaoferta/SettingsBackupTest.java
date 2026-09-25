@@ -74,6 +74,22 @@ public class SettingsBackupTest {
         assertTrue(SettingsBackup.merge(local, remote, false).getJSONObject(key).getBoolean("value"));
         assertFalse(SettingsBackup.merge(local, remote, true).getJSONObject(key).getBoolean("value"));
     }
+
+    @Test public void restoresIndependentPropertyVisibilityAndZipInterval() throws Exception {
+        JSONObject incoming = new JSONObject()
+                .put("property_market_reference/show_condominium", value(false))
+                .put("property_market_reference/show_zip", value(true))
+                .put("property_market_reference/zip_check_interval_seconds", value(1800));
+        JSONObject merged = SettingsBackup.merge(new JSONObject(), incoming, true);
+        assertEquals(3, merged.length());
+        SettingsBackup.Preferences destination = files();
+        assertTrue(SettingsBackup.restore(destination, merged, true));
+        assertFalse(destination.get("property_market_reference")
+                .getBoolean("show_condominium", true));
+        assertTrue(destination.get("property_market_reference").getBoolean("show_zip", false));
+        assertEquals(1800, destination.get("property_market_reference")
+                .getInt("zip_check_interval_seconds", 0));
+    }
     @Test public void acceptsManuallyConfiguredUrlsButRejectsUnknownFieldsAndUnsupportedIntervals() throws Exception {
         JSONObject incoming = new JSONObject()
                 .put("external_offer_sources/pelando_url", value("https://example.com"))
