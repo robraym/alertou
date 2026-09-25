@@ -619,7 +619,6 @@ public class MainActivity extends AlertouActivity {
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         List<ObservedOffer> couponOffers = new java.util.ArrayList<>();
         List<ObservedOffer> propertyMarketOffers = new java.util.ArrayList<>();
-        List<ObservedOffer> propertyOffers = new java.util.ArrayList<>();
         List<ObservedOffer> propertyZipOffers = new java.util.ArrayList<>();
         List<ObservedOffer> productOffers = new java.util.ArrayList<>();
         for (ObservedOffer offer : visibleOffers) {
@@ -633,7 +632,7 @@ public class MainActivity extends AlertouActivity {
                 if (isZipInterest(interestsById, offer.getInterestId())) {
                     propertyZipOffers.add(offer);
                 } else {
-                    propertyOffers.add(offer);
+                    propertyMarketOffers.add(offer);
                 }
             } else if (isCouponOffer(offer)) {
                 couponOffers.add(offer);
@@ -648,11 +647,6 @@ public class MainActivity extends AlertouActivity {
         }
         addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
                 propertyHistoryRepository, SECTION_COUPONS_EXPANDED, "");
-        if (PropertyMarketReferenceSettings.isCondominiumVisible(this)) {
-            addOfferSection(R.string.property_alerts_list_title, propertyOffers, currency,
-                    propertyHistoryRepository, SECTION_PROPERTIES_EXPANDED,
-                    getPropertySectionStatus(interestsById, false), R.drawable.ic_property_alert);
-        }
         if (PropertyMarketReferenceSettings.isZipVisible(this)) {
             addOfferSection(R.string.property_zip_alerts_list_title, propertyZipOffers, currency,
                     propertyHistoryRepository, SECTION_PROPERTY_ZIP_EXPANDED,
@@ -1308,7 +1302,7 @@ public class MainActivity extends AlertouActivity {
         if (propertyMarketCountView != null) {
             propertyMarketCountView.setText(stripCountBullet(getPropertyReferenceCountText(
                     SECTION_PROPERTY_MARKET_EXPANDED,
-                    getPropertyMarketReferenceOfferCount(displayedOffers))));
+                    getPropertyCondominiumOfferCount(displayedOffers))));
         }
     }
 
@@ -1433,11 +1427,11 @@ public class MainActivity extends AlertouActivity {
                 offerCount, offerCount);
     }
 
-    private int getPropertyMarketReferenceOfferCount(List<ObservedOffer> offers) {
+    private int getPropertyCondominiumOfferCount(List<ObservedOffer> offers) {
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         int count = 0;
         for (ObservedOffer offer : offers) {
-            if (PropertyMarketReferenceSettings.isReference(offer)
+            if ((PropertyMarketReferenceSettings.isReference(offer) || isPropertyOffer(offer))
                     && isCondominiumInterest(interestsById, offer.getInterestId())) {
                 count++;
             }
