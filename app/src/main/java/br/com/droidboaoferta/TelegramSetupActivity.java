@@ -113,6 +113,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private Button receiveSmsButton;
     private LinearLayout statusSection;
     private View loginSpacer;
+    private ScrollView storeSourcesScroll;
     private FrameLayout groupsContentArea;
     private ScrollView groupsScroll;
     private LinearLayout groupsContainer;
@@ -281,6 +282,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         receiveSmsButton = findViewById(R.id.button_receive_sms);
         statusSection = findViewById(R.id.section_telegram_status);
         loginSpacer = findViewById(R.id.spacer_telegram_login);
+        storeSourcesScroll = findViewById(R.id.scroll_store_sources);
         groupsContentArea = findViewById(R.id.groups_content_area);
         groupsScroll = findViewById(R.id.scroll_groups);
         groupsContainer = findViewById(R.id.container_groups);
@@ -550,9 +552,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         authenticationInput.setFilters(new InputFilter[0]);
         statusSection.setVisibility(ready ? View.GONE : View.VISIBLE);
         loginSpacer.setVisibility(ready ? View.GONE : View.VISIBLE);
-        groupsContentArea.setVisibility(ready ? View.VISIBLE : View.GONE);
-        groupsScroll.setVisibility(ready ? View.VISIBLE : View.GONE);
-        groupsSearchBar.setVisibility(ready ? View.VISIBLE : View.GONE);
+        boolean storesExpanded = isSourceSectionExpanded(PREF_STORE_SOURCES_EXPANDED);
+        boolean showGroups = ready && !storesExpanded;
+        groupsContentArea.setVisibility(showGroups ? View.VISIBLE : View.GONE);
+        groupsScroll.setVisibility(showGroups ? View.VISIBLE : View.GONE);
+        groupsSearchBar.setVisibility(showGroups ? View.VISIBLE : View.GONE);
         if (!ready) {
             collapseGroupsSearch(false);
         } else if (!groupsSearchExpanded) {
@@ -1296,6 +1300,15 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 groupsScroll.scrollTo(0, 0);
                 animate = false;
             }
+        } else if (container == storeSourcesContainer) {
+            LinearLayout.LayoutParams params = (LinearLayout.LayoutParams)
+                    storeSourcesScroll.getLayoutParams();
+            params.height = expanded ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT;
+            params.weight = expanded ? 1f : 0f;
+            storeSourcesScroll.setLayoutParams(params);
+            if (expanded) storeSourcesScroll.scrollTo(0, 0);
+            boolean ready = statusSection.getVisibility() == View.GONE;
+            groupsContentArea.setVisibility(!expanded && ready ? View.VISIBLE : View.GONE);
         }
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse

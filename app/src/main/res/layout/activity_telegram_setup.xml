@@ -179,6 +179,13 @@
             android:visibility="gone" />
     </LinearLayout>
 
+    <ScrollView
+        android:id="@+id/scroll_store_sources"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:fillViewport="false">
+
     <LinearLayout
         android:id="@+id/section_vivo_outlet"
         android:layout_width="match_parent"
@@ -974,6 +981,7 @@
         </LinearLayout>
         </LinearLayout>
     </LinearLayout>
+    </ScrollView>
 
     <View
         android:id="@+id/spacer_telegram_login"
