@@ -30,6 +30,8 @@
     <string name="store_sources_checking">%1$s…</string>
     <string name="store_sources_checking_with_duration">%1$s · %2$s</string>
     <string name="store_sources_checking_total_duration">%1$s · %2$s</string>
+    <string name="sources_checking">Consultando %1$s</string>
+    <string name="store_sources_failure_at">Falha em %1$s · %2$s</string>
     <string name="store_source_checking_duration">%1$s</string>
     <string name="store_source_last_check_prefix">Última consulta: </string>
     <string name="store_source_last_check_placeholder">--/-- --:-- · -- s</string>

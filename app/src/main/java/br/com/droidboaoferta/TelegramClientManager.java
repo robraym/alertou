@@ -53,6 +53,9 @@ final class TelegramClientManager {
 
         default void onCloudSyncStatus(int messageResource) {
         }
+
+        default void onRecoveryStatusChanged() {
+        }
     }
 
     interface MessageListener {
@@ -180,6 +183,7 @@ final class TelegramClientManager {
     private boolean recoveryRequested;
     private boolean recoveryRunning;
     private long recoveryChatId;
+    private long recoveryStartedAtElapsed;
     private long recoveryCheckpointId;
     private long recoveryFromMessageId;
     private int recoveryPageCount;
@@ -194,6 +198,23 @@ final class TelegramClientManager {
 
     boolean isManualRestoreInProgress() {
         return pendingManualRestore || forceCloudRestore;
+    }
+
+    synchronized boolean isMissedMessageRecoveryRunning() {
+        return recoveryRunning;
+    }
+
+    synchronized long getMissedMessageRecoveryDurationMillis() {
+        if (!recoveryRunning || recoveryStartedAtElapsed <= 0L) return 0L;
+        return Math.max(0L, SystemClock.elapsedRealtime() - recoveryStartedAtElapsed);
+    }
+
+    synchronized String getMissedMessageRecoveryGroupTitle() {
+        if (!recoveryRunning || recoveryChatId == 0L) return "";
+        for (TelegramGroup group : groups) {
+            if (group.getId() == recoveryChatId) return group.getTitle();
+        }
+        return "";
     }
 
     boolean isCloudBackupInProgress() {
@@ -258,6 +279,7 @@ final class TelegramClientManager {
         this.listener = listener;
         notifyState();
         notifyGroups();
+        notifyRecoveryStatus();
     }
 
     void clearListener(Listener listener) {
@@ -864,19 +886,27 @@ final class TelegramClientManager {
             while (receiverRunning
                     && runtimeGeneration == generation
                     && !Thread.currentThread().isInterrupted()) {
-                String result = JsonClient.receive(1.0);
+                String result = JsonClient.receive(
+                        TelegramReceiveLoopPolicy.RECEIVE_TIMEOUT_SECONDS);
                 if (runtimeGeneration != generation) {
                     break;
                 }
-                if (result != null) {
+                if (TelegramReceiveLoopPolicy.isEmptyResult(result)) {
                     try {
-                        handleResult(new JSONObject(result));
-                    } catch (Exception exception) {
-                        Log.e(TAG, "Could not process TDLib update", exception);
-                        notifyError(exception.getMessage() == null
-                                ? appContext.getString(R.string.telegram_unknown_error)
-                                : exception.getMessage());
+                        Thread.sleep(TelegramReceiveLoopPolicy.EMPTY_QUEUE_DELAY_MILLIS);
+                    } catch (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        break;
                     }
+                    continue;
+                }
+                try {
+                    handleResult(new JSONObject(result));
+                } catch (Exception exception) {
+                    Log.e(TAG, "Could not process TDLib update", exception);
+                    notifyError(exception.getMessage() == null
+                            ? appContext.getString(R.string.telegram_unknown_error)
+                            : exception.getMessage());
                 }
             }
         } catch (Throwable throwable) {
@@ -1103,18 +1133,23 @@ final class TelegramClientManager {
         recoveryRequested = false;
         if (recoveryChatIds.isEmpty()) return;
         recoveryRunning = true;
+        recoveryStartedAtElapsed = SystemClock.elapsedRealtime();
         requestNextRecoveryGroup();
     }
 
     private synchronized void requestNextRecoveryGroup() {
         if (recoveryChatIds.isEmpty()) {
             recoveryRunning = false;
+            recoveryChatId = 0L;
+            recoveryStartedAtElapsed = 0L;
+            notifyRecoveryStatus();
             return;
         }
         recoveryChatId = recoveryChatIds.remove(0);
         recoveryCheckpointId = MonitorCheckpointStore.getLastMessageId(appContext, recoveryChatId);
         recoveryFromMessageId = 0L;
         recoveryPageCount = 0;
+        notifyRecoveryStatus();
         requestRecoveryPage();
     }
 
@@ -1623,7 +1658,10 @@ final class TelegramClientManager {
         cloudBackupChunkAwaitingResult = false;
         pendingCloudBackupUpdatedAt = 0L;
         recoveryRunning = false;
+        recoveryChatId = 0L;
+        recoveryStartedAtElapsed = 0L;
         recoveryChatIds.clear();
+        notifyRecoveryStatus();
         notifyGroups();
         Listener currentListener = listener;
         if (currentListener != null) {
@@ -2535,6 +2573,13 @@ final class TelegramClientManager {
         Listener currentListener = listener;
         if (currentListener != null && state == State.READY) {
             currentListener.onGroupsLoaded(groups);
+        }
+    }
+
+    private void notifyRecoveryStatus() {
+        Listener currentListener = listener;
+        if (currentListener != null) {
+            currentListener.onRecoveryStatusChanged();
         }
     }
 
