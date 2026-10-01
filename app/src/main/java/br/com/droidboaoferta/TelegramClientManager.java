@@ -271,6 +271,9 @@ final class TelegramClientManager {
     }
 
     synchronized void requestMissedMessageRecovery() {
+        if (recoveryRequested || recoveryRunning) {
+            return;
+        }
         recoveryRequested = true;
         startMissedMessageRecoveryIfReady();
     }

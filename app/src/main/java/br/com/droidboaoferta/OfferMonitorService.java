@@ -12,8 +12,14 @@ import android.os.IBinder;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 public class OfferMonitorService extends Service {
     private static volatile boolean running;
+    private boolean telegramRecoveryInitialized;
+    private Set<String> telegramRecoveryGroups = Collections.emptySet();
 
     static boolean isRunning() {
         return running;
@@ -82,9 +88,19 @@ public class OfferMonitorService extends Service {
         }
         if (hasPriceAlert && MonitorServiceController.selectedGroupCount(this) > 0) {
             OfferMonitor.getInstance().start(this);
-            TelegramClientManager.getInstance().requestMissedMessageRecovery();
+            Set<String> selectedGroups = new HashSet<>(getSharedPreferences(
+                    "telegram_preferences", MODE_PRIVATE).getStringSet(
+                    "selected_groups", Collections.emptySet()));
+            if (TelegramRecoveryRequestPolicy.shouldRequest(
+                    telegramRecoveryInitialized, telegramRecoveryGroups, selectedGroups)) {
+                telegramRecoveryInitialized = true;
+                telegramRecoveryGroups = selectedGroups;
+                TelegramClientManager.getInstance().requestMissedMessageRecovery();
+            }
         } else {
             OfferMonitor.getInstance().stop();
+            telegramRecoveryInitialized = false;
+            telegramRecoveryGroups = Collections.emptySet();
         }
         if (hasPriceAlert && ((StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this))
                 || (StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this)))) {
