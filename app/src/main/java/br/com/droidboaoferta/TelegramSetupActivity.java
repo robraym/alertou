@@ -122,6 +122,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView groupsEvaluationText;
     private TextView groupsDurationText;
     private TextView groupsSyncStateText;
+    private ImageView telegramGroupsIcon;
+    private ObjectAnimator telegramGroupsRefreshAnimator;
     private LinearLayout storeSourcesContainer;
     private ImageButton storeSourcesToggle;
     private TextView storeSourcesOnlineText;
@@ -299,6 +301,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         groupsEvaluationText = findViewById(R.id.text_groups_evaluation);
         groupsDurationText = findViewById(R.id.text_groups_duration);
         groupsSyncStateText = findViewById(R.id.text_groups_sync_state);
+        telegramGroupsIcon = findViewById(R.id.image_telegram_groups);
         storeSourcesContainer = findViewById(R.id.container_store_sources);
         storeSourcesToggle = findViewById(R.id.button_toggle_store_sources);
         storeSourcesOnlineText = findViewById(R.id.text_store_sources_online);
@@ -359,6 +362,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 PREF_STORE_SOURCES_EXPANDED
         );
         storeSourcesIcon.setOnClickListener(view -> refreshStoreSources());
+        telegramGroupsIcon.setOnClickListener(view -> refreshTelegramGroups());
         View.OnClickListener groupsToggleListener = view -> toggleTelegramGroupsSection();
         findViewById(R.id.header_telegram_groups).setOnClickListener(groupsToggleListener);
         telegramGroupsToggle.setOnClickListener(groupsToggleListener);
@@ -537,6 +541,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         smsHandler.removeCallbacks(smsCountdownRunnable);
         storeProgressHandler.removeCallbacks(storeProgressRunnable);
         telegramRecoveryProgressHandler.removeCallbacks(telegramRecoveryProgressRunnable);
+        renderTelegramGroupsIcon(false);
         unregisterSmsReceiver();
         if (cloudSyncReceiverRegistered) {
             unregisterReceiver(cloudSyncReceiver);
@@ -1716,7 +1721,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         telegramRecoveryProgressHandler.removeCallbacks(telegramRecoveryProgressRunnable);
         groupsSyncStateText.setVisibility(View.GONE);
-        if (clientManager.isMissedMessageRecoveryRunning()) {
+        boolean recovering = clientManager.isMissedMessageRecoveryRunning();
+        renderTelegramGroupsIcon(recovering);
+        if (recovering) {
             String groupTitle = clientManager.getMissedMessageRecoveryGroupTitle();
             groupsEvaluationText.setText(groupTitle.isEmpty()
                     ? getString(R.string.telegram_groups_refreshing)
@@ -1744,6 +1751,43 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 groupsDurationText.setVisibility(View.GONE);
             }
         }
+    }
+
+    private void refreshTelegramGroups() {
+        if (!MonitorRunPolicy.canRun(this)
+                || clientManager == null
+                || clientManager.getState() != TelegramClientManager.State.READY
+                || !clientManager.isConnectionReady()
+                || clientManager.isMissedMessageRecoveryRunning()) {
+            return;
+        }
+        clientManager.requestMissedMessageRecovery();
+        renderGroupsSyncState();
+    }
+
+    private void renderTelegramGroupsIcon(boolean recovering) {
+        if (telegramGroupsIcon == null) return;
+        if (!recovering) {
+            if (telegramGroupsRefreshAnimator != null) {
+                telegramGroupsRefreshAnimator.cancel();
+            }
+            telegramGroupsIcon.setRotation(0f);
+            telegramGroupsIcon.setImageResource(R.drawable.ic_telegram_source);
+            return;
+        }
+        if (telegramGroupsRefreshAnimator != null
+                && telegramGroupsRefreshAnimator.isRunning()) {
+            return;
+        }
+        telegramGroupsIcon.setImageResource(R.drawable.ic_sync);
+        telegramGroupsIcon.setRotation(0f);
+        telegramGroupsRefreshAnimator = ObjectAnimator.ofFloat(
+                telegramGroupsIcon, View.ROTATION, 0f, 360f
+        );
+        telegramGroupsRefreshAnimator.setDuration(900L);
+        telegramGroupsRefreshAnimator.setInterpolator(new LinearInterpolator());
+        telegramGroupsRefreshAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        telegramGroupsRefreshAnimator.start();
     }
 
     private void renderStoreSourcesStatus() {

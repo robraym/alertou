@@ -1050,11 +1050,14 @@
             android:paddingBottom="3dp">
 
                     <ImageView
+                        android:id="@+id/image_telegram_groups"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
                         android:layout_marginEnd="8dp"
                         android:background="@drawable/bg_icon_circle"
-                        android:contentDescription="@string/telegram_groups_card_title"
+                        android:clickable="true"
+                        android:contentDescription="@string/action_refresh_telegram_groups"
+                        android:focusable="true"
                         android:padding="7dp"
                         android:src="@drawable/ic_telegram_source" />
 
