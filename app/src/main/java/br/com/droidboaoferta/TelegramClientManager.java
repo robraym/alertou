@@ -40,6 +40,15 @@ final class TelegramClientManager {
         UNSUPPORTED_AUTHORIZATION
     }
 
+    enum ConnectionState {
+        UNKNOWN,
+        WAITING_FOR_NETWORK,
+        CONNECTING_TO_PROXY,
+        CONNECTING,
+        UPDATING,
+        READY
+    }
+
     interface Listener {
         void onStateChanged(State state);
 
@@ -95,6 +104,8 @@ final class TelegramClientManager {
     private static final long CLOUD_PULL_DEBOUNCE_MS = 1500L;
     private static final long CLOUD_PULL_TIMEOUT_MS = 45_000L;
     private static final long RUNTIME_STABLE_MS = 30_000L;
+    private static final long CONNECTION_WATCHDOG_INITIAL_DELAY_MS = 45_000L;
+    private static final long CONNECTION_WATCHDOG_MAX_DELAY_MS = 3 * 60_000L;
     private static final int RECOVERY_PAGE_SIZE = 50;
     private static final int RECOVERY_MAX_PAGES_PER_GROUP = 8;
     private static final long RECOVERY_REQUEST_DELAY_MS = 650L;
@@ -128,6 +139,10 @@ final class TelegramClientManager {
     private volatile MessageListener messageListener;
     private volatile State state = State.STARTING;
     private volatile boolean connectionReady;
+    private volatile ConnectionState connectionState = ConnectionState.UNKNOWN;
+    private volatile long connectionUnavailableSinceElapsed;
+    private long connectionWatchdogToken;
+    private int connectionReconnectAttempts;
     private volatile List<TelegramGroup> groups = Collections.emptyList();
     private volatile String accountName = "";
     private volatile String accountPhone = "";
@@ -204,6 +219,10 @@ final class TelegramClientManager {
         return recoveryRunning;
     }
 
+    synchronized boolean isMissedMessageRecoveryRequested() {
+        return recoveryRequested;
+    }
+
     synchronized long getMissedMessageRecoveryDurationMillis() {
         if (!recoveryRunning || recoveryStartedAtElapsed <= 0L) return 0L;
         return Math.max(0L, SystemClock.elapsedRealtime() - recoveryStartedAtElapsed);
@@ -251,23 +270,7 @@ final class TelegramClientManager {
 
     synchronized void reconnect(Context context) {
         appContext = context.getApplicationContext();
-        restoreCloudBackupPause();
-        runtimeRestartAttempts = 0;
-        reconnectRequested = true;
-        changeState(State.STARTING);
-        if (started && clientId != 0) {
-            try {
-                send(new JSONObject().put("@type", "close").put("@extra", "reconnect_close"));
-            } catch (JSONException ignored) {
-            }
-            cloudSyncHandler.postDelayed(() -> {
-                if (reconnectRequested) {
-                    restartAfterClosedRuntime();
-                }
-            }, 1500L);
-            return;
-        }
-        restartAfterClosedRuntime();
+        reconnectInternal(true);
     }
 
     synchronized void requestMissedMessageRecovery() {
@@ -275,6 +278,7 @@ final class TelegramClientManager {
             return;
         }
         recoveryRequested = true;
+        notifyRecoveryStatus();
         startMissedMessageRecoveryIfReady();
     }
 
@@ -956,12 +960,7 @@ final class TelegramClientManager {
             Log.d(TAG, "result type=" + type + ", extra=" + extra);
         }
         if ("updateConnectionState".equals(type)) {
-            boolean ready = "connectionStateReady".equals(
-                    result.getJSONObject("state").optString("@type"));
-            if (connectionReady != ready) {
-                connectionReady = ready;
-                notifyState();
-            }
+            handleConnectionState(result.getJSONObject("state").optString("@type"));
         } else if ("updateAuthorizationState".equals(type)) {
             handleAuthorizationState(result.getJSONObject("authorization_state"));
         } else if ("updateNewChat".equals(type)) {
@@ -1121,7 +1120,8 @@ final class TelegramClientManager {
     }
 
     private synchronized void startMissedMessageRecoveryIfReady() {
-        if (!recoveryRequested || recoveryRunning || state != State.READY || groups.isEmpty()) {
+        if (!recoveryRequested || recoveryRunning || state != State.READY
+                || !connectionReady || groups.isEmpty()) {
             return;
         }
         Set<String> selected = appContext.getSharedPreferences("telegram_preferences", Context.MODE_PRIVATE)
@@ -1134,7 +1134,10 @@ final class TelegramClientManager {
             }
         }
         recoveryRequested = false;
-        if (recoveryChatIds.isEmpty()) return;
+        if (recoveryChatIds.isEmpty()) {
+            notifyRecoveryStatus();
+            return;
+        }
         recoveryRunning = true;
         recoveryStartedAtElapsed = SystemClock.elapsedRealtime();
         requestNextRecoveryGroup();
@@ -1458,6 +1461,9 @@ final class TelegramClientManager {
                 loadAccount();
                 loadGroups();
                 revalidateStoredOfferLinks();
+                synchronized (this) {
+                    scheduleConnectionWatchdogIfNeeded();
+                }
                 break;
             case "authorizationStateClosing":
             case "authorizationStateLoggingOut":
@@ -1600,6 +1606,7 @@ final class TelegramClientManager {
     }
 
     private synchronized void closeRuntime() {
+        connectionWatchdogToken++;
         receiverRunning = false;
         started = false;
         clientId = 0;
@@ -1683,6 +1690,108 @@ final class TelegramClientManager {
                 }
             }
         }, 1_100L);
+    }
+
+    private synchronized void handleConnectionState(String tdlibState) {
+        ConnectionState newState = mapConnectionState(tdlibState);
+        if (connectionState == newState) {
+            return;
+        }
+        ConnectionState previousState = connectionState;
+        boolean wasReady = connectionReady;
+        connectionState = newState;
+        connectionReady = newState == ConnectionState.READY;
+        Log.i(TAG, "TDLib connection state=" + tdlibState);
+
+        if (connectionReady) {
+            long unavailableDuration = connectionUnavailableSinceElapsed <= 0L
+                    ? 0L
+                    : SystemClock.elapsedRealtime() - connectionUnavailableSinceElapsed;
+            connectionUnavailableSinceElapsed = 0L;
+            connectionReconnectAttempts = 0;
+            connectionWatchdogToken++;
+            if (!wasReady && previousState != ConnectionState.UNKNOWN
+                    && unavailableDuration > 0L) {
+                recoveryRequested = true;
+                notifyRecoveryStatus();
+            }
+        } else {
+            if (connectionUnavailableSinceElapsed <= 0L) {
+                connectionUnavailableSinceElapsed = SystemClock.elapsedRealtime();
+            }
+            scheduleConnectionWatchdogIfNeeded();
+        }
+
+        notifyState();
+        if (connectionReady) {
+            startMissedMessageRecoveryIfReady();
+        }
+    }
+
+    private ConnectionState mapConnectionState(String tdlibState) {
+        switch (tdlibState) {
+            case "connectionStateWaitingForNetwork":
+                return ConnectionState.WAITING_FOR_NETWORK;
+            case "connectionStateConnectingToProxy":
+                return ConnectionState.CONNECTING_TO_PROXY;
+            case "connectionStateConnecting":
+                return ConnectionState.CONNECTING;
+            case "connectionStateUpdating":
+                return ConnectionState.UPDATING;
+            case "connectionStateReady":
+                return ConnectionState.READY;
+            default:
+                return ConnectionState.UNKNOWN;
+        }
+    }
+
+    private synchronized void scheduleConnectionWatchdogIfNeeded() {
+        if (appContext == null || state != State.READY || connectionReady
+                || connectionState == ConnectionState.WAITING_FOR_NETWORK
+                || MonitorServiceController.selectedGroupCount(appContext) <= 0) {
+            return;
+        }
+        long token = ++connectionWatchdogToken;
+        int exponent = Math.min(connectionReconnectAttempts, 2);
+        long delay = Math.min(CONNECTION_WATCHDOG_MAX_DELAY_MS,
+                CONNECTION_WATCHDOG_INITIAL_DELAY_MS * (1L << exponent));
+        cloudSyncHandler.postDelayed(() -> {
+            synchronized (TelegramClientManager.this) {
+                if (token != connectionWatchdogToken || state != State.READY || connectionReady
+                        || connectionState == ConnectionState.WAITING_FOR_NETWORK) {
+                    return;
+                }
+                connectionReconnectAttempts++;
+                recoveryRequested = true;
+                notifyRecoveryStatus();
+                Log.w(TAG, "TDLib connection watchdog restarting stalled runtime, state="
+                        + connectionState + ", attempt=" + connectionReconnectAttempts);
+                reconnectInternal(false);
+            }
+        }, delay);
+    }
+
+    private synchronized void reconnectInternal(boolean resetConnectionAttempts) {
+        if (resetConnectionAttempts) {
+            connectionReconnectAttempts = 0;
+        }
+        restoreCloudBackupPause();
+        runtimeRestartAttempts = 0;
+        reconnectRequested = true;
+        changeState(State.STARTING);
+        if (started && clientId != 0) {
+            try {
+                send(new JSONObject().put("@type", "close").put("@extra", "reconnect_close"));
+            } catch (JSONException ignored) {
+            }
+            cloudSyncHandler.postDelayed(() -> {
+                if (reconnectRequested) {
+                    restartAfterClosedRuntime();
+                }
+            }, 1500L);
+            return;
+        }
+        restartAfterClosedRuntime();
     }
 
     private void publishGroups(JSONArray chatIds) {

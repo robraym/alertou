@@ -20,6 +20,8 @@ public class OfferMonitorService extends Service {
     private static volatile boolean running;
     private boolean telegramRecoveryInitialized;
     private Set<String> telegramRecoveryGroups = Collections.emptySet();
+    private final StoreNetworkReconnectMonitor storeNetworkReconnectMonitor =
+            new StoreNetworkReconnectMonitor();
 
     static boolean isRunning() {
         return running;
@@ -35,6 +37,7 @@ public class OfferMonitorService extends Service {
         createChannel();
         startForeground(NOTIFICATION_ID, createNotification());
         updateMonitors();
+        storeNetworkReconnectMonitor.start(this, this::retryStoreSourcesAfterReconnect);
     }
 
     @Override
@@ -65,6 +68,7 @@ public class OfferMonitorService extends Service {
         SamsungOfferMonitor.getInstance().stop();
         SamsungDiscountOfferMonitor.getInstance().stop();
         MonitorStatusStore.setServiceRunning(this, false);
+        storeNetworkReconnectMonitor.stop();
         super.onDestroy();
     }
 
@@ -158,6 +162,43 @@ public class OfferMonitorService extends Service {
         } else {
             PropertyPageMonitor.getInstance().stop();
         }
+    }
+
+    private void retryStoreSourcesAfterReconnect() {
+        if (!MonitorRunPolicy.canRun(this) || !hasPriceAlert()) return;
+        if ((StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title)
+                && VivoOutletSource.isConfigured(this))
+                || (StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title)
+                && VivoMadrugadaSource.isConfigured(this))) {
+            VivoOutletMonitor.getInstance().checkNow(this);
+        }
+        if (StoreSourceControl.isEnabled(this, R.string.pelando_source_title)
+                && PelandoSource.isConfigured(this)) PelandoMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.promobit_source_title)
+                && PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title)
+                && KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title)
+                && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title)
+                && KabumCatalogApiSource.isConfigured(this)) KabumCatalogApiMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title)
+                && MotorolaOfferSource.isConfigured(this)) MotorolaOfferMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title)
+                && ClaroOfferSource.isConfigured(this)) ClaroOfferMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title)
+                && SamsungOfferSource.isConfigured(this)) SamsungOfferMonitor.getInstance().checkNow(this);
+        if (StoreSourceControl.isEnabled(this, R.string.samsung_discount_offer_source_title)
+                && SamsungDiscountOfferSource.isConfigured(this)) {
+            SamsungDiscountOfferMonitor.getInstance().checkNow(this);
+        }
+    }
+
+    private boolean hasPriceAlert() {
+        for (Interest interest : new InterestRepository(this).getAll()) {
+            if (interest.isPrice()) return true;
+        }
+        return false;
     }
 
     private Notification createNotification() {

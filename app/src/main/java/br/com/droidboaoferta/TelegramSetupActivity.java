@@ -515,6 +515,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             sourceStatusFilter.addAction(SamsungOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(SamsungDiscountOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(StoreSourceCheckStatus.ACTION_CHANGED);
+            sourceStatusFilter.addAction(StoreNetworkReconnectMonitor.ACTION_CHANGED);
             sourceStatusFilter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
             ContextCompat.registerReceiver(
                     this,
@@ -572,14 +573,16 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void renderState(TelegramClientManager.State state) {
         boolean ready = state == TelegramClientManager.State.READY;
+        boolean showAuthentication = state != TelegramClientManager.State.READY
+                && state != TelegramClientManager.State.STARTING;
         authenticationInput.setFilters(new InputFilter[0]);
-        statusSection.setVisibility(ready ? View.GONE : View.VISIBLE);
-        loginSpacer.setVisibility(ready ? View.GONE : View.VISIBLE);
-        boolean storesExpanded = isSourceSectionExpanded(PREF_STORE_SOURCES_EXPANDED);
-        boolean showGroups = ready && !storesExpanded;
-        groupsContentArea.setVisibility(showGroups ? View.VISIBLE : View.GONE);
-        groupsScroll.setVisibility(showGroups ? View.VISIBLE : View.GONE);
-        groupsSearchBar.setVisibility(showGroups ? View.VISIBLE : View.GONE);
+        statusSection.setVisibility(showAuthentication ? View.VISIBLE : View.GONE);
+        loginSpacer.setVisibility(showAuthentication ? View.VISIBLE : View.GONE);
+        groupsContentArea.setVisibility(View.VISIBLE);
+        groupsScroll.setVisibility(View.VISIBLE);
+        groupsSearchBar.setVisibility(ready
+                && isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED)
+                ? View.VISIBLE : View.GONE);
         if (!ready) {
             collapseGroupsSearch(false);
         } else if (!groupsSearchExpanded) {
@@ -1331,8 +1334,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             params.weight = expanded ? 1f : 0f;
             storeSourcesScroll.setLayoutParams(params);
             if (expanded) storeSourcesScroll.scrollTo(0, 0);
-            boolean ready = statusSection.getVisibility() == View.GONE;
-            groupsContentArea.setVisibility(!expanded && ready ? View.VISIBLE : View.GONE);
+            groupsContentArea.setVisibility(View.VISIBLE);
         }
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse
@@ -1722,6 +1724,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         telegramRecoveryProgressHandler.removeCallbacks(telegramRecoveryProgressRunnable);
         groupsSyncStateText.setVisibility(View.GONE);
         boolean recovering = clientManager.isMissedMessageRecoveryRunning();
+        boolean recoveryRequested = clientManager.isMissedMessageRecoveryRequested();
+        boolean connectionReady = clientManager.isConnectionReady();
         renderTelegramGroupsIcon(recovering);
         if (recovering) {
             String groupTitle = clientManager.getMissedMessageRecoveryGroupTitle();
@@ -1738,8 +1742,26 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     telegramRecoveryProgressRunnable, 1000L);
             return;
         }
-        boolean online = countSelectedAvailableGroups() > 0
-                && clientManager.isConnectionReady();
+        if (!connectionReady) {
+            renderTelegramOfflineLastCheck();
+            return;
+        }
+        if (recoveryRequested) {
+            groupsEvaluationText.setText(R.string.app_status_reconnecting);
+            groupsEvaluationText.setTextColor(getColor(R.color.action));
+            groupsEvaluationText.setVisibility(View.VISIBLE);
+            long lastCheckAt = MonitorStatusStore.read(this).lastAnalyzedMessageAt;
+            if (lastCheckAt > 0L) {
+                groupsDurationText.setText(formatCompactSourceCheckTime(lastCheckAt));
+                groupsDurationText.setTextColor(getColor(R.color.text_secondary));
+                groupsDurationText.setVisibility(View.VISIBLE);
+            } else {
+                groupsDurationText.setText("");
+                groupsDurationText.setVisibility(View.GONE);
+            }
+            return;
+        }
+        boolean online = countSelectedAvailableGroups() > 0 && connectionReady;
         if (online) {
             renderTelegramLastCheck();
         } else if (groupsEvaluationText != null) {
@@ -1747,21 +1769,45 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             groupsEvaluationText.setTextColor(getColor(R.color.danger));
             groupsEvaluationText.setVisibility(View.VISIBLE);
             if (groupsDurationText != null) {
-                groupsDurationText.setText("");
-                groupsDurationText.setVisibility(View.GONE);
+                long lastCheckAt = MonitorStatusStore.read(this).lastAnalyzedMessageAt;
+                if (lastCheckAt > 0L) {
+                    groupsDurationText.setText(formatCompactSourceCheckTime(lastCheckAt));
+                    groupsDurationText.setTextColor(getColor(R.color.text_secondary));
+                    groupsDurationText.setVisibility(View.VISIBLE);
+                } else {
+                    groupsDurationText.setText("");
+                    groupsDurationText.setVisibility(View.GONE);
+                }
             }
         }
+    }
+
+    private void renderTelegramOfflineLastCheck() {
+        long lastCheckAt = MonitorStatusStore.read(this).lastAnalyzedMessageAt;
+        groupsEvaluationText.setText(lastCheckAt > 0L
+                ? getString(R.string.telegram_last_check_at,
+                formatCompactSourceCheckTime(lastCheckAt))
+                : getString(R.string.telegram_last_check_unavailable));
+        groupsEvaluationText.setTextColor(getColor(R.color.danger));
+        groupsEvaluationText.setVisibility(View.VISIBLE);
+        groupsDurationText.setText("");
+        groupsDurationText.setVisibility(View.GONE);
     }
 
     private void refreshTelegramGroups() {
         if (!MonitorRunPolicy.canRun(this)
                 || clientManager == null
-                || clientManager.getState() != TelegramClientManager.State.READY
-                || !clientManager.isConnectionReady()
-                || clientManager.isMissedMessageRecoveryRunning()) {
+                || clientManager.isMissedMessageRecoveryRunning()
+                || clientManager.isMissedMessageRecoveryRequested()) {
             return;
         }
+        TelegramClientManager.State telegramState = clientManager.getState();
+        boolean connectionReady = clientManager.isConnectionReady();
         clientManager.requestMissedMessageRecovery();
+        if (telegramState == TelegramClientManager.State.CLOSED
+                || (telegramState == TelegramClientManager.State.READY && !connectionReady)) {
+            clientManager.reconnect(this);
+        }
         renderGroupsSyncState();
     }
 
@@ -1799,7 +1845,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (checkingSource != 0 && !storeRefreshProgressActive) {
             lastStoreRefreshWasManual = false;
         }
-        renderStoreSourcesIcon(checkingSource != 0);
+        boolean networkOnline = StoreNetworkReconnectMonitor.isOnline(this);
+        renderStoreSourcesIcon(checkingSource != 0 && networkOnline);
         boolean outletConfigured = StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title) && VivoOutletSource.isConfigured(this);
         boolean madrugadaConfigured = StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title) && VivoMadrugadaSource.isConfigured(this);
         boolean pelandoConfigured = StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this);
@@ -1884,7 +1931,17 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);
         }
-        if (checkingSource != 0) {
+        if (!networkOnline) {
+            long lastCheckAt = getLatestStoreSourceCheckAt();
+            storeSourcesSummaryText.setText(lastCheckAt > 0L
+                    ? getString(R.string.telegram_last_check_at,
+                    formatCompactSourceCheckTime(lastCheckAt))
+                    : getString(R.string.telegram_last_check_unavailable));
+            storeSourcesSummaryText.setTextColor(getColor(R.color.danger));
+            storeSourcesSummaryText.setVisibility(View.VISIBLE);
+            storeSourcesDurationText.setText("");
+            storeSourcesDurationText.setVisibility(View.GONE);
+        } else if (checkingSource != 0) {
             long duration = StoreSourceCheckStatus.isManualBatchActive()
                     ? StoreSourceCheckStatus.getCurrentManualBatchDurationMillis()
                     : StoreSourceCheckStatus.getCurrentDurationMillis(this, checkingSource);
@@ -1931,7 +1988,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             }
         }
         storeProgressHandler.removeCallbacks(storeProgressRunnable);
-        if (checkingSource != 0) {
+        if (checkingSource != 0 && networkOnline) {
             storeProgressHandler.postDelayed(storeProgressRunnable, 1000L);
         }
     }
@@ -2176,6 +2233,32 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         return configured && hasSuccessfulCheck && !failed;
     }
 
+    private long getLatestStoreSourceCheckAt() {
+        long latest = StoreSourceCheckStatus.getLastBatchCompletedAt(this);
+        latest = Math.max(latest, Math.max(VivoOutletSource.getLastSuccessfulCheckAt(this),
+                VivoOutletSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(VivoMadrugadaSource.getLastSuccessfulCheckAt(this),
+                VivoMadrugadaSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(PelandoSource.getLastSuccessfulCheckAt(this),
+                PelandoSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(PromobitSource.getLastSuccessfulCheckAt(this),
+                PromobitSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(KabumOfferSource.getLastSuccessfulCheckAt(this),
+                KabumOfferSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(KabumCatalogSource.getLastSuccessfulCheckAt(this),
+                KabumCatalogSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(KabumCatalogApiSource.getLastSuccessfulCheckAt(this),
+                KabumCatalogApiSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(MotorolaOfferSource.getLastSuccessfulCheckAt(this),
+                MotorolaOfferSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(ClaroOfferSource.getLastSuccessfulCheckAt(this),
+                ClaroOfferSource.getLastFailedCheckAt(this)));
+        latest = Math.max(latest, Math.max(SamsungOfferSource.getLastSuccessfulCheckAt(this),
+                SamsungOfferSource.getLastFailedCheckAt(this)));
+        return Math.max(latest, Math.max(SamsungDiscountOfferSource.getLastSuccessfulCheckAt(this),
+                SamsungDiscountOfferSource.getLastFailedCheckAt(this)));
+    }
+
     private void renderStoreSourcesIcon(boolean checking) {
         if (storeSourcesIcon == null) return;
         if (!checking) {
@@ -2198,6 +2281,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void refreshStoreSources() {
         if (manualStoreRefreshAction != null || !MonitorRunPolicy.canRun(this)) return;
+        if (!StoreNetworkReconnectMonitor.isOnline(this)) {
+            renderStoreSourcesStatus();
+            return;
+        }
         storeRefreshProgressActive = true;
         lastStoreRefreshWasManual = true;
         completedStoreRefreshSources.clear();

@@ -218,6 +218,8 @@
     <string name="action_refresh_telegram_groups">Consultar grupos do Telegram agora</string>
     <string name="telegram_no_groups">Nenhum grupo ou canal foi encontrado na lista principal.</string>
     <string name="telegram_status_disconnected">Telegram desconectado</string>
+    <string name="telegram_last_check_at">Última consulta %1$s</string>
+    <string name="telegram_last_check_unavailable">Última consulta indisponível</string>
     <string name="telegram_disconnected_message">A sessão foi encerrada. Abra esta tela novamente para reconectar. Seus dados locais continuam guardados.</string>
     <string name="telegram_status_attention">Ação necessária</string>
     <string name="telegram_unsupported_auth_message">O Telegram solicitou uma etapa de acesso ainda não suportada por esta primeira versão.</string>
