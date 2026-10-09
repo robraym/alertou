@@ -87,6 +87,9 @@ public class MainActivity extends AlertouActivity {
     private static final String OFFER_SECTION_CONTENT_TAG_PREFIX = "offer_section_content_";
     private static final String OFFER_SECTION_TOGGLE_TAG_PREFIX = "offer_section_toggle_";
     private final android.os.Handler dashboardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private final java.util.concurrent.ExecutorService dashboardExecutor =
+            java.util.concurrent.Executors.newSingleThreadExecutor();
+    private long dashboardRenderGeneration;
     private boolean dashboardUpdatePending;
     private boolean propertyZipProgressUpdatePending;
     private boolean propertyProgressTickerScheduled;
@@ -126,6 +129,13 @@ public class MainActivity extends AlertouActivity {
                 schedulePropertyMarketProgressUpdate();
                 return;
             }
+            String action = intent.getAction();
+            // These actions report connection/sync progress only. They can arrive in bursts and
+            // do not change the offers displayed in this screen.
+            if (MonitorStatusStore.ACTION_STATUS_CHANGED.equals(action)
+                    || TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED.equals(action)) {
+                return;
+            }
             if (!dashboardUpdatePending) {
                 dashboardUpdatePending = true;
                 dashboardHandler.postDelayed(dashboardUpdate, 250L);
@@ -161,6 +171,9 @@ public class MainActivity extends AlertouActivity {
     private InterestRepository interestRepository;
     private OfferRepository offerRepository;
     private List<ObservedOffer> displayedOffers = Collections.emptyList();
+    // Dashboard-only snapshot. Never parse the property-history JSON from a row or comparator.
+    private java.util.Map<String, PropertyHistoryEntry> displayedPropertyHistory =
+            Collections.emptyMap();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -189,7 +202,7 @@ public class MainActivity extends AlertouActivity {
         offersSearchInput.addTextChangedListener(new SimpleTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
-                renderOffers(displayedOffers);
+                renderOffers(displayedOffers, displayedPropertyHistory);
             }
         });
         findViewById(android.R.id.content).post(this::showBatteryNoticeIfNeeded);
@@ -250,37 +263,55 @@ public class MainActivity extends AlertouActivity {
         super.onStop();
     }
 
+    @Override
+    protected void onDestroy() {
+        dashboardRenderGeneration++;
+        dashboardExecutor.shutdownNow();
+        super.onDestroy();
+    }
+
     private void refreshDashboard() {
         refreshDashboard(true);
     }
 
     private void refreshDashboard(boolean updateMonitor) {
-        int groupCount = getSelectedGroupCount();
-        List<Interest> interests = interestRepository.getAll();
-        boolean monitorEnabled = isMonitorEnabled();
+        // Reconciliation and history parsing can be expensive with many property listings. They
+        // must not hold the main thread that handles scrolling and card taps.
+        if (updateMonitor) MonitorServiceController.update(this);
+        final long generation = ++dashboardRenderGeneration;
+        dashboardExecutor.execute(() -> {
+            List<Interest> interests = interestRepository.getAll();
+            offerRepository.reconcileRecentWithInterests(interests);
+            List<ObservedOffer> offers = offerRepository.getRecent();
+            java.util.Map<String, PropertyHistoryEntry> propertyHistory =
+                    new PropertyHistoryRepository(this).getForOffers(offers);
+            dashboardHandler.post(() -> applyDashboardSnapshot(
+                    generation, interests, offers, propertyHistory));
+        });
+    }
 
-        offerRepository.reconcileRecentWithInterests(interests);
-        renderOffers(offerRepository.getRecent());
+    private void applyDashboardSnapshot(long generation, List<Interest> interests,
+                                        List<ObservedOffer> offers,
+                                        java.util.Map<String, PropertyHistoryEntry> propertyHistory) {
+        if (isFinishing() || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1
+                && isDestroyed()) || generation != dashboardRenderGeneration) {
+            return;
+        }
+        renderOffers(offers, propertyHistory);
         schedulePropertyMarketProgressUpdate();
 
         boolean hasCouponAlert = false;
         boolean hasPriceAlert = false;
         boolean hasPropertyAlert = false;
         for (Interest interest : interests) {
-            if (interest.isCoupon()) {
-                hasCouponAlert = true;
-            } else if (interest.isProperty()) {
-                hasPropertyAlert = true;
-            } else if (interest.isPrice()) {
-                hasPriceAlert = true;
-            }
+            if (interest.isCoupon()) hasCouponAlert = true;
+            else if (interest.isProperty()) hasPropertyAlert = true;
+            else if (interest.isPrice()) hasPriceAlert = true;
         }
-        if (monitorEnabled
-                && (hasCouponAlert || hasPropertyAlert || (hasPriceAlert && groupCount > 0))) {
+        if (isMonitorEnabled() && (hasCouponAlert || hasPropertyAlert
+                || (hasPriceAlert && getSelectedGroupCount() > 0))) {
             requestNotificationPermissionIfNeeded();
         }
-        // A data/status broadcast must not restart the monitor and trigger another broadcast.
-        if (updateMonitor) MonitorServiceController.update(this);
     }
 
     private void showBatteryNoticeIfNeeded() {
@@ -588,6 +619,11 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void renderOffers(List<ObservedOffer> offers) {
+        renderOffers(offers, new PropertyHistoryRepository(this).getForOffers(offers));
+    }
+
+    private void renderOffers(List<ObservedOffer> offers,
+                              java.util.Map<String, PropertyHistoryEntry> propertyHistory) {
         offerSectionCache.begin();
         propertyMarketSummaryView = null;
         propertyMarketDurationView = null;
@@ -600,10 +636,11 @@ public class MainActivity extends AlertouActivity {
         propertyZipCardView = null;
         propertyZipActionView = null;
         displayedOffers = offers;
+        displayedPropertyHistory = propertyHistory == null ? Collections.emptyMap() : propertyHistory;
         List<ObservedOffer> visibleOffers = new java.util.ArrayList<>(
                 filterOffers(offers, offersSearchInput.getText().toString())
         );
-        sortOffers(visibleOffers);
+        sortOffers(visibleOffers, displayedPropertyHistory);
         if (visibleOffers.isEmpty()) {
             offerSectionCache.clear();
             offersContainer.removeAllViews();
@@ -615,7 +652,6 @@ public class MainActivity extends AlertouActivity {
         }
 
         NumberFormat currency = CurrencyTextFormatter.displayFormatter();
-        PropertyHistoryRepository propertyHistoryRepository = new PropertyHistoryRepository(this);
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         List<ObservedOffer> couponOffers = new java.util.ArrayList<>();
         List<ObservedOffer> propertyMarketOffers = new java.util.ArrayList<>();
@@ -642,33 +678,31 @@ public class MainActivity extends AlertouActivity {
         }
         if (PropertyMarketReferenceSettings.isCondominiumVisible(this)) {
             addOfferSection(R.string.property_alerts_list_title, propertyMarketOffers, currency,
-                    propertyHistoryRepository, SECTION_PROPERTY_MARKET_EXPANDED,
+                    SECTION_PROPERTY_MARKET_EXPANDED,
                     getPropertyMarketLastCheckSummary(propertyMarketOffers), R.drawable.ic_property_alert);
         }
         addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
-                propertyHistoryRepository, SECTION_COUPONS_EXPANDED, "");
+                SECTION_COUPONS_EXPANDED, "");
         if (PropertyMarketReferenceSettings.isZipVisible(this)) {
             addOfferSection(R.string.property_zip_alerts_list_title, propertyZipOffers, currency,
-                    propertyHistoryRepository, SECTION_PROPERTY_ZIP_EXPANDED,
+                    SECTION_PROPERTY_ZIP_EXPANDED,
                     getPropertySectionStatus(interestsById, true), R.drawable.ic_property_zip_alert);
         }
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
-                propertyHistoryRepository, SECTION_PRODUCTS_EXPANDED, "");
+                SECTION_PRODUCTS_EXPANDED, "");
         offerSectionCache.end(offersContainer);
     }
 
     private void addOfferSection(int titleResource, List<ObservedOffer> offers,
                                  NumberFormat currency,
-                                 PropertyHistoryRepository propertyHistoryRepository,
                                  String preferenceKey,
                                  String sectionSummary) {
-        addOfferSection(titleResource, offers, currency, propertyHistoryRepository, preferenceKey,
+        addOfferSection(titleResource, offers, currency, preferenceKey,
                 sectionSummary, 0);
     }
 
     private void addOfferSection(int titleResource, List<ObservedOffer> offers,
                                  NumberFormat currency,
-                                 PropertyHistoryRepository propertyHistoryRepository,
                                  String preferenceKey,
                                  String sectionSummary,
                                  int sectionIconResource) {
@@ -680,7 +714,7 @@ public class MainActivity extends AlertouActivity {
         boolean expanded = isOfferSectionExpanded(preferenceKey);
         renderingSectionKey = preferenceKey;
         renderingSectionFingerprint = OfferSectionCache.fingerprint(this, offers,
-                propertyHistoryRepository, expanded,
+                displayedPropertyHistory, expanded,
                 propertyMarketSection || propertyZipSection ? "" : sectionSummary);
         View cached = offerSectionCache.find(preferenceKey, renderingSectionFingerprint);
         if (cached != null) {
@@ -937,7 +971,7 @@ public class MainActivity extends AlertouActivity {
                 content.addView(createOfferDivider());
             }
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
-            PropertyHistoryEntry propertyHistory = propertyHistoryRepository.getForOffer(offer);
+            PropertyHistoryEntry propertyHistory = displayedPropertyHistory.get(offer.getId());
             double propertyPriceChange = propertyHistory == null
                     ? 0d : propertyHistory.getLatestPriceChangeAmount();
             double propertyPriceChangePercentage = propertyHistory == null
@@ -1066,7 +1100,7 @@ public class MainActivity extends AlertouActivity {
                 return;
             }
         }
-        renderOffers(displayedOffers);
+        renderOffers(displayedOffers, displayedPropertyHistory);
     }
 
     private TextView createOfferGroupHeader(String label, boolean hasPreviousGroup) {
@@ -1588,10 +1622,13 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void sortOffers(List<ObservedOffer> offers) {
+        sortOffers(offers, displayedPropertyHistory);
+    }
+
+    private void sortOffers(List<ObservedOffer> offers,
+                            java.util.Map<String, PropertyHistoryEntry> propertyHistoryByOfferId) {
         int sortOrder = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
                 .getInt(HOME_SORT_ORDER, SORT_RECENT);
-        PropertyHistoryRepository propertyHistoryRepository =
-                sortOrder == SORT_RECENT ? new PropertyHistoryRepository(this) : null;
         Comparator<ObservedOffer> comparator;
         if (sortOrder == SORT_NAME) {
             comparator = (first, second) -> {
@@ -1615,8 +1652,8 @@ public class MainActivity extends AlertouActivity {
             comparator = (first, second) -> comparePropertyUnitPrices(first, second, ascending);
         } else {
             comparator = (first, second) -> {
-                long firstRecentAt = getRecentSortTimestamp(first, propertyHistoryRepository);
-                long secondRecentAt = getRecentSortTimestamp(second, propertyHistoryRepository);
+                long firstRecentAt = getRecentSortTimestamp(first, propertyHistoryByOfferId);
+                long secondRecentAt = getRecentSortTimestamp(second, propertyHistoryByOfferId);
                 int byRecent = Long.compare(secondRecentAt, firstRecentAt);
                 return byRecent != 0 ? byRecent
                         : Long.compare(second.getObservedAt(), first.getObservedAt());
@@ -1729,12 +1766,12 @@ public class MainActivity extends AlertouActivity {
     }
 
     private long getRecentSortTimestamp(ObservedOffer offer,
-                                        PropertyHistoryRepository propertyHistoryRepository) {
+                                        java.util.Map<String, PropertyHistoryEntry> propertyHistoryByOfferId) {
         if (!isPropertyOffer(offer) && !PropertyMarketReferenceSettings.isReference(offer)) {
             return offer.getObservedAt();
         }
-        PropertyHistoryEntry history = propertyHistoryRepository == null
-                ? null : propertyHistoryRepository.getForOffer(offer);
+        PropertyHistoryEntry history = propertyHistoryByOfferId == null
+                ? null : propertyHistoryByOfferId.get(offer.getId());
         if (history != null && history.getFirstPublicationAt() > 0L) {
             return history.getFirstPublicationAt();
         }
@@ -1751,7 +1788,7 @@ public class MainActivity extends AlertouActivity {
                             .putInt(HOME_SORT_ORDER, which)
                             .apply();
                     dialog.dismiss();
-                    renderOffers(displayedOffers);
+                    renderOffers(displayedOffers, displayedPropertyHistory);
                 })
                 .show();
     }

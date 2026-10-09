@@ -155,6 +155,25 @@ final class PropertyHistoryRepository {
     }
 
     synchronized PropertyHistoryEntry getForOffer(ObservedOffer offer) {
+        return getForOffer(readEntries(), offer);
+    }
+
+    /**
+     * Reads the persisted history once per dashboard update instead of once per row comparison.
+     */
+    synchronized java.util.Map<String, PropertyHistoryEntry> getForOffers(
+            List<ObservedOffer> offers) {
+        java.util.Map<String, PropertyHistoryEntry> result = new java.util.HashMap<>();
+        if (offers == null || offers.isEmpty()) return result;
+        JSONArray entries = readEntries();
+        for (ObservedOffer offer : offers) {
+            PropertyHistoryEntry entry = getForOffer(entries, offer);
+            if (entry != null) result.put(offer.getId(), entry);
+        }
+        return result;
+    }
+
+    private PropertyHistoryEntry getForOffer(JSONArray entries, ObservedOffer offer) {
         if (offer == null || (!offer.getId().startsWith("property|")
                 && !PropertyMarketReferenceSettings.isReference(offer))) {
             return null;
@@ -164,7 +183,6 @@ final class PropertyHistoryRepository {
             return null;
         }
         try {
-            JSONArray entries = readEntries();
             long interestId = Long.parseLong(parts[1]);
             String identity = PropertyHistorySync.identity(offer.getLink(), parts[2]);
             if (!identity.isEmpty()) {

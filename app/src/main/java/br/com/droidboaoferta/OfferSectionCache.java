@@ -45,13 +45,14 @@ final class OfferSectionCache {
     void clear() { views.clear(); fingerprints.clear(); }
 
     static String fingerprint(Context context, List<ObservedOffer> offers,
-                              PropertyHistoryRepository history, boolean expanded, String summary) {
+                              Map<String, PropertyHistoryEntry> historyByOfferId,
+                              boolean expanded, String summary) {
         StringBuilder key = new StringBuilder(OfferStorage.encode(offers));
         key.append(expanded).append(summary).append(OfferDateFormatter.getGroupKey(System.currentTimeMillis()));
         GroupSpeedRepository speed = new GroupSpeedRepository(context);
         for (ObservedOffer offer : offers) {
             key.append('|').append(speed.isOfferExpired(offer));
-            PropertyHistoryEntry entry = history.getForOffer(offer);
+            PropertyHistoryEntry entry = historyByOfferId.get(offer.getId());
             if (entry != null) {
                 key.append('|').append(entry.isUnavailable()).append('|').append(entry.isPendingValidation())
                         .append('|').append(entry.getLatestPrice(offer.getPrice()))
