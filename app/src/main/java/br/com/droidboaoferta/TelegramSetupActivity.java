@@ -355,6 +355,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 new Intent(this, ProfileActivity.class)
         ));
         findViewById(R.id.button_sort_sources).setOnClickListener(view -> showSourcesSortDialog());
+        normalizeExpandedSourceSections();
         configureSourceSection(
                 R.id.header_store_sources,
                 storeSourcesToggle,
@@ -1280,9 +1281,18 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                                         LinearLayout container, String preferenceKey) {
         View.OnClickListener listener = view -> {
             boolean expanded = !isSourceSectionExpanded(preferenceKey);
-            getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                    .putBoolean(preferenceKey, expanded)
-                    .apply();
+            SharedPreferences.Editor editor = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                    .edit().putBoolean(preferenceKey, expanded);
+            if (expanded && PREF_STORE_SOURCES_EXPANDED.equals(preferenceKey)) {
+                // Only one source list may consume the flexible screen area at once.
+                editor.putBoolean(PREF_TELEGRAM_GROUPS_EXPANDED, false);
+            }
+            editor.apply();
+            if (expanded && PREF_STORE_SOURCES_EXPANDED.equals(preferenceKey)) {
+                collapseGroupsSearch(false);
+                groupsSearchBar.setVisibility(View.GONE);
+                applySourceSectionState(telegramGroupsToggle, groupsContainer, false, false);
+            }
             applySourceSectionState(toggle, container, expanded, true);
         };
         findViewById(headerId).setOnClickListener(listener);
@@ -1290,12 +1300,23 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         applySourceSectionState(toggle, container, isSourceSectionExpanded(preferenceKey), false);
     }
 
+    /** Avoid restoring the former split-screen state after updating the app. */
+    private void normalizeExpandedSourceSections() {
+        SharedPreferences preferences = getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (preferences.getBoolean(PREF_STORE_SOURCES_EXPANDED, true)
+                && preferences.getBoolean(PREF_TELEGRAM_GROUPS_EXPANDED, true)) {
+            preferences.edit().putBoolean(PREF_STORE_SOURCES_EXPANDED, false).apply();
+        }
+    }
+
     private void toggleTelegramGroupsSection() {
         boolean expanded = !isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED);
-        getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putBoolean(PREF_TELEGRAM_GROUPS_EXPANDED, expanded)
-                .apply();
+        SharedPreferences.Editor editor = getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putBoolean(PREF_TELEGRAM_GROUPS_EXPANDED, expanded);
+        if (expanded) editor.putBoolean(PREF_STORE_SOURCES_EXPANDED, false);
+        editor.apply();
         if (expanded) {
+            applySourceSectionState(storeSourcesToggle, storeSourcesContainer, false, false);
             groupsSearchBar.setVisibility(View.VISIBLE);
             renderGroups(availableGroups, showingCachedGroups);
             groupsContainer.setAlpha(0f);
@@ -1317,6 +1338,12 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         container.animate().cancel();
         toggle.animate().cancel();
         if (container == groupsContainer) {
+            LinearLayout.LayoutParams areaParams = (LinearLayout.LayoutParams)
+                    groupsContentArea.getLayoutParams();
+            boolean storesExpanded = isSourceSectionExpanded(PREF_STORE_SOURCES_EXPANDED);
+            areaParams.height = storesExpanded ? LinearLayout.LayoutParams.WRAP_CONTENT : 0;
+            areaParams.weight = storesExpanded ? 0f : 1f;
+            groupsContentArea.setLayoutParams(areaParams);
             android.view.ViewGroup.LayoutParams params = groupsScroll.getLayoutParams();
             params.height = expanded ? android.view.ViewGroup.LayoutParams.MATCH_PARENT
                     : android.view.ViewGroup.LayoutParams.WRAP_CONTENT;
@@ -1334,6 +1361,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             params.weight = expanded ? 1f : 0f;
             storeSourcesScroll.setLayoutParams(params);
             if (expanded) storeSourcesScroll.scrollTo(0, 0);
+            LinearLayout.LayoutParams areaParams = (LinearLayout.LayoutParams)
+                    groupsContentArea.getLayoutParams();
+            areaParams.height = expanded ? LinearLayout.LayoutParams.WRAP_CONTENT : 0;
+            areaParams.weight = expanded ? 0f : 1f;
+            groupsContentArea.setLayoutParams(areaParams);
             groupsContentArea.setVisibility(View.VISIBLE);
         }
         toggle.setContentDescription(getString(expanded
