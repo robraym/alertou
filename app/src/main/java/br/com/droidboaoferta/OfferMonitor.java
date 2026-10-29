@@ -244,6 +244,13 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                         || verifiedPrice > current.getMaximumPrice()
                         || !OfferEligibility.isRecent(verifiedDate, System.currentTimeMillis())
                         || !OfferEligibility.hasUsableLink(verifiedLink)) return;
+                // "Encerrada" is a decision about the promotion cycle, not just about its
+                // ranking appearance. Do this after Telegram validation, using the verified
+                // message date, before it can be stored, counted or notified.
+                if (new GroupPromotionExpiryRepository(appContext).isExpiredForOffer(
+                        OfferTextParser.normalize(current.getTerm()), verifiedDate)) {
+                    return;
+                }
                 ObservedOffer offer = new ObservedOffer(
                         current.getId(),
                         current.getTerm(),
