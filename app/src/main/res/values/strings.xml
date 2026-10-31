@@ -375,8 +375,8 @@
     <string name="property_zip_display_enable">Mostrar imóveis por CEP</string>
     <string name="property_zip_display_disable">Não mostrar imóveis por CEP</string>
     <string name="property_interval_title">Consulta por condomínio</string>
-    <string name="property_condominium_interval_title">Consulta por condomínio</string>
-    <string name="property_zip_interval_title">Consulta por CEP</string>
+    <string name="property_condominium_interval_title">Imóveis por condomínio</string>
+    <string name="property_zip_interval_title">Imóveis por CEP</string>
     <string name="property_interval_dialog_title">Intervalo de consulta por condomínio</string>
     <string name="property_zip_interval_dialog_title">Intervalo de consulta por CEP</string>
     <string name="property_interval_summary">Consulta a cada %1$d minutos</string>
@@ -427,7 +427,7 @@
     <string name="profile_section_appearance">Aparência</string>
     <string name="profile_section_appearance_summary">Tema, cor, som e transições</string>
     <string name="profile_section_properties">Imóveis</string>
-    <string name="profile_section_properties_summary">Referência de mercado e consultas</string>
+    <string name="profile_section_properties_summary">Condomínio e CEP</string>
     <string name="profile_section_external_sources">Lojas</string>
     <string name="profile_section_external_sources_summary">Intervalos de consulta das lojas</string>
     <string name="profile_section_sync">Sincronização</string>
@@ -788,6 +788,6 @@
     <string name="source_error_connection">Não foi possível conectar à fonte.</string>
     <string name="source_error_response">Não foi possível concluir a leitura da fonte.</string>
     <string name="store_source_never_consult">Consultas pausadas</string>
-    <string name="store_source_disabled">Não será consultada</string>
+    <string name="store_source_disabled">Consulta pausada</string>
     <string name="store_source_paused_badge">Ⅱ</string>
 </resources>

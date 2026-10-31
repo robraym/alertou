@@ -96,8 +96,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView accentColorSummary;
     private TextView alertSoundSummary;
     private TextView navigationAnimationSummary;
-    private TextView propertyMarketReferenceSummary;
-    private TextView propertyZipDisplaySummary;
     private TextView propertyIntervalSummary;
     private TextView propertyZipIntervalSummary;
     private TextView vivoOutletIntervalSummary;
@@ -145,8 +143,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         accentColorSummary = findViewById(R.id.text_accent_color_summary);
         alertSoundSummary = findViewById(R.id.text_alert_sound_summary);
         navigationAnimationSummary = findViewById(R.id.text_navigation_animation_summary);
-        propertyMarketReferenceSummary = findViewById(R.id.text_property_market_reference_summary);
-        propertyZipDisplaySummary = findViewById(R.id.text_property_zip_display_summary);
         propertyIntervalSummary = findViewById(R.id.text_property_interval_summary);
         propertyZipIntervalSummary = findViewById(R.id.text_property_zip_interval_summary);
         vivoOutletIntervalSummary = findViewById(R.id.text_vivo_outlet_interval_summary);
@@ -212,12 +208,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         findViewById(R.id.row_alert_sound).setOnClickListener(view -> showAlertSoundDialog());
         findViewById(R.id.row_navigation_animation).setOnClickListener(
                 view -> showNavigationAnimationDialog()
-        );
-        findViewById(R.id.row_property_market_reference).setOnClickListener(
-                view -> showPropertyMarketReferenceDialog()
-        );
-        findViewById(R.id.row_property_zip_display).setOnClickListener(
-                view -> showPropertyZipDisplayDialog()
         );
         findViewById(R.id.row_property_interval).setOnClickListener(
                 view -> showPropertyIntervalDialog(false)
@@ -450,16 +440,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         navigationAnimationSummary.setText(NavigationAnimationController.getSummaryResource(
                 NavigationAnimationController.getSavedMode(this)
         ));
-        propertyMarketReferenceSummary.setText(
-                PropertyMarketReferenceSettings.getCondominiumVisibilitySummaryResource(this)
-        );
-        propertyZipDisplaySummary.setText(
-                PropertyMarketReferenceSettings.getZipVisibilitySummaryResource(this)
-        );
-        propertyIntervalSummary.setText(formatCheckIntervalSeconds(
-                PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, false)));
-        propertyZipIntervalSummary.setText(formatCheckIntervalSeconds(
-                PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, true)));
+        propertyIntervalSummary.setText(getPropertyIntervalSummary(false));
+        propertyZipIntervalSummary.setText(getPropertyIntervalSummary(true));
         vivoOutletIntervalSummary.setText(formatStoreInterval(R.string.vivo_outlet_source_title, VivoOutletSource.getCheckIntervalSeconds(this)));
         vivoMadrugadaIntervalSummary.setText(formatStoreInterval(R.string.vivo_madrugada_source_title, VivoMadrugadaSource.getCheckIntervalSeconds(this)));
         pelandoIntervalSummary.setText(formatStoreInterval(R.string.pelando_source_title, PelandoSource.getCheckIntervalSeconds(this)));
@@ -494,6 +476,14 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         ((TextView) findViewById(R.id.text_kabum_catalog_api_interval_title)).setText(
                 StoreDisplayName.get(this, R.string.kabum_catalog_api_source_title));
         backupScheduleSummary.setText(getBackupScheduleSummary());
+    }
+
+    private String getPropertyIntervalSummary(boolean zip) {
+        if (!PropertyMarketReferenceSettings.isVisible(this, zip)) {
+            return getString(R.string.store_source_disabled);
+        }
+        return formatCheckIntervalSeconds(
+                PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, zip));
     }
 
     private String getBackupScheduleSummary() {
@@ -582,54 +572,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         showCompactDialog(dialog, content);
     }
 
-    private void showPropertyMarketReferenceDialog() {
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
-        content.setBackgroundResource(R.drawable.bg_dialog);
-
-        TextView title = new TextView(this);
-        title.setText(R.string.property_market_reference_dialog_title);
-        title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(21);
-        content.addView(title);
-
-        boolean enabled = PropertyMarketReferenceSettings.isCondominiumVisible(this);
-        int[] labels = {
-                R.string.property_market_reference_enable,
-                R.string.property_market_reference_disable
-        };
-        boolean[] values = {true, false};
-        LinearLayout options = new LinearLayout(this);
-        options.setOrientation(LinearLayout.VERTICAL);
-        options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < labels.length; index++) {
-            boolean value = values[index];
-            TextView option = createThemeOption(labels[index], value == enabled);
-            option.setOnClickListener(view -> {
-                PropertyMarketReferenceSettings.setCondominiumVisible(this, value);
-                propertyMarketReferenceSummary.setText(
-                        PropertyMarketReferenceSettings.getCondominiumVisibilitySummaryResource(this)
-                );
-                PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
-                notifyPropertyDisplaySettingsChanged();
-                dialog.dismiss();
-            });
-            options.addView(option);
-        }
-        content.addView(options);
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.END);
-        TextView close = createDialogAction(R.string.action_close);
-        close.setOnClickListener(view -> dialog.dismiss());
-        actions.addView(close);
-        content.addView(actions);
-
-        showCompactDialog(dialog, content);
-    }
-
     private void showPropertyIntervalDialog(boolean zip) {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
@@ -645,20 +587,42 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         content.addView(title);
 
         int savedInterval = PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, zip);
+        boolean enabled = PropertyMarketReferenceSettings.isVisible(this, zip);
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
         for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
-            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval), interval == savedInterval);
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    enabled && interval == savedInterval);
             option.setOnClickListener(view -> {
                 PropertyMarketReferenceSettings.saveCheckIntervalSeconds(this, zip, interval);
+                if (zip) {
+                    PropertyMarketReferenceSettings.setZipVisible(this, true);
+                } else {
+                    PropertyMarketReferenceSettings.setCondominiumVisible(this, true);
+                }
                 (zip ? propertyZipIntervalSummary : propertyIntervalSummary)
-                        .setText(formatCheckIntervalSeconds(interval));
+                        .setText(getPropertyIntervalSummary(zip));
                 PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
+                notifyPropertyDisplaySettingsChanged();
                 dialog.dismiss();
             });
             options.addView(option);
         }
+        TextView pause = createThemeOption(R.string.store_source_never_consult, !enabled);
+        pause.setOnClickListener(view -> {
+            if (zip) {
+                PropertyMarketReferenceSettings.setZipVisible(this, false);
+            } else {
+                PropertyMarketReferenceSettings.setCondominiumVisible(this, false);
+            }
+            (zip ? propertyZipIntervalSummary : propertyIntervalSummary)
+                    .setText(getPropertyIntervalSummary(zip));
+            PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
+            notifyPropertyDisplaySettingsChanged();
+            dialog.dismiss();
+        });
+        options.addView(pause);
         content.addView(options);
 
         LinearLayout actions = new LinearLayout(this);
@@ -770,53 +734,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         actions.addView(close);
         content.addView(actions);
 
-        showCompactDialog(dialog, content);
-    }
-
-    private void showPropertyZipDisplayDialog() {
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
-        content.setBackgroundResource(R.drawable.bg_dialog);
-
-        TextView title = new TextView(this);
-        title.setText(R.string.property_zip_display_dialog_title);
-        title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(21);
-        content.addView(title);
-
-        boolean visible = PropertyMarketReferenceSettings.isZipVisible(this);
-        int[] labels = {
-                R.string.property_zip_display_enable,
-                R.string.property_zip_display_disable
-        };
-        boolean[] values = {true, false};
-        LinearLayout options = new LinearLayout(this);
-        options.setOrientation(LinearLayout.VERTICAL);
-        options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < labels.length; index++) {
-            boolean value = values[index];
-            TextView option = createThemeOption(labels[index], value == visible);
-            option.setOnClickListener(view -> {
-                PropertyMarketReferenceSettings.setZipVisible(this, value);
-                propertyZipDisplaySummary.setText(
-                        PropertyMarketReferenceSettings.getZipVisibilitySummaryResource(this)
-                );
-                PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
-                notifyPropertyDisplaySettingsChanged();
-                dialog.dismiss();
-            });
-            options.addView(option);
-        }
-        content.addView(options);
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.END);
-        TextView close = createDialogAction(R.string.action_close);
-        close.setOnClickListener(view -> dialog.dismiss());
-        actions.addView(close);
-        content.addView(actions);
         showCompactDialog(dialog, content);
     }
 

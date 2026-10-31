@@ -129,7 +129,8 @@
             <LinearLayout
             android:id="@+id/header_profile_appearance"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
@@ -165,8 +166,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     android:text="@string/profile_section_appearance_summary"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
@@ -233,7 +233,8 @@
             <LinearLayout
             android:id="@+id/header_profile_properties"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
@@ -269,8 +270,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     android:text="@string/profile_section_properties_summary"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
@@ -294,25 +294,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <include layout="@layout/row_profile_property_market_reference" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="60dp"
-                android:layout_marginEnd="8dp"
-                android:background="@color/divider" />
-
             <include layout="@layout/row_profile_property_interval" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="60dp"
-                android:layout_marginEnd="8dp"
-                android:background="@color/divider" />
-
-            <include layout="@layout/row_profile_property_zip_display" />
 
             <View
                 android:layout_width="match_parent"
@@ -337,7 +319,8 @@
             <LinearLayout
             android:id="@+id/header_profile_external_sources"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
@@ -373,8 +356,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     android:text="@string/profile_section_external_sources_summary"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
@@ -504,7 +486,8 @@
             <LinearLayout
             android:id="@+id/header_profile_sync"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
@@ -540,8 +523,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     android:text="@string/profile_section_sync_summary"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
@@ -599,7 +581,8 @@
             <LinearLayout
             android:id="@+id/header_profile_info"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
             android:clickable="true"
             android:focusable="true"
             android:gravity="center_vertical"
@@ -635,8 +618,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
-                    android:ellipsize="end"
-                    android:maxLines="1"
+                    android:maxLines="2"
                     android:text="@string/profile_section_info_summary"
                     android:textColor="@color/text_secondary"
                     android:textSize="14sp" />
