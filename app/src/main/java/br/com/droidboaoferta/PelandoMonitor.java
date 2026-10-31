@@ -184,8 +184,9 @@ final class PelandoMonitor {
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
             }
-        } catch (Exception ignored) {
+        } catch (Exception error) {
             PelandoSource.markFailedCheck(context);
+            StoreSourceCheckStatus.failed(context, R.string.pelando_source_title, error);
         } finally {
             StoreSourceCheckStatus.finish(context, R.string.pelando_source_title);
             context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)

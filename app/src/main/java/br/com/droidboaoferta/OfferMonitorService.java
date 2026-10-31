@@ -63,6 +63,7 @@ public class OfferMonitorService extends Service {
         PromobitMonitor.getInstance().stop();
         KabumOfferMonitor.getInstance().stop();
         KabumCatalogMonitor.getInstance().stop();
+        KabumCatalogApiMonitor.getInstance().stop();
         MotorolaOfferMonitor.getInstance().stop();
         ClaroOfferMonitor.getInstance().stop();
         SamsungOfferMonitor.getInstance().stop();

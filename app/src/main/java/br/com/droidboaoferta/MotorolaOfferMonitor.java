@@ -134,8 +134,9 @@ final class MotorolaOfferMonitor {
             }
             if (found) context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                     .setPackage(context.getPackageName()));
-        } catch (Exception ignored) {
+        } catch (Exception error) {
             MotorolaOfferSource.markFailedCheck(context);
+            StoreSourceCheckStatus.failed(context, R.string.motorola_offer_source_title, error);
         } finally {
             StoreSourceCheckStatus.finish(context, R.string.motorola_offer_source_title);
             context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED).setPackage(context.getPackageName()));

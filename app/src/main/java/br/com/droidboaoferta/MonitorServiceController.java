@@ -53,20 +53,36 @@ final class MonitorServiceController {
                 hasPriceAlert = true;
             }
         }
-        return hasCouponAlert
-                || hasPropertyAlert
+        return hasCouponAlert || hasPropertyAlert
                 || (hasPriceAlert && (selectedGroupCount(context) > 0
-                || VivoOutletSource.isConfigured(context)
-                || VivoMadrugadaSource.isConfigured(context)
-                || PelandoSource.isConfigured(context)
-                || PromobitSource.isConfigured(context)
-                || KabumOfferSource.isConfigured(context)
-                || KabumCatalogSource.isConfigured(context)
-                || KabumCatalogApiSource.isConfigured(context)
-                || MotorolaOfferSource.isConfigured(context)
-                || SamsungOfferSource.isConfigured(context)
-                || SamsungDiscountOfferSource.isConfigured(context)
-                || ClaroOfferSource.isConfigured(context)));
+                || hasEnabledStoreSource(context)));
+    }
+
+    /** A configured but disabled source must not keep the foreground service alive. */
+    private static boolean hasEnabledStoreSource(Context context) {
+        return (StoreSourceControl.isEnabled(context, R.string.vivo_outlet_source_title)
+                && VivoOutletSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.vivo_madrugada_source_title)
+                && VivoMadrugadaSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.pelando_source_title)
+                && PelandoSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.promobit_source_title)
+                && PromobitSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.kabum_offer_source_title)
+                && KabumOfferSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.kabum_catalog_source_title)
+                && KabumCatalogSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.kabum_catalog_api_source_title)
+                && KabumCatalogApiSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.motorola_offer_source_title)
+                && MotorolaOfferSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.claro_offer_source_title)
+                && ClaroOfferSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context, R.string.samsung_offer_source_title)
+                && SamsungOfferSource.isConfigured(context))
+                || (StoreSourceControl.isEnabled(context,
+                R.string.samsung_discount_offer_source_title)
+                && SamsungDiscountOfferSource.isConfigured(context));
     }
 
     static boolean isEnabled(Context context) {

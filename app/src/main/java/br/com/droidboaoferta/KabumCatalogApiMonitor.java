@@ -101,8 +101,9 @@ final class KabumCatalogApiMonitor {
                     found = true;
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception error) {
             succeeded = false;
+            StoreSourceCheckStatus.failed(context, R.string.kabum_catalog_api_source_title, error);
         } finally {
             if (succeeded) KabumCatalogApiSource.markSuccessfulCheck(context);
             else KabumCatalogApiSource.markFailedCheck(context);

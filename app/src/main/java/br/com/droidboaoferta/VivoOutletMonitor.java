@@ -234,9 +234,12 @@ final class VivoOutletMonitor {
                 }
             }
             return found;
-        } catch (Exception ignored) {
+        } catch (Exception error) {
             if (outlet) VivoOutletSource.markFailedCheck(context);
             else VivoMadrugadaSource.markFailedCheck(context);
+            StoreSourceCheckStatus.failed(context, outlet
+                    ? R.string.vivo_outlet_source_title : R.string.vivo_madrugada_source_title,
+                    error);
             // Mantém a última leitura válida se a loja estiver indisponível temporariamente.
             return false;
         } finally {

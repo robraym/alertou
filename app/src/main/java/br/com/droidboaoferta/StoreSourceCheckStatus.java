@@ -60,6 +60,17 @@ final class StoreSourceCheckStatus {
         notifyChanged(context, sourceTitleResource, false);
     }
 
+    /** Retains a concise, local diagnosis instead of silently swallowing a failed request. */
+    static void failed(Context context, int sourceTitleResource, Exception error) {
+        int reason = error instanceof java.net.SocketTimeoutException
+                ? R.string.source_error_timeout
+                : error instanceof java.net.UnknownHostException
+                ? R.string.source_error_connection
+                : R.string.source_error_response;
+        AppErrorStore.recordSerious(context, context.getString(sourceTitleResource),
+                context.getString(reason));
+    }
+
     static void beginManualBatch() {
         synchronized (BATCH_LOCK) {
             manualBatchActive = true;
@@ -162,17 +173,28 @@ final class StoreSourceCheckStatus {
 
     private static Set<Integer> getConfiguredSourceTitles(Context context) {
         Set<Integer> titles = new LinkedHashSet<>();
-        if (VivoOutletSource.isConfigured(context)) titles.add(R.string.vivo_outlet_source_title);
-        if (VivoMadrugadaSource.isConfigured(context)) titles.add(R.string.vivo_madrugada_source_title);
-        if (PelandoSource.isConfigured(context)) titles.add(R.string.pelando_source_title);
-        if (PromobitSource.isConfigured(context)) titles.add(R.string.promobit_source_title);
-        if (KabumOfferSource.isConfigured(context)) titles.add(R.string.kabum_offer_source_title);
-        if (KabumCatalogSource.isConfigured(context)) titles.add(R.string.kabum_catalog_source_title);
-        if (KabumCatalogApiSource.isConfigured(context)) titles.add(R.string.kabum_catalog_api_source_title);
-        if (MotorolaOfferSource.isConfigured(context)) titles.add(R.string.motorola_offer_source_title);
-        if (ClaroOfferSource.isConfigured(context)) titles.add(R.string.claro_offer_source_title);
-        if (SamsungOfferSource.isConfigured(context)) titles.add(R.string.samsung_offer_source_title);
-        if (SamsungDiscountOfferSource.isConfigured(context)) {
+        if (StoreSourceControl.isEnabled(context, R.string.vivo_outlet_source_title)
+                && VivoOutletSource.isConfigured(context)) titles.add(R.string.vivo_outlet_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.vivo_madrugada_source_title)
+                && VivoMadrugadaSource.isConfigured(context)) titles.add(R.string.vivo_madrugada_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.pelando_source_title)
+                && PelandoSource.isConfigured(context)) titles.add(R.string.pelando_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.promobit_source_title)
+                && PromobitSource.isConfigured(context)) titles.add(R.string.promobit_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.kabum_offer_source_title)
+                && KabumOfferSource.isConfigured(context)) titles.add(R.string.kabum_offer_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.kabum_catalog_source_title)
+                && KabumCatalogSource.isConfigured(context)) titles.add(R.string.kabum_catalog_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.kabum_catalog_api_source_title)
+                && KabumCatalogApiSource.isConfigured(context)) titles.add(R.string.kabum_catalog_api_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.motorola_offer_source_title)
+                && MotorolaOfferSource.isConfigured(context)) titles.add(R.string.motorola_offer_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.claro_offer_source_title)
+                && ClaroOfferSource.isConfigured(context)) titles.add(R.string.claro_offer_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.samsung_offer_source_title)
+                && SamsungOfferSource.isConfigured(context)) titles.add(R.string.samsung_offer_source_title);
+        if (StoreSourceControl.isEnabled(context, R.string.samsung_discount_offer_source_title)
+                && SamsungDiscountOfferSource.isConfigured(context)) {
             titles.add(R.string.samsung_discount_offer_source_title);
         }
         return titles;

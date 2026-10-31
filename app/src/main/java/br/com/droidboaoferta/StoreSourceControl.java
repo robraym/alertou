@@ -16,13 +16,17 @@ final class StoreSourceControl {
     }
 
     static void setEnabled(Context context, int sourceTitleResource, boolean enabled) {
-        SharedPreferences preferences = preferences(context);
+        Context appContext = context.getApplicationContext();
+        SharedPreferences preferences = preferences(appContext);
         int bit = bitFor(sourceTitleResource);
         int mask = preferences.getInt(KEY_DISABLED_SOURCES_MASK, 0);
         int updated = enabled ? mask & ~bit : mask | bit;
         if (updated == mask) return;
         preferences.edit().putInt(KEY_DISABLED_SOURCES_MASK, updated).apply();
-        SettingsBackup.changed(context);
+        SettingsBackup.changed(appContext);
+        // Stops the foreground service as soon as the last active source is paused,
+        // and starts it again immediately when a source is reactivated.
+        MonitorServiceController.update(appContext);
     }
 
     private static SharedPreferences preferences(Context context) {

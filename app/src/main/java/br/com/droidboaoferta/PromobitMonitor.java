@@ -160,8 +160,9 @@ final class PromobitMonitor {
                 context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                         .setPackage(context.getPackageName()));
             }
-        } catch (Exception ignored) {
+        } catch (Exception error) {
             PromobitSource.markFailedCheck(context);
+            StoreSourceCheckStatus.failed(context, R.string.promobit_source_title, error);
         } finally {
             StoreSourceCheckStatus.finish(context, R.string.promobit_source_title);
             context.sendBroadcast(new Intent(ACTION_STATUS_CHANGED)
