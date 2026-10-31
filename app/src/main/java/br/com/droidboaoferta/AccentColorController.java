@@ -26,7 +26,7 @@ final class AccentColorController {
     }
 
     static String getSavedMode(Context context) {
-        return normalize(prefs(context).getString(ACCENT_COLOR, MODE_BLUE));
+        return normalize(prefs(context).getString(ACCENT_COLOR, MODE_GREEN));
     }
 
     static void saveMode(Context context, String mode) {
@@ -37,7 +37,6 @@ final class AccentColorController {
         long changedAt = System.currentTimeMillis();
         prefs(context).edit().putString(ACCENT_COLOR, normalizedMode).apply();
         CloudSyncStore.syncAccentColorChanged(context, changedAt);
-        CloudSyncStore.markLocalChanged(context);
     }
 
     static void apply(Activity activity) {

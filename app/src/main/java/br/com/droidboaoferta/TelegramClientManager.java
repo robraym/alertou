@@ -578,7 +578,8 @@ final class TelegramClientManager {
 
     void syncCloudBackupSoon() {
         Log.d(TAG, "syncCloudBackupSoon state=" + state + ", selfChatId=" + selfChatId);
-        if (appContext == null || state != State.READY) {
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)
+                || state != State.READY) {
             return;
         }
         if (selfChatId == 0L) {
@@ -590,7 +591,8 @@ final class TelegramClientManager {
     }
 
     synchronized void sendSelectedGroupsDelta() {
-        if (appContext == null || state != State.READY) return;
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)
+                || state != State.READY) return;
         if (selfChatId == 0L) {
             pendingGroupsDelta = true;
             requestSelfChat();
@@ -610,6 +612,9 @@ final class TelegramClientManager {
 
     synchronized void sendConfigurationDelta(String deltaText) {
         if (deltaText == null || deltaText.trim().isEmpty()) return;
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)) {
+            return;
+        }
         if (appContext == null || state != State.READY) {
             queueConfigurationDelta(deltaText);
             return;
@@ -639,7 +644,8 @@ final class TelegramClientManager {
 
     void refreshCloudBackupSoon() {
         Log.d(TAG, "refreshCloudBackupSoon state=" + state + ", selfChatId=" + selfChatId);
-        if (appContext == null || state != State.READY) {
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)
+                || state != State.READY) {
             return;
         }
         if (!CloudSyncStore.shouldRefreshRemote(appContext)) {
@@ -692,8 +698,27 @@ final class TelegramClientManager {
     synchronized void rescheduleCloudBackup() {
         cancelCloudBackupWakeup();
         if (appContext != null && state == State.READY && selfChatId != 0L
+                && CloudSyncStore.isAutomaticSyncEnabled(appContext)
                 && CloudSyncStore.hasPendingPush(appContext)) {
             scheduleCloudBackup();
+        }
+    }
+
+    synchronized void onAutomaticSyncChanged(boolean enabled) {
+        if (appContext == null) {
+            return;
+        }
+        if (!enabled) {
+            pendingGroupsDelta = false;
+            pendingConfigurationRefresh = false;
+            pendingConfigurationDeltas.clear();
+            cloudPullAgainRequested = false;
+            cancelCloudBackupWakeup();
+            return;
+        }
+        refreshCloudBackupSoon();
+        if (CloudSyncStore.hasPendingPush(appContext)) {
+            syncCloudBackupSoon();
         }
     }
 
@@ -1829,7 +1854,9 @@ final class TelegramClientManager {
 
     private synchronized void requestCloudBackup() {
         Log.d(TAG, "requestCloudBackup requested=" + cloudSyncRequested + ", selfChatId=" + selfChatId);
-        if (cloudSyncRequested || selfChatId == 0L) {
+        if (appContext == null
+                || (!CloudSyncStore.isAutomaticSyncEnabled(appContext) && !forceCloudRestore)
+                || cloudSyncRequested || selfChatId == 0L) {
             return;
         }
         cloudSyncRequested = true;
@@ -1883,29 +1910,32 @@ final class TelegramClientManager {
             requestManualBackupClear();
             return;
         }
-        if (pendingGroupsDelta) {
+        if (CloudSyncStore.isAutomaticSyncEnabled(appContext) && pendingGroupsDelta) {
             pendingGroupsDelta = false;
             sendSelectedGroupsDelta();
         }
-        if (!pendingConfigurationDeltas.isEmpty()) {
+        if (CloudSyncStore.isAutomaticSyncEnabled(appContext) && !pendingConfigurationDeltas.isEmpty()) {
             List<String> deltas = new ArrayList<>(pendingConfigurationDeltas);
             pendingConfigurationDeltas.clear();
             for (String delta : deltas) sendConfigurationDelta(delta);
         }
-        if (pendingConfigurationRefresh) {
+        if (CloudSyncStore.isAutomaticSyncEnabled(appContext) && pendingConfigurationRefresh) {
             pendingConfigurationRefresh = false;
             requestCloudBackup();
             return;
         }
-        requestCloudBackup();
-        if (initialCloudRestorePending) {
-            return;
+        if (CloudSyncStore.isAutomaticSyncEnabled(appContext)) {
+            requestCloudBackup();
+            if (initialCloudRestorePending) {
+                return;
+            }
         }
         if (pendingManualBackup) {
             pendingManualBackup = false;
             sendCloudBackup();
         }
-        if (CloudSyncStore.hasPendingPush(appContext)) {
+        if (CloudSyncStore.isAutomaticSyncEnabled(appContext)
+                && CloudSyncStore.hasPendingPush(appContext)) {
             scheduleCloudBackup();
         }
     }
@@ -1913,6 +1943,8 @@ final class TelegramClientManager {
     private synchronized void requestCloudSyncHistoryFallback(long generation) {
         if (generation != cloudPullGeneration
                 || cloudHistoryFallbackRequested
+                || (appContext != null && !CloudSyncStore.isAutomaticSyncEnabled(appContext)
+                && !forceCloudRestore)
                 || selfChatId == 0L) {
             return;
         }
@@ -1944,8 +1976,21 @@ final class TelegramClientManager {
             requestCloudSyncHistoryFallback(generation);
             return;
         }
-        boolean groupsChanged = CloudSyncStore.importSelectedGroupsDeltas(appContext, messages);
-        boolean rankingChanged = CloudSyncStore.importRankingDeltas(appContext, messages);
+        boolean automaticSyncEnabled = CloudSyncStore.isAutomaticSyncEnabled(appContext);
+        boolean forcedRestore = forceCloudRestore;
+        if (!automaticSyncEnabled && !forcedRestore) {
+            finishCloudPull(generation, true);
+            return;
+        }
+        if (automaticSyncEnabled && !forcedRestore) {
+            // A successful quick check is useful information even when there was
+            // no remote change to import.
+            CloudSyncStore.rememberConfigurationSynced(appContext);
+        }
+        boolean groupsChanged = automaticSyncEnabled
+                && CloudSyncStore.importSelectedGroupsDeltas(appContext, messages);
+        boolean rankingChanged = automaticSyncEnabled
+                && CloudSyncStore.importRankingDeltas(appContext, messages);
         if (groupsChanged) {
             MonitorServiceController.update(appContext);
             loadGroups();
@@ -1956,7 +2001,6 @@ final class TelegramClientManager {
             appContext.sendBroadcast(new android.content.Intent(ACTION_CLOUD_SYNC_CHANGED)
                     .setPackage(appContext.getPackageName()));
         }
-        boolean forcedRestore = forceCloudRestore;
         boolean automaticConfigurationRestore = initialCloudRestorePending;
         JSONObject remoteBackup = forcedRestore || automaticConfigurationRestore
                 ? CloudSyncStore.findNewestRestorableBackup(messages)
@@ -2042,6 +2086,9 @@ final class TelegramClientManager {
     }
 
     private synchronized void handleIncomingCloudSyncMessage(JSONObject message) {
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)) {
+            return;
+        }
         if (message.optJSONObject("sending_state") != null) {
             return;
         }
@@ -2089,6 +2136,9 @@ final class TelegramClientManager {
     }
 
     private synchronized void scheduleCloudPull() {
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)) {
+            return;
+        }
         if (cloudPullScheduled) {
             cloudPullAgainRequested = true;
             return;
@@ -2100,7 +2150,8 @@ final class TelegramClientManager {
         );
         cloudSyncHandler.postDelayed(() -> {
             cloudPullScheduled = false;
-            if (appContext == null || state != State.READY || selfChatId == 0L) {
+            if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)
+                    || state != State.READY || selfChatId == 0L) {
                 return;
             }
             if (cloudSyncRequested) {
@@ -2596,7 +2647,7 @@ final class TelegramClientManager {
     }
 
     private synchronized void scheduleCloudBackup() {
-        if (appContext == null || !CloudBackupSchedule.isAutomatic(appContext)) {
+        if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)) {
             return;
         }
         if (cloudBackupScheduled) {
@@ -2604,16 +2655,6 @@ final class TelegramClientManager {
         }
         cloudBackupScheduled = true;
         long retryDelay = cloudBackupRetryGate.remaining(SystemClock.elapsedRealtime());
-        long intervalMillis = CloudBackupSchedule.getIntervalMillis(appContext);
-        long lastBackupAt = CloudSyncStore.getLastBackupAt(appContext);
-        long pendingStartedAt = CloudSyncStore.getPendingStartedAt(appContext);
-        long nextBackupAt = lastBackupAt > 0L
-                ? lastBackupAt + intervalMillis
-                : pendingStartedAt + intervalMillis;
-        long scheduledDelay = Math.max(
-                0L,
-                nextBackupAt - System.currentTimeMillis()
-        );
         long wakeupToken = ++cloudBackupWakeupToken;
         cloudBackupWakeup = () -> {
             synchronized (TelegramClientManager.this) {
@@ -2635,7 +2676,7 @@ final class TelegramClientManager {
         };
         cloudSyncHandler.postDelayed(cloudBackupWakeup, Math.max(
                 CLOUD_BACKUP_DEBOUNCE_MS + deviceBackupJitterMs(),
-                Math.max(retryDelay, scheduledDelay)
+                retryDelay
         ));
     }
 

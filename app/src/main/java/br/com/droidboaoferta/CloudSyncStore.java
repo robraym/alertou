@@ -29,6 +29,7 @@ final class CloudSyncStore {
     static final String RANKING_DELTA_MARKER = "#BoaOfertaRankingV1";
 
     private static final String SYNC_PREFS = "cloud_sync_preferences";
+    private static final String AUTOMATIC_SYNC_ENABLED = "automatic_sync_enabled";
     private static final String LAST_LOCAL_CHANGE = "last_local_change";
     private static final String PENDING_PUSH = "pending_push";
     private static final String PENDING_STARTED_AT = "pending_started_at";
@@ -114,6 +115,15 @@ final class CloudSyncStore {
     }
 
     static void markLocalChanged(Context context) {
+        markLocalChanged(context, true);
+    }
+
+    /** Records a lightweight configuration change without scheduling a full snapshot. */
+    static void markConfigurationChanged(Context context) {
+        markLocalChanged(context, false);
+    }
+
+    private static void markLocalChanged(Context context, boolean scheduleFullSnapshot) {
         if (context == null) {
             return;
         }
@@ -131,7 +141,24 @@ final class CloudSyncStore {
                         ? preferences.getLong(PENDING_STARTED_AT, changedAt)
                         : changedAt)
                 .apply();
-        dispatchOfferChange(() -> TelegramClientManager.getInstance().syncCloudBackupSoon());
+        if (scheduleFullSnapshot && isAutomaticSyncEnabled(context)) {
+            dispatchOfferChange(() -> TelegramClientManager.getInstance().syncCloudBackupSoon());
+        }
+    }
+
+    /**
+     * Automatic synchronization is intentionally opt-in: the manual backup and restore
+     * actions remain available regardless of this preference.
+     */
+    static boolean isAutomaticSyncEnabled(Context context) {
+        return context != null && syncPrefs(context).getBoolean(AUTOMATIC_SYNC_ENABLED, false);
+    }
+
+    static void setAutomaticSyncEnabled(Context context, boolean enabled) {
+        if (context == null) {
+            return;
+        }
+        syncPrefs(context).edit().putBoolean(AUTOMATIC_SYNC_ENABLED, enabled).apply();
     }
 
     static void ensureCouponSyncGuarantee(Context context) {
@@ -178,7 +205,7 @@ final class CloudSyncStore {
     }
 
     static boolean shouldRefreshRemote(Context context) {
-        if (context == null) return false;
+        if (context == null || !isAutomaticSyncEnabled(context)) return false;
         SharedPreferences preferences = syncPrefs(context);
         if (!preferences.getBoolean(CONFIG_DELTA_HISTORY_MIGRATED, false)) return true;
         if (hasPendingPush(context)) return true;
@@ -196,7 +223,7 @@ final class CloudSyncStore {
 
     /** A clean device imports its saved configuration once immediately after Telegram login. */
     static boolean shouldRestoreConfigurationOnConnect(Context context) {
-        if (context == null) return false;
+        if (context == null || !isAutomaticSyncEnabled(context)) return false;
         SharedPreferences sync = syncPrefs(context);
         if (sync.getBoolean(INITIAL_RESTORE_COMPLETED, false)) return false;
         Context appContext = context.getApplicationContext();
@@ -227,7 +254,9 @@ final class CloudSyncStore {
                 .putLong(PENDING_STARTED_AT, wasPending
                         ? preferences.getLong(PENDING_STARTED_AT, changedAt) : changedAt)
                 .apply();
-        dispatchOfferChange(() -> TelegramClientManager.getInstance().syncCloudBackupSoon());
+        if (isAutomaticSyncEnabled(context)) {
+            dispatchOfferChange(() -> TelegramClientManager.getInstance().syncCloudBackupSoon());
+        }
     }
 
 
@@ -545,12 +574,14 @@ final class CloudSyncStore {
 
     static void syncThemeModeChanged(Context context, long changedAt) {
         rememberThemeChanged(context, changedAt);
+        markConfigurationChanged(context);
         TelegramClientManager.getInstance().sendConfigurationDelta(
                 exportConfigurationDelta(context, "theme", changedAt));
     }
 
     static void syncAccentColorChanged(Context context, long changedAt) {
         rememberThemeChanged(context, changedAt);
+        markConfigurationChanged(context);
         TelegramClientManager.getInstance().sendConfigurationDelta(
                 exportConfigurationDelta(context, "accent", changedAt));
     }
@@ -566,6 +597,7 @@ final class CloudSyncStore {
 
     static void syncAlertSoundChanged(Context context, long changedAt) {
         rememberAlertSoundChanged(context, changedAt);
+        markConfigurationChanged(context);
         TelegramClientManager.getInstance().sendConfigurationDelta(
                 exportConfigurationDelta(context, "sound", changedAt));
     }
@@ -599,6 +631,7 @@ final class CloudSyncStore {
     }
 
     static void syncInterestsChanged(Context context) {
+        markConfigurationChanged(context);
         TelegramClientManager.getInstance().sendConfigurationDelta(
                 exportConfigurationDelta(context, "interests", System.currentTimeMillis()));
     }
@@ -612,6 +645,7 @@ final class CloudSyncStore {
         if (fields.length() == 0) {
             return;
         }
+        markConfigurationChanged(context);
         JSONObject payload = new JSONObject();
         try {
             payload.put("type", "interest")
@@ -686,6 +720,7 @@ final class CloudSyncStore {
         if (context == null || interestId <= 0L) {
             return;
         }
+        markConfigurationChanged(context);
         JSONObject payload = new JSONObject();
         try {
             payload.put("type", "interest")
@@ -702,6 +737,7 @@ final class CloudSyncStore {
         if (context == null) {
             return;
         }
+        markConfigurationChanged(context);
         JSONObject payload = new JSONObject();
         try {
             payload.put("type", "alerts_sort")
@@ -718,6 +754,7 @@ final class CloudSyncStore {
     }
 
     static void syncPromotionExpiryChanged(Context context) {
+        markConfigurationChanged(context);
         TelegramClientManager.getInstance().sendConfigurationDelta(
                 exportConfigurationDelta(context, "expiry", System.currentTimeMillis()));
     }
@@ -1024,6 +1061,7 @@ final class CloudSyncStore {
                 .putString(KEY_GROUP_SELECTED_AT, selectedAt.toString())
                 .putString(KEY_REMOVED_GROUPS, removed.toString())
                 .apply();
+        markConfigurationChanged(context);
         TelegramClientManager.getInstance().sendSelectedGroupsDelta();
     }
 

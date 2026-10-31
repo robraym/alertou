@@ -93,7 +93,7 @@
                     android:ellipsize="end"
                     android:text="@string/profile_telegram_disconnected_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
 
                 <TextView
                     android:id="@+id/text_profile_status"
@@ -169,7 +169,7 @@
                     android:maxLines="2"
                     android:text="@string/profile_section_appearance_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <ImageButton
@@ -273,7 +273,7 @@
                     android:maxLines="2"
                     android:text="@string/profile_section_properties_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <ImageButton
@@ -359,7 +359,7 @@
                     android:maxLines="2"
                     android:text="@string/profile_section_external_sources_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <ImageButton
@@ -520,13 +520,14 @@
                     android:textSize="16sp" />
 
                 <TextView
+                    android:id="@+id/text_sync_summary"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="2dp"
                     android:maxLines="2"
                     android:text="@string/profile_section_sync_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <ImageButton
@@ -547,7 +548,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <include layout="@layout/row_profile_sync" />
+            <include layout="@layout/row_profile_automatic_sync" />
 
             <View
                 android:layout_width="match_parent"
@@ -621,7 +622,7 @@
                     android:maxLines="2"
                     android:text="@string/profile_section_info_summary"
                     android:textColor="@color/text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <ImageButton

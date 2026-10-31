@@ -27,7 +27,6 @@ final class ThemeController {
                 .putString(THEME_MODE, mode)
                 .apply();
         CloudSyncStore.syncThemeModeChanged(context, changedAt);
-        CloudSyncStore.markLocalChanged(context);
         applyMode(mode);
     }
 

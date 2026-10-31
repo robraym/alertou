@@ -82,9 +82,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView profileSummary;
     private TextView profileStatus;
     private TextView syncSummary;
-    private ImageView syncIcon;
+    private TextView automaticSyncSummary;
     private TextView backupSummary;
-    private TextView backupScheduleSummary;
     private TextView backupSizeSummary;
     private TextView restoreSummary;
     private TextView restoreSizeSummary;
@@ -110,7 +109,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView samsungOfferIntervalSummary;
     private TextView samsungDiscountOfferIntervalSummary;
     private LinearLayout accountCard;
-    private LinearLayout syncRow;
     private View accountChevron;
     private MediaPlayer alertSoundPreview;
     private Dialog alertSoundDialog;
@@ -129,9 +127,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         profileSummary = findViewById(R.id.text_profile_summary);
         profileStatus = findViewById(R.id.text_profile_status);
         syncSummary = findViewById(R.id.text_sync_summary);
-        syncIcon = findViewById(R.id.image_sync);
+        automaticSyncSummary = findViewById(R.id.text_automatic_sync_summary);
         backupSummary = findViewById(R.id.text_backup_summary);
-        backupScheduleSummary = findViewById(R.id.text_backup_schedule_summary);
         backupSizeSummary = findViewById(R.id.text_backup_size_summary);
         restoreSummary = findViewById(R.id.text_restore_summary);
         restoreSizeSummary = findViewById(R.id.text_restore_size_summary);
@@ -157,7 +154,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         samsungOfferIntervalSummary = findViewById(R.id.text_samsung_offer_interval_summary);
         samsungDiscountOfferIntervalSummary = findViewById(R.id.text_samsung_discount_offer_interval_summary);
         accountCard = findViewById(R.id.card_telegram_account);
-        syncRow = findViewById(R.id.row_sync);
         accountChevron = findViewById(R.id.image_account_chevron);
         alertSoundPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -249,10 +245,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 view -> showSamsungDiscountOfferIntervalDialog()
         );
         findViewById(R.id.row_backup).setOnClickListener(view -> clientManager.backupCloudNow());
-        findViewById(R.id.row_backup).setOnLongClickListener(view -> {
-            showBackupScheduleDialog();
-            return true;
-        });
+        findViewById(R.id.row_automatic_sync).setOnClickListener(
+                view -> showAutomaticSyncDialog()
+        );
         findViewById(R.id.row_restore_backup).setOnClickListener(view -> {
             restoreSummary.setText(R.string.profile_manual_restore_pending);
             restoreSizeSummary.setText(formatCalculatingSizeSummary(
@@ -425,7 +420,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         accountCard.setClickable(true);
         accountCard.setFocusable(true);
         accountChevron.setVisibility(View.VISIBLE);
-        syncRow.setVisibility(connected ? View.VISIBLE : View.GONE);
         refreshSyncSummary();
         refreshSettingsControls();
     }
@@ -475,7 +469,66 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 StoreDisplayName.get(this, R.string.kabum_catalog_source_title));
         ((TextView) findViewById(R.id.text_kabum_catalog_api_interval_title)).setText(
                 StoreDisplayName.get(this, R.string.kabum_catalog_api_source_title));
-        backupScheduleSummary.setText(getBackupScheduleSummary());
+        refreshAutomaticSyncSummary();
+    }
+
+    private void refreshAutomaticSyncSummary() {
+        if (automaticSyncSummary == null) {
+            return;
+        }
+        automaticSyncSummary.setText(CloudSyncStore.isAutomaticSyncEnabled(this)
+                ? R.string.profile_automatic_sync_enabled
+                : R.string.profile_automatic_sync_disabled);
+    }
+
+    private void showAutomaticSyncDialog() {
+        boolean enabled = CloudSyncStore.isAutomaticSyncEnabled(this);
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.profile_automatic_sync_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        TextView hint = new TextView(this);
+        hint.setText(R.string.profile_automatic_sync_hint);
+        hint.setTextColor(getColor(R.color.text_secondary));
+        hint.setTextSize(14);
+        hint.setPadding(0, dp(6), 0, dp(10));
+        content.addView(hint);
+
+        TextView disabled = createThemeOption(R.string.profile_automatic_sync_option_disabled,
+                !enabled);
+        disabled.setOnClickListener(view -> {
+            CloudSyncStore.setAutomaticSyncEnabled(this, false);
+            clientManager.onAutomaticSyncChanged(false);
+            refreshAutomaticSyncSummary();
+            dialog.dismiss();
+        });
+        content.addView(disabled);
+
+        TextView enabledOption = createThemeOption(R.string.profile_automatic_sync_option_enabled,
+                enabled);
+        enabledOption.setOnClickListener(view -> {
+            CloudSyncStore.setAutomaticSyncEnabled(this, true);
+            clientManager.onAutomaticSyncChanged(true);
+            refreshAutomaticSyncSummary();
+            dialog.dismiss();
+        });
+        content.addView(enabledOption);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
     }
 
     private String getPropertyIntervalSummary(boolean zip) {
@@ -484,92 +537,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         return formatCheckIntervalSeconds(
                 PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, zip));
-    }
-
-    private String getBackupScheduleSummary() {
-        String schedule;
-        switch (CloudBackupSchedule.getIntervalMinutes(this)) {
-            case CloudBackupSchedule.TWELVE_HOURS:
-                schedule = getString(R.string.profile_backup_schedule_twelve_hours);
-                break;
-            case CloudBackupSchedule.SIX_HOURS:
-                schedule = getString(R.string.profile_backup_schedule_six_hours);
-                break;
-            case CloudBackupSchedule.ONE_DAY:
-                schedule = getString(R.string.profile_backup_schedule_one_day);
-                break;
-            case CloudBackupSchedule.ONE_WEEK:
-                schedule = getString(R.string.profile_backup_schedule_one_week);
-                break;
-            case CloudBackupSchedule.MANUAL:
-                schedule = getString(R.string.profile_backup_schedule_manual);
-                break;
-            default:
-                schedule = getString(R.string.profile_backup_schedule_six_hours);
-                break;
-        }
-        return getString(R.string.profile_backup_schedule_summary_format, schedule);
-    }
-
-    private void showBackupScheduleDialog() {
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
-        content.setBackgroundResource(R.drawable.bg_dialog);
-
-        TextView title = new TextView(this);
-        title.setText(R.string.profile_backup_schedule_dialog_title);
-        title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(21);
-        content.addView(title);
-
-        TextView hint = new TextView(this);
-        hint.setText(R.string.profile_backup_schedule_hint);
-        hint.setTextColor(getColor(R.color.text_secondary));
-        hint.setTextSize(14);
-        hint.setPadding(0, dp(6), 0, dp(4));
-        content.addView(hint);
-
-        int savedInterval = CloudBackupSchedule.getIntervalMinutes(this);
-        int[] intervals = {
-                CloudBackupSchedule.SIX_HOURS,
-                CloudBackupSchedule.TWELVE_HOURS,
-                CloudBackupSchedule.ONE_DAY,
-                CloudBackupSchedule.ONE_WEEK,
-                CloudBackupSchedule.MANUAL
-        };
-        int[] labels = {
-                R.string.profile_backup_schedule_six_hours,
-                R.string.profile_backup_schedule_twelve_hours,
-                R.string.profile_backup_schedule_one_day,
-                R.string.profile_backup_schedule_one_week,
-                R.string.profile_backup_schedule_manual
-        };
-        LinearLayout options = new LinearLayout(this);
-        options.setOrientation(LinearLayout.VERTICAL);
-        options.setPadding(0, dp(10), 0, dp(10));
-        for (int index = 0; index < intervals.length; index++) {
-            int interval = intervals[index];
-            TextView option = createThemeOption(labels[index], interval == savedInterval);
-            option.setOnClickListener(view -> {
-                CloudBackupSchedule.saveIntervalMinutes(this, interval);
-                backupScheduleSummary.setText(getBackupScheduleSummary());
-                clientManager.rescheduleCloudBackup();
-                dialog.dismiss();
-            });
-            options.addView(option);
-        }
-        content.addView(options);
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.END);
-        TextView close = createDialogAction(R.string.action_close);
-        close.setOnClickListener(view -> dialog.dismiss());
-        actions.addView(close);
-        content.addView(actions);
-
-        showCompactDialog(dialog, content);
     }
 
     private void showPropertyIntervalDialog(boolean zip) {
@@ -2589,7 +2556,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             backupChevron.setVisibility(View.VISIBLE);
             updateActionIconAnimation(backupIcon, false, -dp(4));
             updateActionIconAnimation(restoreIcon, true, dp(4));
-            updateSyncIconAnimation(false);
             restoreSummary.setText(R.string.profile_manual_restore_pending);
             restoreSizeSummary.setText(formatCalculatingSizeSummary(
                     R.string.profile_restore_size_preparing));
@@ -2609,7 +2575,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             backupChevron.setVisibility(View.GONE);
             updateActionIconAnimation(backupIcon, true, -dp(4));
             updateActionIconAnimation(restoreIcon, false, dp(4));
-            updateSyncIconAnimation(false);
             return;
         }
         cancelBackupButton.setVisibility(View.GONE);
@@ -2621,7 +2586,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 CloudSyncStore.getLastBackupAt(this),
                 CloudSyncStore.getLastRemoteBackupAt(this)
         );
-        long lastSyncAt = Math.max(lastBackupAt, CloudSyncStore.getLastConfigurationSyncAt(this));
+        long lastSyncAt = CloudSyncStore.getLastConfigurationSyncAt(this);
         backupSummary.setText(lastBackupAt > 0L
                 ? formatBackupSummary(lastBackupAt)
                 : getString(R.string.profile_manual_backup_summary));
@@ -2633,32 +2598,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 : getString(R.string.profile_manual_restore_summary));
         restoreSizeSummary.setText(formatRestoreSizeSummary(
                 CloudSyncStore.getLastRestoreSizeBytes(this)));
-        syncSummary.setText(lastSyncAt > 0L
-                ? getString(R.string.profile_sync_last_format, formatSyncTime(lastSyncAt))
-                : getString(R.string.profile_sync_waiting));
-        updateSyncIconAnimation(false);
-    }
-
-    private void updateSyncIconAnimation(boolean syncing) {
-        if (syncIcon == null) {
-            return;
+        String summary = getString(R.string.profile_section_sync_summary);
+        if (lastSyncAt > 0L) {
+            summary += "\n" + getString(R.string.profile_sync_last_format,
+                    formatSyncTime(lastSyncAt));
         }
-        if (!syncing) {
-            syncIcon.clearAnimation();
-            return;
-        }
-        if (syncIcon.getAnimation() != null) {
-            return;
-        }
-        RotateAnimation rotation = new RotateAnimation(
-                0f, 360f,
-                Animation.RELATIVE_TO_SELF, 0.5f,
-                Animation.RELATIVE_TO_SELF, 0.5f
-        );
-        rotation.setDuration(900L);
-        rotation.setInterpolator(new LinearInterpolator());
-        rotation.setRepeatCount(Animation.INFINITE);
-        syncIcon.startAnimation(rotation);
+        syncSummary.setText(summary);
     }
 
     private void updateActionIconAnimation(ImageView icon, boolean active, float movementY) {
