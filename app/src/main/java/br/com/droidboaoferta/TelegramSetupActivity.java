@@ -102,6 +102,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private static final String MANUAL_VIVO_OUTLET = "manual_vivo_outlet";
     private static final String MANUAL_VIVO_MADRUGADA = "manual_vivo_madrugada";
 
+    private boolean initialTelegramOnboarding;
+    private boolean onboardingCompletionHandled;
+
     private TelegramClientManager clientManager;
     private TextView statusText;
     private TextView instructionsText;
@@ -275,6 +278,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        initialTelegramOnboarding = TelegramOnboarding.isRequired(this);
         setContentView(R.layout.activity_telegram_setup);
         BottomNavigationController.setup(
                 this,
@@ -653,6 +657,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             case READY:
                 showStatus(R.string.telegram_status_connected, R.string.telegram_groups_message);
                 hideAuthenticationInput();
+                completeInitialTelegramOnboarding();
                 break;
             case CLOSED:
                 showStatus(R.string.telegram_status_disconnected, R.string.telegram_disconnected_message);
@@ -664,6 +669,19 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 break;
         }
         renderGroupsSyncState();
+    }
+
+    private void completeInitialTelegramOnboarding() {
+        if (!initialTelegramOnboarding || onboardingCompletionHandled) {
+            return;
+        }
+        onboardingCompletionHandled = true;
+        TelegramOnboarding.complete(this);
+        Intent intent = new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+        finish();
+        overridePendingTransition(0, 0);
     }
 
     private void renderGroups(List<TelegramGroup> groups) {
@@ -1106,8 +1124,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             labels.addView(titleRow);
             TextView score = new TextView(this);
             score.setText(buildGroupSummary(groupRanking, groupQuality, ranking, group.getId()));
-            score.setTextColor(getColor(groupQuality != null && groupQuality.hasLowQuality()
-                    ? R.color.text_secondary : R.color.action));
+            score.setTextColor(groupQuality != null && groupQuality.hasLowQuality()
+                    ? getColor(R.color.text_secondary)
+                    : AccentColorController.getPrimaryColor(this));
             score.setTextSize(11.5f);
             score.setSingleLine(false);
             score.setMaxLines(2);
@@ -1505,7 +1524,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     points,
                     "   └─ ",
                     detailText,
-                    getColor(detail.isExpired() ? R.color.text_secondary : R.color.action)
+                    detail.isExpired() ? getColor(R.color.text_secondary)
+                            : AccentColorController.getPrimaryColor(this)
             );
             points.setTextSize(12);
             points.setSingleLine(true);
@@ -1531,7 +1551,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     "   └─ ",
                     getString(R.string.telegram_group_history_awards,
                             awards.getChampionships(), awards.getTopThree()),
-                    getColor(R.color.action)
+                    AccentColorController.getPrimaryColor(this)
             );
             CharSequence awardLine = awardsText.getText();
             if (awardLine instanceof Spannable) {
@@ -1576,7 +1596,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
         TextView total = new TextView(this);
         total.setText(getString(R.string.telegram_group_ranking_detail_total, ranking.getPoints()));
-        total.setTextColor(getColor(R.color.action));
+        total.setTextColor(AccentColorController.getPrimaryColor(this));
         total.setTextSize(15);
         content.addView(total);
 
@@ -1695,7 +1715,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
                 TextView rank = new TextView(this);
                 rank.setText(String.format(Locale.getDefault(), "%dº", position));
-                rank.setTextColor(getColor(R.color.action));
+                rank.setTextColor(AccentColorController.getPrimaryColor(this));
                 rank.setTextSize(14);
                 row.addView(rank, new LinearLayout.LayoutParams(dp(30),
                         LinearLayout.LayoutParams.WRAP_CONTENT));
@@ -1764,11 +1784,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             groupsEvaluationText.setText(groupTitle.isEmpty()
                     ? getString(R.string.telegram_groups_refreshing)
                     : getString(R.string.sources_checking, groupTitle));
-            groupsEvaluationText.setTextColor(getColor(R.color.action));
+            groupsEvaluationText.setTextColor(AccentColorController.getPrimaryColor(this));
             groupsEvaluationText.setVisibility(View.VISIBLE);
             long duration = clientManager.getMissedMessageRecoveryDurationMillis();
             groupsDurationText.setText(formatStoreCheckDuration(Math.max(1000L, duration)));
-            groupsDurationText.setTextColor(getColor(R.color.action));
+            groupsDurationText.setTextColor(AccentColorController.getPrimaryColor(this));
             groupsDurationText.setVisibility(View.VISIBLE);
             telegramRecoveryProgressHandler.postDelayed(
                     telegramRecoveryProgressRunnable, 1000L);
@@ -1780,7 +1800,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         if (recoveryRequested) {
             groupsEvaluationText.setText(R.string.app_status_reconnecting);
-            groupsEvaluationText.setTextColor(getColor(R.color.action));
+            groupsEvaluationText.setTextColor(AccentColorController.getPrimaryColor(this));
             groupsEvaluationText.setVisibility(View.VISIBLE);
             long lastCheckAt = MonitorStatusStore.read(this).lastAnalyzedMessageAt;
             if (lastCheckAt > 0L) {
@@ -1851,6 +1871,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             }
             telegramGroupsIcon.setRotation(0f);
             telegramGroupsIcon.setImageResource(R.drawable.ic_telegram_source);
+            telegramGroupsIcon.clearColorFilter();
             return;
         }
         if (telegramGroupsRefreshAnimator != null
@@ -1858,6 +1879,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             return;
         }
         telegramGroupsIcon.setImageResource(R.drawable.ic_sync);
+        telegramGroupsIcon.setColorFilter(AccentColorController.getPrimaryColor(this));
         telegramGroupsIcon.setRotation(0f);
         telegramGroupsRefreshAnimator = ObjectAnimator.ofFloat(
                 telegramGroupsIcon, View.ROTATION, 0f, 360f
@@ -1979,9 +2001,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     : StoreSourceCheckStatus.getCurrentDurationMillis(this, checkingSource);
             storeSourcesSummaryText.setText(getString(R.string.sources_checking,
                     getString(checkingSource)));
-            storeSourcesSummaryText.setTextColor(getColor(R.color.action));
+            storeSourcesSummaryText.setTextColor(AccentColorController.getPrimaryColor(this));
             storeSourcesSummaryText.setVisibility(View.VISIBLE);
-            showStoreSourcesDuration(duration, R.color.action);
+            showStoreSourcesDuration(duration, AccentColorController.getPrimaryColor(this));
         } else {
             StoreSourceFailure failure = getLatestStoreSourceFailure();
             if (failure != null) {
@@ -1991,7 +2013,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 storeSourcesSummaryText.setTextColor(getColor(R.color.danger));
                 storeSourcesSummaryText.setVisibility(View.VISIBLE);
                 showStoreSourcesDuration(StoreSourceCheckStatus.getLastDurationMillis(
-                        this, failure.sourceTitleResource), R.color.danger);
+                        this, failure.sourceTitleResource), getColor(R.color.danger));
             } else {
                 int lastAutomaticSource = lastStoreRefreshWasManual ? 0
                         : StoreSourceCheckStatus.getLastAutomaticSourceTitleResource(this);
@@ -2001,7 +2023,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     storeSourcesSummaryText.setTextColor(getColor(R.color.text_secondary));
                     storeSourcesSummaryText.setVisibility(View.VISIBLE);
                     showStoreSourcesDuration(StoreSourceCheckStatus.getLastDurationMillis(
-                            this, lastAutomaticSource), R.color.text_secondary);
+                            this, lastAutomaticSource), getColor(R.color.text_secondary));
                     return;
                 }
                 long completedAt = StoreSourceCheckStatus.getLastBatchCompletedAt(this);
@@ -2015,7 +2037,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     storeSourcesSummaryText.setTextColor(getColor(R.color.text_secondary));
                     storeSourcesSummaryText.setVisibility(View.VISIBLE);
                     showStoreSourcesDuration(StoreSourceCheckStatus.getLastBatchDurationMillis(this),
-                            R.color.text_secondary);
+                            getColor(R.color.text_secondary));
                 }
             }
         }
@@ -2025,14 +2047,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
     }
 
-    private void showStoreSourcesDuration(long durationMillis, int colorResource) {
+    private void showStoreSourcesDuration(long durationMillis, int color) {
         if (durationMillis <= 0L) {
             storeSourcesDurationText.setText("");
             storeSourcesDurationText.setVisibility(View.GONE);
             return;
         }
         storeSourcesDurationText.setText(formatStoreCheckDuration(durationMillis));
-        storeSourcesDurationText.setTextColor(getColor(colorResource));
+        storeSourcesDurationText.setTextColor(color);
         storeSourcesDurationText.setVisibility(View.VISIBLE);
     }
 
@@ -2297,9 +2319,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             if (storeSourcesRefreshAnimator != null) storeSourcesRefreshAnimator.cancel();
             storeSourcesIcon.setRotation(0f);
             storeSourcesIcon.setImageResource(R.drawable.ic_offer_tag);
+            storeSourcesIcon.setColorFilter(AccentColorController.getPrimaryColor(this));
             return;
         }
         storeSourcesIcon.setImageResource(R.drawable.ic_sync);
+        storeSourcesIcon.setColorFilter(AccentColorController.getPrimaryColor(this));
         if (storeSourcesRefreshAnimator != null && storeSourcesRefreshAnimator.isRunning()) return;
         storeSourcesIcon.setRotation(0f);
         storeSourcesRefreshAnimator = ObjectAnimator.ofFloat(
@@ -2429,7 +2453,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     }
 
     private void applyStatusChip(TextView view, boolean online) {
-        int color = getColor(online ? R.color.action : R.color.danger);
+        int color = online ? AccentColorController.getPrimaryColor(this)
+                : getColor(R.color.danger);
         GradientDrawable background = new GradientDrawable();
         background.setColor(Color.argb(44, Color.red(color), Color.green(color), Color.blue(color)));
         background.setCornerRadius(dp(12));
@@ -3520,9 +3545,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     formatStoreCheckDuration(StoreSourceCheckStatus.getCurrentDurationMillis(
                             this, sourceTitleResource))));
         }
-        summary.setTextColor(getColor(R.color.action));
+        summary.setTextColor(AccentColorController.getPrimaryColor(this));
         TextView title = findViewById(getStoreSourceTitleViewId(sourceTitleResource));
-        if (title != null) title.setTextColor(getColor(R.color.action));
+        if (title != null) title.setTextColor(AccentColorController.getPrimaryColor(this));
     }
 
     private void renderCurrentManualStoreSourceDuration() {
@@ -3533,7 +3558,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         summary.setText(getString(R.string.store_source_checking_duration,
                 formatStoreCheckDuration(StoreSourceCheckStatus.getCurrentDurationMillis(
                         this, sourceTitle))));
-        summary.setTextColor(getColor(R.color.action));
+        summary.setTextColor(AccentColorController.getPrimaryColor(this));
     }
 
     private TextView getStoreSourceSummaryView(int sourceTitleResource) {
@@ -3596,7 +3621,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     private void applyStatusDot(TextView view, boolean online) {
         view.setText(R.string.source_status_dot);
-        view.setTextColor(getColor(online ? R.color.action : R.color.danger));
+        view.setTextColor(online ? AccentColorController.getPrimaryColor(this)
+                : getColor(R.color.danger));
         view.setBackground(null);
         view.setPadding(0, 0, 0, 0);
         view.setContentDescription(getString(online
@@ -3645,7 +3671,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (action != null) {
             action.clearColorFilter();
             action.setImageResource(R.drawable.ic_edit);
-            action.setColorFilter(getColor(R.color.action));
+            action.setColorFilter(AccentColorController.getPrimaryColor(this));
         }
     }
 
@@ -4162,7 +4188,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView createSourceDialogAction(int textResource) {
         TextView action = new TextView(this);
         action.setText(textResource);
-        action.setTextColor(getColor(R.color.action));
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
         action.setTextSize(15);
         action.setGravity(Gravity.CENTER);
         action.setPadding(dp(18), dp(10), 0, dp(10));

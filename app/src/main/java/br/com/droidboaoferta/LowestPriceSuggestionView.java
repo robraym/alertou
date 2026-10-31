@@ -55,7 +55,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
 
         actionText = new TextView(context);
         actionText.setText(R.string.lowest_price_action);
-        actionText.setTextColor(context.getColor(R.color.action));
+        actionText.setTextColor(AccentColorController.getPrimaryColor(context));
         actionText.setTextSize(14.5f);
         LayoutParams textParams = new LayoutParams(
                 LayoutParams.WRAP_CONTENT,
@@ -170,7 +170,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
                     R.string.lowest_price_found_format,
                     formatCurrency(completedLowestPrice)
             ));
-            statusText.setTextColor(getContext().getColor(R.color.action));
+            statusText.setTextColor(AccentColorController.getPrimaryColor(getContext()));
         } else {
             statusText.setText(completedStatusMessage);
             statusText.setTextColor(getContext().getColor(R.color.text_secondary));
@@ -182,7 +182,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
         String value = formatEditablePrice(price);
         priceInput.setText(value);
         priceInput.setSelection(value.length());
-        statusText.setTextColor(getContext().getColor(R.color.action));
+        statusText.setTextColor(AccentColorController.getPrimaryColor(getContext()));
         statusText.setVisibility(VISIBLE);
     }
 

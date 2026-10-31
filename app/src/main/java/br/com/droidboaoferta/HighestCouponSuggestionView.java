@@ -44,7 +44,7 @@ final class HighestCouponSuggestionView extends LinearLayout {
 
         actionText = new TextView(context);
         actionText.setText(R.string.highest_coupon_action);
-        actionText.setTextColor(context.getColor(R.color.action));
+        actionText.setTextColor(AccentColorController.getPrimaryColor(context));
         actionText.setTextSize(14.5f);
         LayoutParams textParams = new LayoutParams(
                 LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
@@ -109,7 +109,7 @@ final class HighestCouponSuggestionView extends LinearLayout {
                     statusText.setText(getContext().getString(
                             R.string.coupon_found_code_format, coupon.getCode()));
                 }
-                statusText.setTextColor(getContext().getColor(R.color.action));
+                statusText.setTextColor(AccentColorController.getPrimaryColor(getContext()));
             }
             statusText.setVisibility(VISIBLE);
         });

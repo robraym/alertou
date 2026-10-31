@@ -173,7 +173,7 @@ final class AppStatusIndicator {
         TextView close = text(s(R.string.action_close), 16);
         close.setMinHeight(dp(48));
         close.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        close.setTextColor(activity.getColor(R.color.action));
+        close.setTextColor(AccentColorController.getPrimaryColor(activity));
         close.setOnClickListener(view -> dialog.dismiss());
         content.addView(close);
         ScrollView scroll = new ScrollView(activity);

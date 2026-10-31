@@ -68,7 +68,7 @@ public final class RollingStatusTextView extends AppCompatTextView {
         paint.setColor(getContext().getColor(R.color.text_primary));
         canvas.drawText(fixedLabel, x, baseline, paint);
         x += paint.measureText(fixedLabel);
-        paint.setColor(getContext().getColor(R.color.action));
+        paint.setColor(AccentColorController.getPrimaryColor(getContext()));
         long elapsed = android.os.SystemClock.uptimeMillis() - startedAt;
         int digitPosition = 0;
         for (int index = 0; index < rollingValue.length(); index++) {

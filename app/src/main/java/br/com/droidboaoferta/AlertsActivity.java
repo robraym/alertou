@@ -590,7 +590,7 @@ public class AlertsActivity extends AlertouActivity {
     private ImageButton createEditInterestButton() {
         ImageButton button = new ImageButton(this);
         button.setImageResource(R.drawable.ic_edit);
-        button.setColorFilter(getColor(R.color.action));
+        button.setColorFilter(AccentColorController.getPrimaryColor(this));
         button.setBackgroundResource(android.R.color.transparent);
         button.setContentDescription(getString(R.string.action_edit_interest));
         button.setScaleType(ImageView.ScaleType.CENTER);
@@ -1892,7 +1892,7 @@ public class AlertsActivity extends AlertouActivity {
     private TextView createDialogAction(int textResource) {
         TextView action = new TextView(this);
         action.setText(textResource);
-        action.setTextColor(getColor(R.color.action));
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
         action.setTextSize(15);
         action.setGravity(Gravity.CENTER);
         action.setSingleLine(true);

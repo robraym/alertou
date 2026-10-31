@@ -2,6 +2,7 @@ package br.com.droidboaoferta;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -18,7 +19,13 @@ final class ThemeController {
     }
 
     static String getSavedMode(Context context) {
-        return prefs(context).getString(THEME_MODE, MODE_DARK);
+        SharedPreferences preferences = prefs(context);
+        if (preferences.contains(THEME_MODE)) {
+            return preferences.getString(THEME_MODE, MODE_DARK);
+        }
+        int nightMode = context.getResources().getConfiguration().uiMode
+                & Configuration.UI_MODE_NIGHT_MASK;
+        return nightMode == Configuration.UI_MODE_NIGHT_NO ? MODE_LIGHT : MODE_DARK;
     }
 
     static void saveMode(Context context, String mode) {

@@ -79,6 +79,15 @@ final class AccentColorController {
         return context.getColor(getPrimaryColorResource(mode));
     }
 
+    /**
+     * Resolves the current accent without relying on a color resource whose value
+     * depends on a theme attribute. This also keeps programmatically created
+     * icons and text in sync with the color shown in Perfil.
+     */
+    static int getPrimaryColor(Context context) {
+        return getPrimaryColor(context, getSavedMode(context));
+    }
+
     static int getSoftColor(Context context, String mode) {
         return context.getColor(getSoftColorResource(mode));
     }
@@ -100,7 +109,7 @@ final class AccentColorController {
                 || MODE_MAGENTA.equals(mode)) {
             return mode;
         }
-        return MODE_BLUE;
+        return MODE_GREEN;
     }
 
     private static int getStyleResource(String mode) {
@@ -128,8 +137,9 @@ final class AccentColorController {
             case MODE_MAGENTA:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Magenta;
             case MODE_BLUE:
-            default:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Blue;
+            default:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Green;
         }
     }
 
@@ -158,8 +168,9 @@ final class AccentColorController {
             case MODE_MAGENTA:
                 return R.color.action_magenta;
             case MODE_BLUE:
-            default:
                 return R.color.action_blue;
+            default:
+                return R.color.action_green;
         }
     }
 
@@ -188,8 +199,9 @@ final class AccentColorController {
             case MODE_MAGENTA:
                 return R.color.action_magenta_soft;
             case MODE_BLUE:
-            default:
                 return R.color.action_blue_soft;
+            default:
+                return R.color.action_green_soft;
         }
     }
 

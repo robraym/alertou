@@ -47,7 +47,8 @@
             android:contentDescription="@string/saved_sort_title"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_sort" />
+            android:src="@drawable/ic_sort"
+            android:tint="?attr/colorAccent" />
 
         <ImageButton
             android:id="@+id/button_profile"
@@ -57,7 +58,8 @@
             android:contentDescription="@string/profile_screen_title"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_profile" />
+            android:src="@drawable/ic_profile"
+            android:tint="?attr/colorAccent" />
     </LinearLayout>
 
     <FrameLayout

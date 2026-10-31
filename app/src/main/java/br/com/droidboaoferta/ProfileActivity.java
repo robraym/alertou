@@ -1274,7 +1274,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         option.setText(selected
                 ? getString(R.string.theme_selected_format, text)
                 : text);
-        option.setTextColor(getColor(selected ? R.color.action : R.color.text_primary));
+        option.setTextColor(selected ? AccentColorController.getPrimaryColor(this)
+                : getColor(R.color.text_primary));
         option.setTextSize(16);
         option.setGravity(Gravity.CENTER_VERTICAL);
         option.setPadding(0, dp(12), 0, dp(12));
@@ -1561,7 +1562,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         previewTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         previewPanel.addView(previewTitle);
 
-        View previewLinePrimary = createAnimationPreviewLine(getColor(R.color.action), 0.74f);
+        View previewLinePrimary = createAnimationPreviewLine(
+                AccentColorController.getPrimaryColor(this), 0.74f);
         LinearLayout.LayoutParams primaryLineParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(8)
@@ -1709,7 +1711,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         option.setText(selected
                 ? getString(R.string.theme_selected_format, getString(textResource))
                 : getString(textResource));
-        option.setTextColor(getColor(selected ? R.color.action : R.color.text_primary));
+        option.setTextColor(selected ? AccentColorController.getPrimaryColor(this)
+                : getColor(R.color.text_primary));
         option.setTypeface(Typeface.DEFAULT, selected ? Typeface.BOLD : Typeface.NORMAL);
         option.setBackgroundResource(selected
                 ? R.drawable.bg_button_secondary
@@ -2297,7 +2300,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private void updateSoundRadio(View radio, boolean selected) {
         View ring = radio.findViewWithTag("radio_ring");
         View dot = radio.findViewWithTag("radio_dot");
-        int strokeColor = getColor(selected ? R.color.action : R.color.text_secondary);
+        int strokeColor = selected ? AccentColorController.getPrimaryColor(this)
+                : getColor(R.color.text_secondary);
         GradientDrawable ringDrawable = new GradientDrawable();
         ringDrawable.setShape(GradientDrawable.OVAL);
         ringDrawable.setColor(Color.TRANSPARENT);
@@ -2306,7 +2310,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
 
         GradientDrawable dotDrawable = new GradientDrawable();
         dotDrawable.setShape(GradientDrawable.OVAL);
-        dotDrawable.setColor(getColor(R.color.action));
+        dotDrawable.setColor(AccentColorController.getPrimaryColor(this));
         dot.setBackground(dotDrawable);
         dot.setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
     }
@@ -2326,7 +2330,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
 
         ImageView icon = new ImageView(this);
         icon.setImageResource(R.drawable.ic_volume_preview);
-        icon.setColorFilter(getColor(R.color.action));
+        icon.setColorFilter(AccentColorController.getPrimaryColor(this));
         icon.setPadding(0, 0, dp(10), 0);
         icon.setLayoutParams(new LinearLayout.LayoutParams(dp(34), dp(28)));
 
@@ -2800,7 +2804,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         cancel.setOnClickListener(view -> dialog.dismiss());
         actions.addView(cancel);
         TextView confirm = createDialogAction(confirmResource);
-        confirm.setTextColor(getColor(dangerous ? R.color.danger : R.color.action));
+        confirm.setTextColor(dangerous ? getColor(R.color.danger)
+                : AccentColorController.getPrimaryColor(this));
         confirm.setOnClickListener(view -> {
             dialog.dismiss();
             onConfirm.run();
@@ -2830,7 +2835,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView createDialogAction(int textResource) {
         TextView action = new TextView(this);
         action.setText(textResource);
-        action.setTextColor(getColor(R.color.action));
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
         action.setTextSize(15);
         action.setGravity(Gravity.CENTER);
         action.setPadding(dp(14), dp(9), dp(14), dp(9));

@@ -114,7 +114,8 @@
                 android:background="@drawable/bg_button_inline"
                 android:contentDescription="@string/profile_telegram_details_title"
                 android:padding="8dp"
-                android:src="@drawable/ic_chevron_right" />
+                android:src="@drawable/ic_chevron_right"
+                android:tint="?attr/colorAccent" />
         </LinearLayout>
 
         <LinearLayout
@@ -144,7 +145,8 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@null"
                 android:padding="8dp"
-                android:src="@drawable/ic_palette" />
+                android:src="@drawable/ic_palette"
+                android:tint="?attr/colorAccent" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -181,7 +183,8 @@
                 android:padding="7dp"
                 android:rotation="90"
                 android:scaleType="center"
-            android:src="@drawable/ic_chevron_right" />
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorAccent" />
         </LinearLayout>
 
         <LinearLayout
@@ -248,7 +251,8 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@null"
                 android:padding="8dp"
-                android:src="@drawable/ic_property_alert" />
+                android:src="@drawable/ic_property_alert"
+                android:tint="?attr/colorAccent" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -285,7 +289,8 @@
                 android:padding="7dp"
                 android:rotation="90"
                 android:scaleType="center"
-            android:src="@drawable/ic_chevron_right" />
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorAccent" />
         </LinearLayout>
 
         <LinearLayout
@@ -334,7 +339,8 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@null"
                 android:padding="8dp"
-                android:src="@drawable/ic_offer_tag" />
+                android:src="@drawable/ic_offer_tag"
+                android:tint="?attr/colorAccent" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -371,7 +377,8 @@
                 android:padding="7dp"
                 android:rotation="90"
                 android:scaleType="center"
-            android:src="@drawable/ic_chevron_right" />
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorAccent" />
         </LinearLayout>
 
         <LinearLayout
@@ -501,7 +508,8 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@null"
                 android:padding="8dp"
-                android:src="@drawable/ic_sync" />
+                android:src="@drawable/ic_sync"
+                android:tint="?attr/colorAccent" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -539,7 +547,8 @@
                 android:padding="7dp"
                 android:rotation="90"
                 android:scaleType="center"
-            android:src="@drawable/ic_chevron_right" />
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorAccent" />
         </LinearLayout>
 
         <LinearLayout
@@ -597,7 +606,8 @@
                 android:background="@drawable/bg_icon_circle"
                 android:contentDescription="@null"
                 android:padding="8dp"
-                android:src="@drawable/ic_settings" />
+                android:src="@drawable/ic_settings"
+                android:tint="?attr/colorAccent" />
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -634,7 +644,8 @@
                 android:padding="7dp"
                 android:rotation="90"
                 android:scaleType="center"
-            android:src="@drawable/ic_chevron_right" />
+            android:src="@drawable/ic_chevron_right"
+            android:tint="?attr/colorAccent" />
         </LinearLayout>
 
         <LinearLayout

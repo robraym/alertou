@@ -46,7 +46,8 @@
             android:contentDescription="@string/alerts_sort_title"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_sort" />
+            android:src="@drawable/ic_sort"
+            android:tint="?attr/colorAccent" />
 
         <ImageButton
             android:id="@+id/button_profile"
@@ -56,7 +57,8 @@
             android:contentDescription="@string/profile_screen_title"
             android:padding="8dp"
             android:scaleType="fitCenter"
-            android:src="@drawable/ic_profile" />
+            android:src="@drawable/ic_profile"
+            android:tint="?attr/colorAccent" />
     </LinearLayout>
 
     <FrameLayout
@@ -113,7 +115,8 @@
                     android:contentDescription="@string/action_add_coupon_alert"
                     android:padding="7dp"
                     android:scaleType="center"
-                    android:src="@drawable/ic_add_coupon_alert" />
+                    android:src="@drawable/ic_add_coupon_alert"
+                    android:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -150,7 +153,8 @@
                     android:padding="7dp"
                     android:rotation="90"
                     android:scaleType="center"
-                    android:src="@drawable/ic_chevron_right" />
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -195,7 +199,8 @@
                     android:contentDescription="@string/action_add_property_alert"
                     android:padding="7dp"
                     android:scaleType="center"
-                    android:src="@drawable/ic_add_property_alert" />
+                    android:src="@drawable/ic_add_property_alert"
+                    android:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -232,7 +237,8 @@
                     android:padding="7dp"
                     android:rotation="90"
                     android:scaleType="center"
-                    android:src="@drawable/ic_chevron_right" />
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -277,7 +283,8 @@
                     android:contentDescription="@string/property_zip_alerts_list_title"
                     android:padding="7dp"
                     android:scaleType="center"
-                    android:src="@drawable/ic_property_zip_alert" />
+                    android:src="@drawable/ic_property_zip_alert"
+                    android:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -314,7 +321,8 @@
                     android:padding="7dp"
                     android:rotation="90"
                     android:scaleType="center"
-                    android:src="@drawable/ic_chevron_right" />
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -359,7 +367,8 @@
                     android:contentDescription="@string/action_add_price_alert"
                     android:padding="7dp"
                     android:scaleType="center"
-                    android:src="@drawable/ic_add_price_alert" />
+                    android:src="@drawable/ic_add_price_alert"
+                    android:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -396,7 +405,8 @@
                     android:padding="7dp"
                     android:rotation="90"
                     android:scaleType="center"
-                    android:src="@drawable/ic_chevron_right" />
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="?attr/colorAccent" />
 
             </LinearLayout>
 

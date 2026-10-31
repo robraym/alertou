@@ -36,7 +36,7 @@ final class SourceDiagnosticsDialog {
         TextView close = text(activity, activity.getString(R.string.action_close), 16);
         close.setGravity(Gravity.END);
         close.setPadding(0, padding, 0, 0);
-        close.setTextColor(activity.getColor(R.color.action));
+        close.setTextColor(AccentColorController.getPrimaryColor(activity));
         close.setOnClickListener(view -> dialog.dismiss());
         content.addView(close);
         ScrollView scroll = new ScrollView(activity);

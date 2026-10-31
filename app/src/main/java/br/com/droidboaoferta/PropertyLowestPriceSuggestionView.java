@@ -52,7 +52,7 @@ final class PropertyLowestPriceSuggestionView extends LinearLayout {
 
         actionText = new TextView(context);
         actionText.setText(R.string.property_lowest_price_action);
-        actionText.setTextColor(context.getColor(R.color.action));
+        actionText.setTextColor(AccentColorController.getPrimaryColor(context));
         actionText.setTextSize(14.5f);
         LayoutParams textParams = new LayoutParams(
                 LayoutParams.WRAP_CONTENT,
@@ -152,7 +152,7 @@ final class PropertyLowestPriceSuggestionView extends LinearLayout {
                 formatCurrency(listing.getSalePrice()),
                 formatArea(listing.getArea())
         ));
-        statusText.setTextColor(getContext().getColor(R.color.action));
+        statusText.setTextColor(AccentColorController.getPrimaryColor(getContext()));
         statusText.setVisibility(VISIBLE);
     }
 

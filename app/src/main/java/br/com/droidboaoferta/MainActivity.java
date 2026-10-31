@@ -807,6 +807,9 @@ public class MainActivity extends AlertouActivity {
                 sectionAction.setOnClickListener(view -> toggleOfferSection(preferenceKey));
             }
         }
+        if (sectionIconResource != 0 || propertyMarketSection || propertyZipSection) {
+            sectionAction.setColorFilter(AccentColorController.getPrimaryColor(this));
+        }
         LinearLayout.LayoutParams sectionActionParams = new LinearLayout.LayoutParams(dp(36), dp(36));
         sectionActionParams.rightMargin = dp(8);
         header.addView(sectionAction, sectionActionParams);
@@ -832,7 +835,7 @@ public class MainActivity extends AlertouActivity {
         TextView count = new TextView(this);
         String countText = getPropertyReferenceCountText(preferenceKey, offers.size());
         count.setText(propertySection ? stripCountBullet(countText) : countText);
-        count.setTextColor(getColor(R.color.action));
+        count.setTextColor(AccentColorController.getPrimaryColor(this));
         count.setTextSize(14);
         if (propertyMarketSection) {
             count.setTag(PROPERTY_MARKET_COUNT_TAG);
@@ -924,6 +927,7 @@ public class MainActivity extends AlertouActivity {
 
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
+        toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
         toggle.setBackgroundResource(R.drawable.bg_icon_circle);
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse
@@ -2932,7 +2936,9 @@ public class MainActivity extends AlertouActivity {
 
         TextView title = new TextView(this);
         title.setText(titleResource);
-        title.setTextColor(getColor(titleColor));
+        title.setTextColor(titleColor == R.color.action
+                ? AccentColorController.getPrimaryColor(this)
+                : getColor(titleColor));
         title.setTextSize(16);
         title.setTypeface(null, android.graphics.Typeface.BOLD);
         action.addView(title);
@@ -2984,7 +2990,7 @@ public class MainActivity extends AlertouActivity {
     private TextView createInlineAction(int textResource) {
         TextView action = new TextView(this);
         action.setText(textResource);
-        action.setTextColor(getColor(R.color.action));
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
         action.setTextSize(14);
         action.setGravity(Gravity.CENTER);
         action.setPadding(dp(12), dp(9), dp(12), dp(9));
@@ -3134,7 +3140,7 @@ public class MainActivity extends AlertouActivity {
     private TextView createDialogAction(int textResource) {
         TextView action = new TextView(this);
         action.setText(textResource);
-        action.setTextColor(getColor(R.color.action));
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
         action.setTextSize(15);
         action.setGravity(Gravity.CENTER);
         action.setPadding(dp(18), dp(10), 0, dp(10));

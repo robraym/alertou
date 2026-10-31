@@ -365,6 +365,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
 
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
+        toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
         toggle.setBackgroundResource(R.drawable.bg_icon_circle);
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse : R.string.alerts_section_expand));
@@ -696,7 +697,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
 
         TextView timeView = new TextView(this);
         timeView.setText(time);
-        timeView.setTextColor(getColor(R.color.action));
+        timeView.setTextColor(AccentColorController.getPrimaryColor(this));
         timeView.setTextSize(11.5f);
         timeView.setSingleLine(true);
         metaLine.addView(timeView);
@@ -879,14 +880,14 @@ abstract class StoredOffersActivity extends AlertouActivity {
 
         ImageView icon = new ImageView(this);
         icon.setImageResource(iconResource);
-        icon.setColorFilter(getColor(colorResource));
+        icon.setColorFilter(resolveActionColor(colorResource));
         icon.setBackgroundResource(backgroundResource);
         icon.setPadding(dp(8), dp(8), dp(8), dp(8));
         row.addView(icon, new LinearLayout.LayoutParams(dp(32), dp(32)));
 
         TextView label = new TextView(this);
         label.setText(labelResource);
-        label.setTextColor(getColor(colorResource));
+        label.setTextColor(resolveActionColor(colorResource));
         label.setTextSize(16);
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1);
@@ -1005,7 +1006,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
                                            int descriptionResource) {
         ImageButton button = new ImageButton(this);
         button.setImageResource(iconResource);
-        button.setColorFilter(getColor(colorResource));
+        button.setColorFilter(resolveActionColor(colorResource));
         button.setBackgroundResource(backgroundResource);
         button.setContentDescription(getString(descriptionResource));
         button.setScaleType(ImageView.ScaleType.CENTER);
@@ -1022,10 +1023,16 @@ abstract class StoredOffersActivity extends AlertouActivity {
         return text;
     }
 
+    private int resolveActionColor(int colorResource) {
+        return colorResource == R.color.action
+                ? AccentColorController.getPrimaryColor(this)
+                : getColor(colorResource);
+    }
+
     private TextView createDialogAction(int textResource) {
         TextView action = new TextView(this);
         action.setText(textResource);
-        action.setTextColor(getColor(R.color.action));
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
         action.setTextSize(15);
         action.setGravity(Gravity.CENTER);
         action.setPadding(dp(18), dp(10), 0, dp(10));

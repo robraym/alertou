@@ -25,7 +25,7 @@ final class RollingPriceView extends AppCompatTextView {
         super(context);
         this.price = price;
         startedAt = android.os.SystemClock.uptimeMillis();
-        setTextColor(context.getColor(R.color.action));
+        setTextColor(AccentColorController.getPrimaryColor(context));
         setTypeface(null, android.graphics.Typeface.NORMAL);
         setTextSize(14);
         setSingleLine(true);

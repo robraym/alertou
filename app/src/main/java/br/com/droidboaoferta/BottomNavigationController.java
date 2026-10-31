@@ -98,7 +98,8 @@ final class BottomNavigationController {
         boolean selected = currentItem == item;
         activity.findViewById(indicatorId).setVisibility(selected ? View.VISIBLE : View.INVISIBLE);
 
-        int color = activity.getColor(selected ? R.color.action : R.color.text_secondary);
+        int color = selected ? AccentColorController.getPrimaryColor(activity)
+                : activity.getColor(R.color.text_secondary);
         ImageView icon = activity.findViewById(iconId);
         icon.setColorFilter(color);
 
