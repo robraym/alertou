@@ -43,7 +43,9 @@ final class InterestRepository {
                             item.optString("property_street", ""),
                             item.optString("property_neighborhood", ""),
                             item.optString("property_city", ""),
-                            item.optString("property_state", "")
+                            item.optString("property_state", ""),
+                            item.optInt("property_zip_listing_limit",
+                                    Interest.DEFAULT_PROPERTY_ZIP_LISTING_LIMIT)
                     ));
                 } catch (Exception ignored) {
                     // A corrupt synchronized item must not hide every valid alert.
@@ -76,10 +78,10 @@ final class InterestRepository {
 
     long addPropertyZip(String searchUrl, String zipCode, String street, String neighborhood,
                         String city, String state, double minimumArea, double maximumArea,
-                        double maximumPrice) {
+                        double maximumPrice, int listingLimit) {
         return add(searchUrl, maximumPrice, Interest.TYPE_PROPERTY_ZIP, minimumArea, maximumArea,
                 buildPropertyZipName(street, neighborhood), "", zipCode, street, neighborhood,
-                city, state);
+                city, state, listingLimit);
     }
 
     private long add(String term, double maximumPrice, String type) {
@@ -102,13 +104,23 @@ final class InterestRepository {
                      double minimumArea, double maximumArea, String propertyName,
                      String couponName, String propertyZipCode, String propertyStreet,
                      String propertyNeighborhood, String propertyCity, String propertyState) {
+        return add(term, maximumPrice, type, minimumArea, maximumArea, propertyName, couponName,
+                propertyZipCode, propertyStreet, propertyNeighborhood, propertyCity,
+                propertyState, Interest.DEFAULT_PROPERTY_ZIP_LISTING_LIMIT);
+    }
+
+    private long add(String term, double maximumPrice, String type,
+                     double minimumArea, double maximumArea, String propertyName,
+                     String couponName, String propertyZipCode, String propertyStreet,
+                     String propertyNeighborhood, String propertyCity, String propertyState,
+                     int propertyZipListingLimit) {
         List<Interest> interests = new ArrayList<>(getAll());
         long now = System.currentTimeMillis();
         long id = now;
         Interest added = new Interest(
                 id, term.trim(), maximumPrice, type, minimumArea, maximumArea, propertyName,
                 couponName, propertyZipCode, propertyStreet, propertyNeighborhood, propertyCity,
-                propertyState);
+                propertyState, propertyZipListingLimit);
         interests.add(0, added);
         CloudSyncStore.rememberInterestChanged(context, id, now);
         save(interests);
@@ -131,7 +143,7 @@ final class InterestRepository {
                         interest.getPropertyName(), interest.getCouponName(),
                         interest.getPropertyZipCode(), interest.getPropertyStreet(),
                         interest.getPropertyNeighborhood(), interest.getPropertyCity(),
-                        interest.getPropertyState());
+                        interest.getPropertyState(), interest.getPropertyZipListingLimit());
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
                 break;
@@ -166,7 +178,8 @@ final class InterestRepository {
                         interest.getPropertyStreet(),
                         interest.getPropertyNeighborhood(),
                         interest.getPropertyCity(),
-                        interest.getPropertyState()
+                        interest.getPropertyState(),
+                        interest.getPropertyZipListingLimit()
                 );
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
@@ -197,7 +210,8 @@ final class InterestRepository {
                         interest.getType(), interest.getMinimumArea(), interest.getMaximumArea(),
                         propertyName, interest.getCouponName(), interest.getPropertyZipCode(),
                         interest.getPropertyStreet(), interest.getPropertyNeighborhood(),
-                        interest.getPropertyCity(), interest.getPropertyState());
+                        interest.getPropertyCity(), interest.getPropertyState(),
+                        interest.getPropertyZipListingLimit());
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
                 break;
@@ -233,7 +247,8 @@ final class InterestRepository {
 
     void updatePropertyZip(long id, String searchUrl, String zipCode, String street,
                            String neighborhood, String city, String state,
-                           double minimumArea, double maximumArea, double maximumPrice) {
+                           double minimumArea, double maximumArea, double maximumPrice,
+                           int listingLimit) {
         List<Interest> interests = new ArrayList<>(getAll());
         long now = System.currentTimeMillis();
         Interest previous = null;
@@ -255,7 +270,8 @@ final class InterestRepository {
                         street,
                         neighborhood,
                         city,
-                        state
+                        state,
+                        listingLimit
                 );
                 interests.set(index, updated);
                 CloudSyncStore.rememberInterestChanged(context, id, now);
@@ -296,7 +312,9 @@ final class InterestRepository {
                         .put("property_street", interest.getPropertyStreet())
                         .put("property_neighborhood", interest.getPropertyNeighborhood())
                         .put("property_city", interest.getPropertyCity())
-                        .put("property_state", interest.getPropertyState()));
+                        .put("property_state", interest.getPropertyState())
+                        .put("property_zip_listing_limit",
+                                interest.getPropertyZipListingLimit()));
             }
             preferences.edit().putString(KEY_INTERESTS, array.toString()).apply();
         } catch (Exception ignored) {

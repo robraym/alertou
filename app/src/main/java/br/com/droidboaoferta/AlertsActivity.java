@@ -1278,6 +1278,15 @@ public class AlertsActivity extends AlertouActivity {
         content.addView(areaInputs, areaRowParams);
         addDialogInputWithMargin(content, maximumPriceInput);
 
+        EditText listingLimitInput = createDialogInput(
+                R.string.property_zip_listing_limit_hint,
+                InputType.TYPE_CLASS_NUMBER
+        );
+        listingLimitInput.setText(String.valueOf(editing
+                ? interestToEdit.getPropertyZipListingLimit()
+                : Interest.DEFAULT_PROPERTY_ZIP_LISTING_LIMIT));
+        addDialogInputWithMargin(content, listingLimitInput);
+
         final String[] lastRequestedZip = {editing ? interestToEdit.getPropertyZipCode() : ""};
         zipInput.addTextChangedListener(new SimpleTextWatcher() {
             @Override
@@ -1369,6 +1378,17 @@ public class AlertsActivity extends AlertouActivity {
                 maximumPriceInput.setError(getString(R.string.property_price_required));
                 return;
             }
+            int listingLimit;
+            try {
+                listingLimit = Integer.parseInt(listingLimitInput.getText().toString().trim());
+            } catch (NumberFormatException ignored) {
+                listingLimitInput.setError(getString(R.string.property_zip_listing_limit_invalid));
+                return;
+            }
+            if (listingLimit < 1 || listingLimit > 100) {
+                listingLimitInput.setError(getString(R.string.property_zip_listing_limit_invalid));
+                return;
+            }
             String searchUrl = PropertyPageClient.buildQuintoAndarSearchUrl(
                     street, neighborhood, city, state, minimumArea, maximumArea, maximumPrice);
             dialog.dismiss();
@@ -1382,7 +1402,8 @@ public class AlertsActivity extends AlertouActivity {
                     state,
                     minimumArea,
                     maximumArea,
-                    maximumPrice
+                    maximumPrice,
+                    listingLimit
             );
         });
         LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
@@ -1699,7 +1720,8 @@ public class AlertsActivity extends AlertouActivity {
     private void updatePropertyZipInBackground(Interest interestToEdit, String searchUrl,
                                                String zipCode, String street, String neighborhood,
                                                String city, String state, double minimumArea,
-                                               double maximumArea, double maximumPrice) {
+                                               double maximumArea, double maximumPrice,
+                                               int listingLimit) {
         boolean editing = interestToEdit != null;
         Dialog updatingDialog = showUpdatingDialog();
         long shownAt = SystemClock.elapsedRealtime();
@@ -1711,7 +1733,8 @@ public class AlertsActivity extends AlertouActivity {
                     boolean samePropertySearch = interestToEdit.getTerm().trim()
                             .equals(searchUrl.trim())
                             && Double.compare(interestToEdit.getMinimumArea(), minimumArea) == 0
-                            && Double.compare(interestToEdit.getMaximumArea(), maximumArea) == 0;
+                            && Double.compare(interestToEdit.getMaximumArea(), maximumArea) == 0
+                            && interestToEdit.getPropertyZipListingLimit() == listingLimit;
                     interestRepository.updatePropertyZip(
                             interestToEdit.getId(),
                             searchUrl,
@@ -1722,7 +1745,8 @@ public class AlertsActivity extends AlertouActivity {
                             state,
                             minimumArea,
                             maximumArea,
-                            maximumPrice
+                            maximumPrice,
+                            listingLimit
                     );
                     PropertyPageMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
@@ -1739,7 +1763,8 @@ public class AlertsActivity extends AlertouActivity {
                             state,
                             minimumArea,
                             maximumArea,
-                            maximumPrice
+                            maximumPrice,
+                            listingLimit
                     );
                 }
                 offerRepository.reconcileRecentWithInterests(interestRepository.getAll());

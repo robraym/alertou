@@ -5,6 +5,7 @@ final class Interest {
     static final String TYPE_COUPON = "coupon";
     static final String TYPE_PROPERTY = "property";
     static final String TYPE_PROPERTY_ZIP = "property_zip";
+    static final int DEFAULT_PROPERTY_ZIP_LISTING_LIMIT = 20;
 
     private final long id;
     private final String term;
@@ -19,6 +20,7 @@ final class Interest {
     private final String propertyNeighborhood;
     private final String propertyCity;
     private final String propertyState;
+    private final int propertyZipListingLimit;
 
     Interest(long id, String term, double maximumPrice) {
         this(id, term, maximumPrice, TYPE_PRICE);
@@ -48,6 +50,15 @@ final class Interest {
              double minimumArea, double maximumArea, String propertyName, String couponName,
              String propertyZipCode, String propertyStreet, String propertyNeighborhood,
              String propertyCity, String propertyState) {
+        this(id, term, maximumPrice, type, minimumArea, maximumArea, propertyName, couponName,
+                propertyZipCode, propertyStreet, propertyNeighborhood, propertyCity,
+                propertyState, DEFAULT_PROPERTY_ZIP_LISTING_LIMIT);
+    }
+
+    Interest(long id, String term, double maximumPrice, String type,
+             double minimumArea, double maximumArea, String propertyName, String couponName,
+             String propertyZipCode, String propertyStreet, String propertyNeighborhood,
+             String propertyCity, String propertyState, int propertyZipListingLimit) {
         this.id = id;
         this.term = term;
         this.maximumPrice = maximumPrice;
@@ -66,6 +77,7 @@ final class Interest {
                 ? "" : propertyNeighborhood.trim();
         this.propertyCity = propertyCity == null ? "" : propertyCity.trim();
         this.propertyState = propertyState == null ? "" : propertyState.trim().toUpperCase();
+        this.propertyZipListingLimit = Math.max(1, Math.min(100, propertyZipListingLimit));
     }
 
     long getId() {
@@ -138,5 +150,9 @@ final class Interest {
 
     String getPropertyState() {
         return propertyState;
+    }
+
+    int getPropertyZipListingLimit() {
+        return propertyZipListingLimit;
     }
 }

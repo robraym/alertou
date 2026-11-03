@@ -29,6 +29,7 @@ final class PropertyPageMonitor {
     static final String EXTRA_PROGRESS_IS_ZIP = "property_zip_progress";
     private static final String STATUS_PREFS = "property_market_check_status";
     private static final String KEY_LAST_DURATION = "last_duration";
+    private static final String KEY_LAST_ZIP_DURATION = "last_zip_duration";
     private static final String PREFS = "property_page_monitor";
     private static final String NOTIFIED_PRICES_PREFIX = "notified_prices_";
     private static final double PRICE_VERIFICATION_MARGIN = 1.10d;
@@ -364,6 +365,8 @@ final class PropertyPageMonitor {
             // segundos. Ela não pode apagar o progresso de uma execução nova.
             if (!CoalescingCheckScheduler.isCurrentRun()) return;
             if (zip) {
+                saveLastMarketCheckDuration(context,
+                        Math.max(0L, SystemClock.elapsedRealtime() - startedAt), true);
                 checkingPropertyZip = false;
                 checkingPropertyZipPosition = 0;
                 checkingPropertyZipTotal = 0;
@@ -511,13 +514,23 @@ final class PropertyPageMonitor {
     }
 
     static long getLastMarketCheckDurationMillis(Context context) {
+        return getLastMarketCheckDurationMillis(context, false);
+    }
+
+    static long getLastMarketCheckDurationMillis(Context context, boolean zip) {
         return context.getApplicationContext().getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
-                .getLong(KEY_LAST_DURATION, 0L);
+                .getLong(zip ? KEY_LAST_ZIP_DURATION : KEY_LAST_DURATION, 0L);
     }
 
     private static void saveLastMarketCheckDuration(Context context, long durationMillis) {
+        saveLastMarketCheckDuration(context, durationMillis, false);
+    }
+
+    private static void saveLastMarketCheckDuration(Context context, long durationMillis,
+                                                    boolean zip) {
         context.getApplicationContext().getSharedPreferences(STATUS_PREFS, Context.MODE_PRIVATE)
-                .edit().putLong(KEY_LAST_DURATION, durationMillis).apply();
+                .edit().putLong(zip ? KEY_LAST_ZIP_DURATION : KEY_LAST_DURATION,
+                        durationMillis).apply();
     }
 
     private List<Interest> orderPropertyInterests(List<Interest> interests,
@@ -626,7 +639,14 @@ final class PropertyPageMonitor {
 
     private void checkInterest(Context context, Interest interest,
                                boolean includeMarketReferences) throws Exception {
-        PropertyPageResult result = PropertyPageClient.fetch(interest.getTerm());
+        PropertyPageResult result = PropertyPageClient.fetch(
+                interest.getTerm(),
+                interest.isPropertyZip()
+                        // Primeiro carregamos candidatos suficientes para localizar a rua;
+                        // o limite do alerta é aplicado só depois dessa confirmação.
+                        ? Math.min(100, interest.getPropertyZipListingLimit() * 5)
+                        : Integer.MAX_VALUE
+        );
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         String propertyName = PropertyPageResult.normalizeCondominiumName(
                 interest.getPropertyName());
@@ -640,7 +660,7 @@ final class PropertyPageMonitor {
         }
         long observedAt = System.currentTimeMillis();
         PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(context);
-        if (interest.isProperty()) {
+        if (interest.isPropertyCondominium()) {
             // Total oficial informado pela fonte, antes dos filtros de preço e metragem.
             // A primeira página do QuintoAndar traz somente parte dos anúncios.
             historyRepository.recordMarketListingCount(
@@ -669,6 +689,16 @@ final class PropertyPageMonitor {
             if (matchesPropertyZipAddress(interest, listing)) {
                 addressCandidates.add(listing);
             }
+        }
+        if (interest.isPropertyZip()) {
+            int limit = interest.getPropertyZipListingLimit();
+            if (addressCandidates.size() > limit) {
+                addressCandidates = new ArrayList<>(addressCandidates.subList(0, limit));
+            }
+            // Para CEP, a quantidade precisa representar a rua confirmada e o
+            // teto escolhido, não o total amplo devolvido pelo buscador.
+            historyRepository.recordMarketListingCount(
+                    interest.getId(), addressCandidates.size(), observedAt);
         }
         updatePropertyZipListingProgress(context, interest, 0, addressCandidates.size());
         int addressCandidatePosition = 0;
@@ -981,6 +1011,9 @@ final class PropertyPageMonitor {
         } finally {
             if (!CoalescingCheckScheduler.isCurrentRun()) return;
             if (checkingZip) {
+                saveLastMarketCheckDuration(context,
+                        Math.max(0L, SystemClock.elapsedRealtime() - manualZipCheckStartedAt),
+                        true);
                 manualZipCheckRunning = false;
                 manualZipCheckStartedAt = 0L;
                 manualZipListingPosition = 0;

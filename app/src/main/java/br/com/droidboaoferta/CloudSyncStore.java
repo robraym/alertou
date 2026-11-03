@@ -711,6 +711,10 @@ final class CloudSyncStore {
                     || !current.getPropertyState().equals(previous.getPropertyState())) {
                 fields.put("property_state", current.getPropertyState());
             }
+            if (previous == null || current.getPropertyZipListingLimit()
+                    != previous.getPropertyZipListingLimit()) {
+                fields.put("property_zip_listing_limit", current.getPropertyZipListingLimit());
+            }
         } catch (Exception ignored) {
         }
         return fields;

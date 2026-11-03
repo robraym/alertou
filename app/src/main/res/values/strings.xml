@@ -558,6 +558,10 @@
         <item quantity="one">%1$d imóvel anunciado</item>
         <item quantity="other">%1$d imóveis anunciados</item>
     </plurals>
+    <plurals name="property_zip_card_listing_count">
+        <item quantity="one">%1$s • %2$d imóvel</item>
+        <item quantity="other">%1$s • %2$d imóveis</item>
+    </plurals>
     <string name="archived_screen_title">Salvas</string>
     <string name="archived_card_title">Ofertas salvas</string>
     <string name="archived_empty">Nenhuma oferta salva.</string>
@@ -648,6 +652,8 @@
     <string name="property_city_hint">Cidade</string>
     <string name="property_state_hint">UF</string>
     <string name="property_zip_required">Informe um CEP válido</string>
+    <string name="property_zip_listing_limit_hint">Máximo de imóveis da rua</string>
+    <string name="property_zip_listing_limit_invalid">Informe de 1 a 100 imóveis</string>
     <string name="property_zip_not_found">Não foi possível encontrar esse CEP</string>
     <string name="property_address_required">Confira rua, bairro, cidade e UF</string>
     <string name="property_zip_interest_subtitle">%1$s/%2$s • %3$s–%4$s m² • até %5$s</string>

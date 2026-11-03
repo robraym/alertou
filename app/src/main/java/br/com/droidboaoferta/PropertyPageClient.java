@@ -69,6 +69,10 @@ final class PropertyPageClient {
     }
 
     static PropertyPageResult fetch(String rawUrl) throws Exception {
+        return fetch(rawUrl, Integer.MAX_VALUE);
+    }
+
+    static PropertyPageResult fetch(String rawUrl, int maximumSearchListings) throws Exception {
         String normalizedUrl = normalizeSupportedUrl(rawUrl);
         if (normalizedUrl == null) {
             throw new IllegalArgumentException("Unsupported property page");
@@ -78,9 +82,50 @@ final class PropertyPageClient {
             return PropertyPageParser.parseLoftApiResponse(fetchHtml(loftDataUrl));
         }
         if (isSearchPath(URI.create(normalizedUrl).getPath())) {
-            return PropertyPageParser.parseSearch(fetchHtml(normalizedUrl));
+            return fetchSearchPages(normalizedUrl, maximumSearchListings);
         }
         return PropertyPageParser.parse(fetchHtml(normalizedUrl));
+    }
+
+    private static PropertyPageResult fetchSearchPages(String normalizedUrl,
+                                                        int maximumListings) throws Exception {
+        int limit = Math.max(1, Math.min(100, maximumListings));
+        PropertyPageResult first = PropertyPageParser.parseSearch(fetchHtml(normalizedUrl));
+        java.util.List<PropertyPageListing> collected = new java.util.ArrayList<>();
+        java.util.HashSet<String> ids = new java.util.HashSet<>();
+        appendListings(collected, ids, first.getSaleListings(), limit);
+        int officialTotal = first.getSaleListingsCount();
+        // A busca inicial é a página zero. Quando o usuário pede mais que ela
+        // contém, o site aceita page=1, page=2 e assim por diante.
+        for (int page = 1; collected.size() < limit && collected.size() < officialTotal
+                && page <= 20; page++) {
+            PropertyPageResult next = PropertyPageParser.parseSearch(fetchHtml(
+                    appendQueryParameter(normalizedUrl, "page", Integer.toString(page))));
+            int before = collected.size();
+            appendListings(collected, ids, next.getSaleListings(), limit);
+            if (officialTotal <= 0 && next.getSaleListingsCount() > 0) {
+                officialTotal = next.getSaleListingsCount();
+            }
+            // Uma página repetida não encerra a coleta: a fonte pode repetir a
+            // primeira página durante a atualização do índice.
+            if (collected.size() == before && page >= 3) break;
+        }
+        return new PropertyPageResult("", collected, Math.max(officialTotal, collected.size()));
+    }
+
+    private static void appendListings(java.util.List<PropertyPageListing> target,
+                                       java.util.Set<String> ids,
+                                       java.util.List<PropertyPageListing> source,
+                                       int limit) {
+        for (PropertyPageListing listing : source) {
+            if (target.size() >= limit) return;
+            if (listing != null && ids.add(listing.getId())) target.add(listing);
+        }
+    }
+
+    private static String appendQueryParameter(String url, String name, String value) {
+        String separator = url.contains("?") ? "&" : "?";
+        return url + separator + name + "=" + value;
     }
 
     static String buildLoftDataUrl(String normalizedUrl) {

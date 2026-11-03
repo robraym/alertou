@@ -775,7 +775,7 @@ public class MainActivity extends AlertouActivity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.bg_card_compact);
-        card.setPadding(dp(6), dp(4), dp(6), dp(6));
+        card.setPadding(0, dp(2), 0, dp(2));
 
         LinearLayout header = new LinearLayout(this);
         header.setOrientation(LinearLayout.HORIZONTAL);
@@ -984,23 +984,32 @@ public class MainActivity extends AlertouActivity {
         List<ObservedOffer> sectionOffers = propertyZipSection
                 ? groupPropertyZipOffersByStreet(offers) : offers;
         String previousGroup = null;
+        String activeZipCardKey = null;
+        LinearLayout zipCardOffers = null;
+        int zipCardOfferCount = 0;
         for (int index = 0; index < sectionOffers.size(); index++) {
             ObservedOffer offer = sectionOffers.get(index);
             boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
             boolean newLowestMarketReference = propertyMarketReference
                     && PropertyMarketWinnerStore.isActive(this, offer);
             String group = propertyZipSection
-                    ? getPropertyZipGroupName(offer) : OfferDateFormatter.getGroupKey(offer.getObservedAt());
+                    ? getPropertyZipCardKey(offer) : OfferDateFormatter.getGroupKey(offer.getObservedAt());
             String groupLabel = propertyZipSection
-                    ? group : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
+                    ? getPropertyZipCardTitle(offer) : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
             if (propertyMarketReference && propertyMarketSection) {
                 if (index > 0) {
                     content.addView(createOfferDivider());
                 }
             } else if (propertyZipSection) {
-                // A rua já aparece no próprio anúncio; um segundo cabeçalho é redundante.
-                if (index > 0) {
-                    content.addView(createOfferDivider());
+                if (!group.equals(activeZipCardKey)) {
+                    if (activeZipCardKey != null) {
+                        content.addView(createOfferDivider());
+                    }
+                    activeZipCardKey = group;
+                    zipCardOfferCount = 0;
+                    zipCardOffers = addPropertyZipInterestCard(content, group, groupLabel);
+                } else if (zipCardOffers != null && zipCardOfferCount > 0) {
+                    zipCardOffers.addView(createOfferDivider());
                 }
             } else if (!group.equals(previousGroup)) {
                 if (previousGroup != null) {
@@ -1068,7 +1077,11 @@ public class MainActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            content.addView(swipeContainer, rowParams);
+            (propertyZipSection && zipCardOffers != null ? zipCardOffers : content)
+                    .addView(swipeContainer, rowParams);
+            if (propertyZipSection) {
+                zipCardOfferCount++;
+            }
         }
         card.addView(content);
 
@@ -1157,6 +1170,71 @@ public class MainActivity extends AlertouActivity {
         return header;
     }
 
+    private LinearLayout addPropertyZipInterestCard(LinearLayout parent, String preferenceKey,
+                                                    String title) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_card_compact);
+        card.setPadding(dp(6), dp(4), dp(6), dp(6));
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(2), dp(3), dp(2), dp(3));
+        header.setBackgroundResource(R.drawable.bg_row_pressed);
+        header.setClickable(true);
+        header.setFocusable(true);
+
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.drawable.ic_property_alert);
+        icon.setColorFilter(AccentColorController.getPrimaryColor(this));
+        icon.setBackgroundResource(R.drawable.bg_icon_circle);
+        icon.setPadding(dp(4), dp(4), dp(4), dp(4));
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(30), dp(30));
+        iconParams.rightMargin = dp(7);
+        header.addView(icon, iconParams);
+
+        TextView label = new TextView(this);
+        label.setText(title);
+        label.setTextColor(getColor(R.color.text_primary));
+        label.setTextSize(13);
+        label.setSingleLine(true);
+        label.setEllipsize(TextUtils.TruncateAt.END);
+        header.addView(label, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        boolean expanded = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
+                .getBoolean(preferenceKey, true);
+        ImageButton toggle = new ImageButton(this);
+        toggle.setImageResource(R.drawable.ic_chevron_right);
+        toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
+        toggle.setBackgroundResource(R.drawable.bg_icon_circle);
+        toggle.setPadding(dp(7), dp(7), dp(7), dp(7));
+        toggle.setScaleType(ImageView.ScaleType.CENTER);
+        toggle.setRotation(expanded ? 90f : 0f);
+        header.addView(toggle, new LinearLayout.LayoutParams(dp(32), dp(32)));
+        card.addView(header);
+
+        LinearLayout offers = new LinearLayout(this);
+        offers.setOrientation(LinearLayout.VERTICAL);
+        offers.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        card.addView(offers);
+        View.OnClickListener switchExpanded = view -> {
+            boolean next = offers.getVisibility() != View.VISIBLE;
+            getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(preferenceKey, next).apply();
+            offers.setVisibility(next ? View.VISIBLE : View.GONE);
+            toggle.setRotation(next ? 90f : 0f);
+        };
+        header.setOnClickListener(switchExpanded);
+        toggle.setOnClickListener(switchExpanded);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.topMargin = dp(2);
+        parent.addView(card, params);
+        return offers;
+    }
+
     private String getPropertyMarketLastCheckSummary(List<ObservedOffer> offers) {
         if (isPropertyMarketUpdating()) {
             long checkingInterestId = PropertyPageMonitor.getInstance()
@@ -1225,7 +1303,9 @@ public class MainActivity extends AlertouActivity {
         }
         if (latest != null) {
             return appendCheckDuration(formatCompactCheckTime(latestAt),
-                    SourceCheckStatus.getLastDurationMillis(this, latest.getId()));
+                    zipSection
+                            ? PropertyPageMonitor.getLastMarketCheckDurationMillis(this, true)
+                            : SourceCheckStatus.getLastDurationMillis(this, latest.getId()));
         }
         return getString(R.string.property_alerts_status_empty);
     }
@@ -1481,13 +1561,10 @@ public class MainActivity extends AlertouActivity {
     private String getPropertyReferenceCountText(String preferenceKey, int offerCount) {
         boolean propertyMarketSection = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey);
         boolean propertyZipSection = SECTION_PROPERTY_ZIP_EXPANDED.equals(preferenceKey);
-        if (propertyZipSection && PropertyPageMonitor.getInstance().isCheckingPropertyZip()) {
-            int position = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingPosition();
-            int total = PropertyPageMonitor.getInstance().getCheckingPropertyZipListingTotal();
-            if (position > 0 && total > 0) {
-                return getResources().getQuantityString(
-                        R.plurals.property_zip_offer_section_progress, total, position, total);
-            }
+        if (propertyZipSection) {
+            int total = getPropertyZipCardsTotal(offerCount);
+            return getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
+                    total, total);
         }
         int checkingPosition = propertyMarketSection
                 ? PropertyPageMonitor.getInstance().getCheckingMarketReferencePosition()
@@ -1504,6 +1581,22 @@ public class MainActivity extends AlertouActivity {
         }
         return getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
                 offerCount, offerCount);
+    }
+
+    /** O cabeçalho de CEP representa a soma dos cartões internos, cada um no seu limite. */
+    private int getPropertyZipCardsTotal(int fallback) {
+        int total = 0;
+        boolean hasReading = false;
+        PropertyHistoryRepository history = new PropertyHistoryRepository(this);
+        for (Interest interest : interestRepository.getAll()) {
+            if (!interest.isPropertyZip()) continue;
+            int count = history.getMarketListingCountHistory(interest.getId()).getLatestCount();
+            if (count > 0) {
+                total += Math.min(count, interest.getPropertyZipListingLimit());
+                hasReading = true;
+            }
+        }
+        return hasReading ? total : fallback;
     }
 
     private int getPropertyCondominiumOfferCount(List<ObservedOffer> offers) {
@@ -1799,14 +1892,38 @@ public class MainActivity extends AlertouActivity {
                 : interest.getPropertyStreet();
     }
 
+    private String getPropertyZipCardKey(ObservedOffer offer) {
+        return "property_zip_interest_expanded_" + offer.getInterestId();
+    }
+
+    private String getPropertyZipCardTitle(ObservedOffer offer) {
+        Interest interest = getInterestsById().get(offer.getInterestId());
+        if (interest == null) return getPropertyZipGroupName(offer);
+        String street = interest.getPropertyStreet().trim();
+        PropertyMarketListingCountHistory countHistory = new PropertyHistoryRepository(this)
+                .getMarketListingCountHistory(interest.getId());
+        int count = countHistory.getLatestCount();
+        street = shortenPropertyStreetTitle(street);
+        return count > 0 ? getResources().getQuantityString(
+                R.plurals.property_zip_card_listing_count, count, street, count) : street;
+    }
+
+    private String shortenPropertyStreetTitle(String street) {
+        if (street == null) return "";
+        String shortName = street.trim()
+                .replaceFirst("(?i)^(rua|r\\.?|avenida|av\\.?|alameda|travessa|estrada|rodovia)\\s+", "")
+                .replaceFirst("(?i)^(doutor|dr\\.?|doutora|dra\\.?|professor|prof\\.?|professora|profa\\.?)\\s+", "");
+        return shortName.isEmpty() ? street.trim() : shortName;
+    }
+
     private List<ObservedOffer> groupPropertyZipOffersByStreet(List<ObservedOffer> offers) {
-        java.util.LinkedHashMap<String, List<ObservedOffer>> grouped = new java.util.LinkedHashMap<>();
+        java.util.LinkedHashMap<Long, List<ObservedOffer>> grouped = new java.util.LinkedHashMap<>();
         for (ObservedOffer offer : offers) {
-            String street = getPropertyZipGroupName(offer);
-            List<ObservedOffer> streetOffers = grouped.get(street);
+            long interestId = offer.getInterestId();
+            List<ObservedOffer> streetOffers = grouped.get(interestId);
             if (streetOffers == null) {
                 streetOffers = new java.util.ArrayList<>();
-                grouped.put(street, streetOffers);
+                grouped.put(interestId, streetOffers);
             }
             streetOffers.add(offer);
         }
