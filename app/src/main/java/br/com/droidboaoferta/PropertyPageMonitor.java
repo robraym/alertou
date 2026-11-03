@@ -356,8 +356,13 @@ final class PropertyPageMonitor {
                     notifyPropertyInterestCompleted(context);
                 }
             }
-            PropertyHistoryRepository.publishPendingChanges(context);
+            if (CoalescingCheckScheduler.isCurrentRun()) {
+                PropertyHistoryRepository.publishPendingChanges(context);
+            }
         } finally {
+            // Uma execução cancelada pode continuar bloqueada na rede por alguns
+            // segundos. Ela não pode apagar o progresso de uma execução nova.
+            if (!CoalescingCheckScheduler.isCurrentRun()) return;
             if (zip) {
                 checkingPropertyZip = false;
                 checkingPropertyZipPosition = 0;
@@ -465,11 +470,14 @@ final class PropertyPageMonitor {
                 notifyPropertyInterestCompleted(context);
             }
         }
-        PropertyHistoryRepository.publishPendingChanges(context);
+        if (CoalescingCheckScheduler.isCurrentRun()) {
+            PropertyHistoryRepository.publishPendingChanges(context);
+        }
         // Also refresh status when all results are unavailable or no new offer was emitted.
         context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                 .setPackage(context.getPackageName()));
         } finally {
+            if (!CoalescingCheckScheduler.isCurrentRun()) return;
             if (includeMarketReferences) {
                 saveLastMarketCheckDuration(context,
                         Math.max(0L, SystemClock.elapsedRealtime() - marketCheckStartedAt));
@@ -647,13 +655,15 @@ final class PropertyPageMonitor {
                 && PropertyMarketReferenceSettings.isEnabled(context);
         PropertyPageListing lowestMarketListing = null;
         int lowestMarketHistoryChange = PropertyHistoryRepository.UNCHANGED;
-        for (PropertyPageListing listing : historyRepository.getTrackedListings(interest.getId())) {
-            candidates.put(listing.getId(), listing);
-        }
         for (PropertyPageListing listing : result.getSaleListings()) {
             candidates.put(listing.getId(), listing);
             currentPageListingIds.add(listing.getId());
         }
+        // A página atual é a fonte de verdade para esta rodada. Reabrir todos os
+        // anúncios que já passaram pelo histórico fazia uma única consulta ficar
+        // presa por minutos e impedia a fila de chegar aos próximos condomínios.
+        // Os registros antigos permanecem guardados para o histórico; eles voltam
+        // a ser verificados quando reaparecem na resposta atual da fonte.
         List<PropertyPageListing> addressCandidates = new ArrayList<>();
         for (PropertyPageListing listing : candidates.values()) {
             if (matchesPropertyZipAddress(interest, listing)) {
@@ -965,8 +975,11 @@ final class PropertyPageMonitor {
                     break;
                 }
             }
-            PropertyHistoryRepository.publishPendingChanges(context);
+            if (CoalescingCheckScheduler.isCurrentRun()) {
+                PropertyHistoryRepository.publishPendingChanges(context);
+            }
         } finally {
+            if (!CoalescingCheckScheduler.isCurrentRun()) return;
             if (checkingZip) {
                 manualZipCheckRunning = false;
                 manualZipCheckStartedAt = 0L;
