@@ -674,12 +674,27 @@ public class MainActivity extends AlertouActivity {
         );
         sortOffers(visibleOffers, displayedPropertyHistory);
         if (visibleOffers.isEmpty()) {
-            offerSectionCache.clear();
             offersContainer.removeAllViews();
-            boolean awaitingLinks = offersSearchInput.getText().toString().trim().isEmpty()
-                    && !offerRepository.getRecentForValidation().isEmpty();
-            offersContainer.addView(createEmptyText(awaitingLinks
-                    ? R.string.dashboard_waiting_offer_links : R.string.dashboard_no_offers));
+            NumberFormat currency = CurrencyTextFormatter.displayFormatter();
+            java.util.List<ObservedOffer> noOffers = java.util.Collections.emptyList();
+            java.util.Map<Long, Interest> interestsById = getInterestsById();
+            if (PropertyMarketReferenceSettings.isCondominiumVisible(this)) {
+                addOfferSection(R.string.property_alerts_list_title, noOffers, currency,
+                        SECTION_PROPERTY_MARKET_EXPANDED,
+                        getPropertyMarketLastCheckSummary(noOffers), R.drawable.ic_property_alert);
+            }
+            if (PropertyMarketReferenceSettings.isZipVisible(this)) {
+                addOfferSection(R.string.property_zip_alerts_list_title, noOffers, currency,
+                        SECTION_PROPERTY_ZIP_EXPANDED,
+                        getPropertySectionStatus(interestsById, true), R.drawable.ic_property_zip_alert);
+            }
+            if (offersContainer.getChildCount() == 0) {
+                boolean awaitingLinks = offersSearchInput.getText().toString().trim().isEmpty()
+                        && !offerRepository.getRecentForValidation().isEmpty();
+                offersContainer.addView(createEmptyText(awaitingLinks
+                        ? R.string.dashboard_waiting_offer_links : R.string.dashboard_no_offers));
+            }
+            offerSectionCache.end(offersContainer);
             return;
         }
 
@@ -690,7 +705,13 @@ public class MainActivity extends AlertouActivity {
         List<ObservedOffer> propertyZipOffers = new java.util.ArrayList<>();
         List<ObservedOffer> productOffers = new java.util.ArrayList<>();
         for (ObservedOffer offer : visibleOffers) {
+            Interest propertyInterest = interestsById.get(offer.getInterestId());
             if (PropertyMarketReferenceSettings.isReference(offer)) {
+                // Referências sem alerta correspondente são restos de cadastros antigos.
+                // Elas não podem inflar a lista nem a contagem de condomínios atuais.
+                if (propertyInterest == null || !propertyInterest.isProperty()) {
+                    continue;
+                }
                 if (isZipInterest(interestsById, offer.getInterestId())) {
                     propertyZipOffers.add(offer);
                 } else {
@@ -699,7 +720,7 @@ public class MainActivity extends AlertouActivity {
             } else if (isPropertyOffer(offer)) {
                 if (isZipInterest(interestsById, offer.getInterestId())) {
                     propertyZipOffers.add(offer);
-                } else {
+                } else if (propertyInterest != null && propertyInterest.isPropertyCondominium()) {
                     propertyMarketOffers.add(offer);
                 }
             } else if (isCouponOffer(offer)) {
@@ -738,11 +759,13 @@ public class MainActivity extends AlertouActivity {
                                  String preferenceKey,
                                  String sectionSummary,
                                  int sectionIconResource) {
-        if (offers.isEmpty()) {
-            return;
-        }
         boolean propertyMarketSection = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey);
         boolean propertyZipSection = SECTION_PROPERTY_ZIP_EXPANDED.equals(preferenceKey);
+        // Imóveis configurados nunca somem da tela por uma consulta vazia, incompleta
+        // ou em andamento. A visibilidade é decidida somente no Perfil.
+        if (offers.isEmpty() && !propertyMarketSection && !propertyZipSection) {
+            return;
+        }
         boolean expanded = isOfferSectionExpanded(preferenceKey);
         renderingSectionKey = preferenceKey;
         renderingSectionFingerprint = OfferSectionCache.fingerprint(this, offers,
@@ -775,6 +798,12 @@ public class MainActivity extends AlertouActivity {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.bg_card_compact);
+        // The offer rows have their own solid background for swipe feedback. Keep that
+        // background inside the section's rounded outline instead of letting it visually
+        // reach past the card edges.
+        card.setClipToOutline(true);
+        card.setClipChildren(true);
+        card.setClipToPadding(true);
         card.setPadding(0, dp(2), 0, dp(2));
 
         LinearLayout header = new LinearLayout(this);
@@ -979,6 +1008,7 @@ public class MainActivity extends AlertouActivity {
         LinearLayout content = new LinearLayout(this);
         content.setTag(OFFER_SECTION_CONTENT_TAG_PREFIX + preferenceKey);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(6), 0, dp(6), dp(4));
         content.setVisibility(expanded ? View.VISIBLE : View.GONE);
 
         List<ObservedOffer> sectionOffers = propertyZipSection
@@ -987,6 +1017,7 @@ public class MainActivity extends AlertouActivity {
         String activeZipCardKey = null;
         LinearLayout zipCardOffers = null;
         int zipCardOfferCount = 0;
+        java.util.Set<Long> renderedZipInterestIds = new java.util.HashSet<>();
         for (int index = 0; index < sectionOffers.size(); index++) {
             ObservedOffer offer = sectionOffers.get(index);
             boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
@@ -996,11 +1027,7 @@ public class MainActivity extends AlertouActivity {
                     ? getPropertyZipCardKey(offer) : OfferDateFormatter.getGroupKey(offer.getObservedAt());
             String groupLabel = propertyZipSection
                     ? getPropertyZipCardTitle(offer) : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
-            if (propertyMarketReference && propertyMarketSection) {
-                if (index > 0) {
-                    content.addView(createOfferDivider());
-                }
-            } else if (propertyZipSection) {
+            if (propertyZipSection) {
                 if (!group.equals(activeZipCardKey)) {
                     if (activeZipCardKey != null) {
                         content.addView(createOfferDivider());
@@ -1008,6 +1035,7 @@ public class MainActivity extends AlertouActivity {
                     activeZipCardKey = group;
                     zipCardOfferCount = 0;
                     zipCardOffers = addPropertyZipInterestCard(content, group, groupLabel);
+                    renderedZipInterestIds.add(offer.getInterestId());
                 } else if (zipCardOffers != null && zipCardOfferCount > 0) {
                     zipCardOffers.addView(createOfferDivider());
                 }
@@ -1081,6 +1109,22 @@ public class MainActivity extends AlertouActivity {
                     .addView(swipeContainer, rowParams);
             if (propertyZipSection) {
                 zipCardOfferCount++;
+            }
+        }
+        if (propertyZipSection) {
+            // A rua permanece visível mesmo quando esta rodada não devolve anúncios
+            // individuais. O cartão principal e os cartões internos passam a refletir
+            // exatamente os mesmos CEPs configurados no Perfil.
+            for (Interest interest : interestRepository.getAll()) {
+                if (!interest.isPropertyZip() || renderedZipInterestIds.contains(interest.getId())) {
+                    continue;
+                }
+                if (activeZipCardKey != null) {
+                    content.addView(createOfferDivider());
+                }
+                activeZipCardKey = getPropertyZipCardKey(interest.getId());
+                addPropertyZipInterestCard(content, activeZipCardKey,
+                        getPropertyZipCardTitle(interest));
             }
         }
         card.addView(content);
@@ -1893,12 +1937,21 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getPropertyZipCardKey(ObservedOffer offer) {
-        return "property_zip_interest_expanded_" + offer.getInterestId();
+        return getPropertyZipCardKey(offer.getInterestId());
+    }
+
+    private String getPropertyZipCardKey(long interestId) {
+        return "property_zip_interest_expanded_" + interestId;
     }
 
     private String getPropertyZipCardTitle(ObservedOffer offer) {
         Interest interest = getInterestsById().get(offer.getInterestId());
         if (interest == null) return getPropertyZipGroupName(offer);
+        return getPropertyZipCardTitle(interest);
+    }
+
+    private String getPropertyZipCardTitle(Interest interest) {
+        if (interest == null) return getString(R.string.property_interest_unknown_name);
         String street = interest.getPropertyStreet().trim();
         PropertyMarketListingCountHistory countHistory = new PropertyHistoryRepository(this)
                 .getMarketListingCountHistory(interest.getId());

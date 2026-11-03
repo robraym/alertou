@@ -20,7 +20,7 @@ final class OfferRepository {
     private static final String KEY_ARCHIVED_OFFERS = "archived_offers";
     private static final String KEY_TRASHED_OFFERS = "trashed_offers";
     private static final String KEY_PROCESSED_MESSAGES = "processed_messages";
-    private static final int MAX_OFFERS = 30;
+    private static final int MAX_NON_PROPERTY_OFFERS = 30;
     private static final int MAX_PROCESSED_MESSAGES = 500;
 
     private final Context context;
@@ -92,6 +92,21 @@ final class OfferRepository {
                 long changedAt = System.currentTimeMillis();
                 CloudSyncStore.rememberRecentChanged(context, changedAt);
             }
+        }
+    }
+
+    /** True when the current Alertou list already contains this exact property listing. */
+    boolean containsRecentOffer(String id) {
+        if (id == null || id.trim().isEmpty()) {
+            return false;
+        }
+        synchronized (OfferStorage.LOCK) {
+            for (ObservedOffer offer : readOffers(KEY_OFFERS)) {
+                if (id.equals(offer.getId())) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -570,10 +585,27 @@ final class OfferRepository {
     }
 
     private List<ObservedOffer> trimOffers(List<ObservedOffer> offers) {
-        if (offers.size() > MAX_OFFERS) {
-            return new ArrayList<>(offers.subList(0, MAX_OFFERS));
+        List<ObservedOffer> sorted = sortByObservedAt(offers);
+        List<ObservedOffer> retained = new ArrayList<>();
+        int nonPropertyOffers = 0;
+        for (ObservedOffer offer : sorted) {
+            // Imóveis são limitados pelos filtros de cada alerta (e, no caso de CEP,
+            // pelo máximo escolhido pelo usuário). Um teto global faria uma rua apagar
+            // a outra da tela, por isso nunca os descartamos aqui.
+            if (isPropertyOffer(offer) || nonPropertyOffers < MAX_NON_PROPERTY_OFFERS) {
+                retained.add(offer);
+                if (!isPropertyOffer(offer)) {
+                    nonPropertyOffers++;
+                }
+            }
         }
-        return sortByObservedAt(offers);
+        return retained;
+    }
+
+    private boolean isPropertyOffer(ObservedOffer offer) {
+        if (offer == null) return false;
+        String id = offer.getId();
+        return id.startsWith("property|") || PropertyMarketReferenceSettings.isReference(offer);
     }
 
     private List<ObservedOffer> sortByObservedAt(List<ObservedOffer> offers) {

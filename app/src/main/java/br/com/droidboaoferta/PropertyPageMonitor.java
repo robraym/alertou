@@ -814,20 +814,26 @@ final class PropertyPageMonitor {
             }
         }
         preferences.edit().putString(stateKey, notifiedPrices.toString()).apply();
-        if (changed.isEmpty()) {
-            if (removedStaleOffer || changedMarketReference) {
-                notifyPropertyOfferChanges(context);
-            }
-            return;
-        }
 
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
         String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
+        java.util.Set<String> changedListingIds = new java.util.HashSet<>();
         for (PropertyPageListing listing : changed) {
+            changedListingIds.add(listing.getId());
+        }
+        boolean restoredMissingOffer = false;
+        for (PropertyPageListing listing : matches) {
             boolean zipInterest = interest.isPropertyZip();
+            String offerId = "property|" + interest.getId() + "|" + listing.getId();
+            // A observação pode já existir no histórico, mas a lista visível pode ter
+            // sido limpa por uma versão anterior. Restaure-a sem disparar novo alerta.
+            if (!changedListingIds.contains(listing.getId())
+                    && repository.containsRecentOffer(offerId)) {
+                continue;
+            }
             repository.add(new ObservedOffer(
-                    "property|" + interest.getId() + "|" + listing.getId(),
+                    offerId,
                     interest.getId(),
                     zipInterest && !listing.getDescription().isEmpty()
                             ? listing.getDescription()
@@ -844,9 +850,15 @@ final class PropertyPageMonitor {
                     "",
                     zipInterest ? listing.getAddress() : ""
             ));
+            restoredMissingOffer = true;
         }
-        showNotification(context, interest, result, changed);
-        notifyPropertyOfferChanges(context);
+        if (!changed.isEmpty()) {
+            showNotification(context, interest, result, changed);
+        }
+        if (removedStaleOffer || changedMarketReference || restoredMissingOffer
+                || !changed.isEmpty()) {
+            notifyPropertyOfferChanges(context);
+        }
     }
 
     /**
