@@ -40,8 +40,18 @@ final class PropertyHistoryRepository {
         }
         JSONArray points = history.optJSONArray("points");
         if (points == null) points = new JSONArray();
+        boolean removedLegacyPageLimit = removeLegacyPageLimitedCount(points, count);
         JSONObject latest = points.optJSONObject(points.length() - 1);
-        if (latest != null && latest.optInt("count", -1) == count) return;
+        if (latest != null && latest.optInt("count", -1) == count) {
+            if (removedLegacyPageLimit) {
+                try {
+                    history.put("interest_id", interestId).put("points", points);
+                    preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
+                } catch (Exception ignored) {
+                }
+            }
+            return;
+        }
         try {
             points.put(new JSONObject().put("observed_at", observedAt).put("count", count));
             while (points.length() > MAX_POINTS) points.remove(0);
@@ -52,9 +62,17 @@ final class PropertyHistoryRepository {
     }
 
     synchronized PropertyMarketListingCountHistory getMarketListingCountHistory(long interestId) {
-        JSONObject history = findMarketListingCountHistory(readMarketListingCounts(), interestId);
+        JSONArray histories = readMarketListingCounts();
+        JSONObject history = findMarketListingCountHistory(histories, interestId);
         List<PropertyMarketListingCountPoint> result = new ArrayList<>();
         JSONArray points = history == null ? null : history.optJSONArray("points");
+        if (history != null && removeLegacyPageLimitedCount(points, findHighestCount(points))) {
+            try {
+                history.put("points", points);
+                preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
+            } catch (Exception ignored) {
+            }
+        }
         for (int index = 0; points != null && index < points.length(); index++) {
             JSONObject point = points.optJSONObject(index);
             if (point == null) continue;
@@ -65,6 +83,27 @@ final class PropertyHistoryRepository {
             }
         }
         return new PropertyMarketListingCountHistory(result);
+    }
+
+    /**
+     * Antes da leitura do total oficial, o app gravava o limite da primeira página (20).
+     * Remove somente esse primeiro ponto quando uma leitura posterior confirma total maior.
+     */
+    private boolean removeLegacyPageLimitedCount(JSONArray points, int confirmedCount) {
+        if (points == null || points.length() == 0 || confirmedCount <= 20) return false;
+        JSONObject first = points.optJSONObject(0);
+        if (first == null || first.optInt("count", -1) != 20) return false;
+        points.remove(0);
+        return true;
+    }
+
+    private int findHighestCount(JSONArray points) {
+        int highest = -1;
+        for (int index = 0; points != null && index < points.length(); index++) {
+            JSONObject point = points.optJSONObject(index);
+            if (point != null) highest = Math.max(highest, point.optInt("count", -1));
+        }
+        return highest;
     }
 
     synchronized void clearMarketListingCountHistory(long interestId) {

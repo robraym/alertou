@@ -11,6 +11,19 @@ import static org.junit.Assert.assertTrue;
 
 public class PropertyHistoryRepositoryTest {
     @Test
+    public void removesOnlyTheLegacyFirstPageLimitWhenAnOfficialHigherTotalExists() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+
+        repository.recordMarketListingCount(1L, 20, 1L);
+        repository.recordMarketListingCount(1L, 50, 2L);
+
+        PropertyMarketListingCountHistory history = repository.getMarketListingCountHistory(1L);
+        assertEquals(1, history.getPoints().size());
+        assertEquals(50, history.getLatestCount());
+    }
+
+    @Test
     public void reusesOnlyAnUnchangedIndividuallyVerifiedListing() {
         java.util.Map<String, String> stored = new java.util.HashMap<>();
         PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));

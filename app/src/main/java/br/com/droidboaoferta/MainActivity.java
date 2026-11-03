@@ -1906,6 +1906,8 @@ public class MainActivity extends AlertouActivity {
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         Interest zipInterest = interestsById.get(interestId);
         boolean propertyZipOffer = zipInterest != null && zipInterest.isPropertyZip();
+        boolean hasMarketListingCount = marketListingCounts != null
+                && !marketListingCounts.getPoints().isEmpty();
 
         LinearLayout mainLine = new LinearLayout(this);
         mainLine.setOrientation(LinearLayout.HORIZONTAL);
@@ -1926,8 +1928,12 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        if (propertyGoodPrice) {
-            TextView badge = createPropertyGoodPriceBadge();
+        if (hasMarketListingCount) {
+            View badge = createPropertyMarketListingCountChangeBadge(
+                    marketListingCounts.getLatestChange(),
+                    marketListingCounts.getLatestCount(),
+                    view -> showPropertyMarketListingCountHistoryDialog(
+                            offer.getInterest(), marketListingCounts));
             LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1957,6 +1963,7 @@ public class MainActivity extends AlertouActivity {
             badgeParams.leftMargin = dp(5);
             titleAndBadges.addView(badge, badgeParams);
         }
+
         mainLine.addView(titleAndBadges, new LinearLayout.LayoutParams(
                 0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
@@ -2049,44 +2056,26 @@ public class MainActivity extends AlertouActivity {
             metaLine.addView(unitPriceView);
         }
         row.addView(metaLine);
-        boolean hasMarketListingCount = marketListingCounts != null
-                && !marketListingCounts.getPoints().isEmpty();
-        if (!publication.isEmpty() || hasMarketListingCount) {
+        if (!publication.isEmpty() || propertyGoodPrice) {
             LinearLayout publicationLine = new LinearLayout(this);
             publicationLine.setGravity(Gravity.CENTER_VERTICAL);
             publicationLine.setPadding(0, dp(2), 0, 0);
-            publicationLine.setClickable(hasMarketListingCount);
-            publicationLine.setFocusable(hasMarketListingCount);
-            if (hasMarketListingCount) {
-                publicationLine.setOnClickListener(view -> showPropertyMarketListingCountHistoryDialog(
-                        offer.getInterest(), marketListingCounts));
-            }
 
             TextView publicationView = new TextView(this);
-            String publicationAndCount = publication;
-            if (hasMarketListingCount) {
-                String listingCount = getResources().getQuantityString(
-                        R.plurals.property_market_listing_count,
-                        marketListingCounts.getLatestCount(), marketListingCounts.getLatestCount());
-                publicationAndCount = publicationAndCount.isEmpty()
-                        ? listingCount : publicationAndCount + " • " + listingCount;
-            }
-            publicationView.setText(publicationAndCount);
+            publicationView.setText(publication);
             publicationView.setTextColor(getColor(R.color.text_secondary));
             publicationView.setTextSize(11.5f);
             publicationView.setSingleLine(true);
             publicationView.setEllipsize(TextUtils.TruncateAt.END);
             publicationLine.addView(publicationView);
-            if (hasMarketListingCount && marketListingCounts.getLatestChange() != 0) {
-                TextView changeBadge = createPropertyMarketListingCountChangeBadge(
-                        marketListingCounts.getLatestChange(),
-                        view -> showPropertyMarketListingCountHistoryDialog(
-                                offer.getInterest(), marketListingCounts));
+            if (propertyGoodPrice) {
+                TextView badge = createPropertyGoodPriceBadge();
                 LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                );
                 badgeParams.leftMargin = dp(6);
-                publicationLine.addView(changeBadge, badgeParams);
+                publicationLine.addView(badge, badgeParams);
             }
             row.addView(publicationLine);
         }
@@ -2198,16 +2187,9 @@ public class MainActivity extends AlertouActivity {
 
     private TextView createPropertyGoodPriceBadge() {
         TextView badge = createPropertyStatusBadge(R.string.property_good_price_badge);
-        badge.setText(getString(R.string.property_good_price_badge).replace(" ", "\n"));
-        badge.setTextSize(8f);
-        badge.setSingleLine(false);
-        badge.setLines(2);
-        badge.setGravity(Gravity.CENTER);
-        badge.setIncludeFontPadding(false);
-        badge.setLineSpacing(0f, 0.9f);
-        badge.setMinWidth(dp(46));
-        badge.setMinHeight(dp(28));
-        badge.setPadding(dp(4), dp(2), dp(4), dp(2));
+        badge.setText(getString(R.string.property_good_price_badge).replace('\n', ' '));
+        badge.setTextSize(8.5f);
+        badge.setPadding(dp(5), dp(1), dp(5), dp(1));
         return badge;
     }
 
@@ -2251,35 +2233,57 @@ public class MainActivity extends AlertouActivity {
         return badge;
     }
 
-    private TextView createPropertyMarketListingCountChangeBadge(int change,
-                                                                  View.OnClickListener listener) {
-        boolean increase = change > 0;
-        TextView badge = new TextView(this);
-        badge.setText(getString(increase
-                ? R.string.property_market_listing_count_change_increase
-                : R.string.property_market_listing_count_change_decrease, Math.abs(change)));
-        badge.setTextColor(getColor(increase ? R.color.action_green : R.color.danger));
-        badge.setTextSize(10.5f);
-        badge.setTypeface(null, android.graphics.Typeface.BOLD);
-        badge.setSingleLine(true);
+    private View createPropertyMarketListingCountChangeBadge(int change, int currentCount,
+                                                              View.OnClickListener listener) {
+        boolean increase = change >= 0;
+        int color = getColor(increase ? R.color.action_green : R.color.danger);
+        LinearLayout badge = new LinearLayout(this);
+        badge.setGravity(Gravity.CENTER_VERTICAL);
         badge.setBackgroundResource(increase
                 ? R.drawable.bg_property_new_badge
                 : R.drawable.bg_property_price_rise_badge);
-        android.graphics.drawable.Drawable propertyIcon = ContextCompat.getDrawable(
-                this, R.drawable.ic_property_alert);
-        if (propertyIcon != null) {
-            propertyIcon = propertyIcon.mutate();
-            propertyIcon.setColorFilter(AccentColorController.getPrimaryColor(this),
-                    android.graphics.PorterDuff.Mode.SRC_IN);
-            propertyIcon.setBounds(0, 0, dp(16), dp(16));
-            badge.setCompoundDrawables(null, null, propertyIcon, null);
-            badge.setCompoundDrawablePadding(dp(3));
-        }
-        badge.setGravity(Gravity.CENTER_VERTICAL);
         badge.setPadding(dp(6), dp(1), dp(5), dp(1));
         badge.setClickable(true);
         badge.setFocusable(true);
         badge.setOnClickListener(listener);
+
+        if (change != 0) {
+            TextView changeView = new TextView(this);
+            changeView.setText(getString(increase
+                    ? R.string.property_market_listing_count_change_increase
+                    : R.string.property_market_listing_count_change_decrease, Math.abs(change)));
+            changeView.setTextColor(color);
+            changeView.setTextSize(10.5f);
+            changeView.setTypeface(null, android.graphics.Typeface.BOLD);
+            changeView.setSingleLine(true);
+            badge.addView(changeView);
+        }
+
+        android.graphics.drawable.Drawable propertyIcon = ContextCompat.getDrawable(
+                this, R.drawable.ic_property_alert);
+        if (propertyIcon != null) {
+            propertyIcon = propertyIcon.mutate();
+            propertyIcon.setColorFilter(color,
+                    android.graphics.PorterDuff.Mode.SRC_IN);
+            propertyIcon.setBounds(0, 0, dp(16), dp(16));
+            ImageView iconView = new ImageView(this);
+            iconView.setImageDrawable(propertyIcon);
+            iconView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+            LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(16), dp(16));
+            iconParams.leftMargin = dp(change == 0 ? 0 : 3);
+            badge.addView(iconView, iconParams);
+        }
+
+        TextView countView = new TextView(this);
+        countView.setText(String.valueOf(currentCount));
+        countView.setTextColor(color);
+        countView.setTextSize(10.5f);
+        countView.setTypeface(null, android.graphics.Typeface.BOLD);
+        countView.setSingleLine(true);
+        LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        countParams.leftMargin = dp(2);
+        badge.addView(countView, countParams);
         return badge;
     }
 
