@@ -554,6 +554,10 @@
         <item quantity="one">%1$d de %2$d oferta</item>
         <item quantity="other">%1$d de %2$d ofertas</item>
     </plurals>
+    <plurals name="property_market_listing_count">
+        <item quantity="one">%1$d imóvel anunciado</item>
+        <item quantity="other">%1$d imóveis anunciados</item>
+    </plurals>
     <string name="archived_screen_title">Salvas</string>
     <string name="archived_card_title">Ofertas salvas</string>
     <string name="archived_empty">Nenhuma oferta salva.</string>
@@ -692,6 +696,11 @@
     <string name="property_history_last_seen">Última leitura</string>
     <string name="property_history_published">Anunciado em</string>
     <string name="property_history_chart_title">Histórico de preço</string>
+    <string name="property_market_listing_count_history_title">Histórico de imóveis anunciados</string>
+    <string name="property_market_listing_count_history_summary">Quantidade total anunciada na consulta, sem os filtros deste alerta.</string>
+    <string name="property_market_listing_count_readings_title">Últimas leituras</string>
+    <string name="property_market_listing_count_change_increase">↑ %1$d</string>
+    <string name="property_market_listing_count_change_decrease">↓ %1$d</string>
     <string name="property_history_chart_old_price">Preço antigo</string>
     <string name="property_history_chart_new_price">Preço novo</string>
     <string name="property_history_readings_title">Últimas leituras</string>

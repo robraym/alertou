@@ -15,6 +15,7 @@ final class PropertyHistoryRepository {
     static final int CHANGED = 2;
     private static final String PREFS = "property_history";
     private static final String KEY_ENTRIES = "entries";
+    private static final String KEY_MARKET_LISTING_COUNTS = "market_listing_counts";
     private static final long METADATA_RETRY_MS = 24L * 60L * 60L * 1000L;
     private static final int MAX_POINTS = 60;
 
@@ -26,6 +27,59 @@ final class PropertyHistoryRepository {
 
     PropertyHistoryRepository(SharedPreferences preferences) {
         this.preferences = preferences;
+    }
+
+    /** Stores the size of the full condominium result, before any alert filters. */
+    synchronized void recordMarketListingCount(long interestId, int count, long observedAt) {
+        if (interestId <= 0L || count < 0 || observedAt <= 0L) return;
+        JSONArray histories = readMarketListingCounts();
+        JSONObject history = findMarketListingCountHistory(histories, interestId);
+        if (history == null) {
+            history = new JSONObject();
+            histories.put(history);
+        }
+        JSONArray points = history.optJSONArray("points");
+        if (points == null) points = new JSONArray();
+        JSONObject latest = points.optJSONObject(points.length() - 1);
+        if (latest != null && latest.optInt("count", -1) == count) return;
+        try {
+            points.put(new JSONObject().put("observed_at", observedAt).put("count", count));
+            while (points.length() > MAX_POINTS) points.remove(0);
+            history.put("interest_id", interestId).put("points", points);
+            preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
+        } catch (Exception ignored) {
+        }
+    }
+
+    synchronized PropertyMarketListingCountHistory getMarketListingCountHistory(long interestId) {
+        JSONObject history = findMarketListingCountHistory(readMarketListingCounts(), interestId);
+        List<PropertyMarketListingCountPoint> result = new ArrayList<>();
+        JSONArray points = history == null ? null : history.optJSONArray("points");
+        for (int index = 0; points != null && index < points.length(); index++) {
+            JSONObject point = points.optJSONObject(index);
+            if (point == null) continue;
+            long observedAt = point.optLong("observed_at", 0L);
+            int count = point.optInt("count", -1);
+            if (observedAt > 0L && count >= 0) {
+                result.add(new PropertyMarketListingCountPoint(observedAt, count));
+            }
+        }
+        return new PropertyMarketListingCountHistory(result);
+    }
+
+    synchronized void clearMarketListingCountHistory(long interestId) {
+        JSONArray histories = readMarketListingCounts();
+        JSONArray remaining = new JSONArray();
+        boolean changed = false;
+        for (int index = 0; index < histories.length(); index++) {
+            JSONObject item = histories.optJSONObject(index);
+            if (item != null && item.optLong("interest_id", 0L) == interestId) {
+                changed = true;
+            } else if (item != null) {
+                remaining.put(item);
+            }
+        }
+        if (changed) preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, remaining.toString()).apply();
     }
 
     synchronized boolean shouldFetchMetadata(long interestId, PropertyPageListing listing, long now) {
@@ -61,6 +115,28 @@ final class PropertyHistoryRepository {
 
     synchronized boolean contains(long interestId, PropertyPageListing listing) {
         return find(readEntries(), interestId, listing.getId(), listing.getUrl()) != null;
+    }
+
+    /**
+     * A página resumida continua sendo conferida em toda consulta. Quando preço e metragem
+     * são exatamente os já validados na página individual, é seguro reutilizar essa
+     * validação e evitar outra requisição idêntica.
+     */
+    synchronized boolean hasVerifiedUnchangedListing(long interestId,
+                                                      PropertyPageListing listing) {
+        if (listing == null) return false;
+        JSONObject item = find(readEntries(), interestId, listing.getId(), listing.getUrl());
+        if (item == null || item.optInt("identity_validation_version", 0) != 1
+                || !"available".equals(item.optString("validation_status", ""))) {
+            return false;
+        }
+        JSONArray points = item.optJSONArray("points");
+        JSONObject latest = points == null ? null : points.optJSONObject(points.length() - 1);
+        return latest != null
+                && Double.compare(latest.optDouble("price", Double.NaN),
+                listing.getSalePrice()) == 0
+                && Double.compare(latest.optDouble("area", Double.NaN),
+                listing.getArea()) == 0;
     }
 
     synchronized int recordObservation(long interestId, PropertyPageListing listing,
@@ -254,6 +330,22 @@ final class PropertyHistoryRepository {
                 return new JSONArray();
             }
         }
+    }
+
+    private JSONArray readMarketListingCounts() {
+        try {
+            return new JSONArray(preferences.getString(KEY_MARKET_LISTING_COUNTS, "[]"));
+        } catch (Exception ignored) {
+            return new JSONArray();
+        }
+    }
+
+    private JSONObject findMarketListingCountHistory(JSONArray histories, long interestId) {
+        for (int index = 0; index < histories.length(); index++) {
+            JSONObject item = histories.optJSONObject(index);
+            if (item != null && item.optLong("interest_id", 0L) == interestId) return item;
+        }
+        return null;
     }
 
     // Only an unavailable listing that has never been validated triggers this isolation.

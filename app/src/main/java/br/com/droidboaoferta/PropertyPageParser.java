@@ -78,7 +78,11 @@ final class PropertyPageParser {
                         containsTag(source.optJSONArray("listingTags"), "NEW_AD")
                 ));
             }
-            return new PropertyPageResult(condominiumName, parsed);
+            return new PropertyPageResult(
+                    condominiumName,
+                    parsed,
+                    listings.optInt("saleListingsCount", parsed.size())
+            );
         } catch (Exception ignored) {
             return new PropertyPageResult("", new ArrayList<>());
         }
@@ -94,10 +98,21 @@ final class PropertyPageParser {
         }
         try {
             JSONObject root = new JSONObject(matcher.group(1));
-            return new PropertyPageResult("", parseSearchListings(root));
+            List<PropertyPageListing> listings = parseSearchListings(root);
+            return new PropertyPageResult("", listings, findSearchListingsCount(root, listings.size()));
         } catch (Exception ignored) {
             return new PropertyPageResult("", new ArrayList<>());
         }
+    }
+
+    /** Total oficial da busca por CEP/endereço, que pode ser maior que a primeira página. */
+    private static int findSearchListingsCount(JSONObject root, int fallback) {
+        JSONObject props = root.optJSONObject("props");
+        JSONObject pageProps = props == null ? null : props.optJSONObject("pageProps");
+        JSONObject initialState = pageProps == null ? null : pageProps.optJSONObject("initialState");
+        JSONObject search = initialState == null ? null : initialState.optJSONObject("search");
+        int total = search == null ? -1 : search.optInt("searchTotal", -1);
+        return total >= 0 ? total : fallback;
     }
 
     static PropertyPageResult parseLoftApiResponse(String json) {

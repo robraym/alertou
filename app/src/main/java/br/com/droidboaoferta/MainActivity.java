@@ -90,6 +90,8 @@ public class MainActivity extends AlertouActivity {
     private final java.util.concurrent.ExecutorService dashboardExecutor =
             java.util.concurrent.Executors.newSingleThreadExecutor();
     private long dashboardRenderGeneration;
+    private boolean dashboardSnapshotLoading;
+    private boolean dashboardSnapshotRefreshQueued;
     private boolean dashboardUpdatePending;
     private boolean propertyZipProgressUpdatePending;
     private boolean propertyProgressTickerScheduled;
@@ -278,15 +280,45 @@ public class MainActivity extends AlertouActivity {
         // Reconciliation and history parsing can be expensive with many property listings. They
         // must not hold the main thread that handles scrolling and card taps.
         if (updateMonitor) MonitorServiceController.update(this);
+        // Several property results can complete in sequence. Keep the current cards visible
+        // while one snapshot is prepared, then process only one fresh snapshot afterwards.
+        if (dashboardSnapshotLoading) {
+            dashboardSnapshotRefreshQueued = true;
+            return;
+        }
         final long generation = ++dashboardRenderGeneration;
+        dashboardSnapshotLoading = true;
         dashboardExecutor.execute(() -> {
-            List<Interest> interests = interestRepository.getAll();
-            offerRepository.reconcileRecentWithInterests(interests);
-            List<ObservedOffer> offers = offerRepository.getRecent();
-            java.util.Map<String, PropertyHistoryEntry> propertyHistory =
-                    new PropertyHistoryRepository(this).getForOffers(offers);
-            dashboardHandler.post(() -> applyDashboardSnapshot(
-                    generation, interests, offers, propertyHistory));
+            List<Interest> interests = null;
+            List<ObservedOffer> offers = null;
+            java.util.Map<String, PropertyHistoryEntry> propertyHistory = null;
+            try {
+                interests = interestRepository.getAll();
+                offerRepository.reconcileRecentWithInterests(interests);
+                offers = offerRepository.getRecent();
+                propertyHistory = new PropertyHistoryRepository(this).getForOffers(offers);
+            } catch (Exception ignored) {
+                // Preserve the current cards if a transient storage read fails.
+            } finally {
+                List<Interest> snapshotInterests = interests;
+                List<ObservedOffer> snapshotOffers = offers;
+                java.util.Map<String, PropertyHistoryEntry> snapshotPropertyHistory = propertyHistory;
+                dashboardHandler.post(() -> {
+                    dashboardSnapshotLoading = false;
+                    if (snapshotInterests != null && snapshotOffers != null
+                            && snapshotPropertyHistory != null) {
+                        applyDashboardSnapshot(generation, snapshotInterests, snapshotOffers,
+                                snapshotPropertyHistory);
+                    }
+                    if (dashboardSnapshotRefreshQueued
+                            && !isFinishing()
+                            && (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1
+                            || !isDestroyed())) {
+                        dashboardSnapshotRefreshQueued = false;
+                        refreshDashboard(false);
+                    }
+                });
+            }
         });
     }
 
@@ -965,6 +997,11 @@ public class MainActivity extends AlertouActivity {
                 if (index > 0) {
                     content.addView(createOfferDivider());
                 }
+            } else if (propertyZipSection) {
+                // A rua já aparece no próprio anúncio; um segundo cabeçalho é redundante.
+                if (index > 0) {
+                    content.addView(createOfferDivider());
+                }
             } else if (!group.equals(previousGroup)) {
                 if (previousGroup != null) {
                     content.addView(createDateGroupDivider());
@@ -976,6 +1013,9 @@ public class MainActivity extends AlertouActivity {
             }
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
             PropertyHistoryEntry propertyHistory = displayedPropertyHistory.get(offer.getId());
+            PropertyMarketListingCountHistory marketListingCounts = propertyMarketReference
+                    ? new PropertyHistoryRepository(this).getMarketListingCountHistory(offer.getInterestId())
+                    : null;
             double propertyPriceChange = propertyHistory == null
                     ? 0d : propertyHistory.getLatestPriceChangeAmount();
             double propertyPriceChangePercentage = propertyHistory == null
@@ -1019,6 +1059,7 @@ public class MainActivity extends AlertouActivity {
                     propertyPriceChangePercentage,
                     propertyMarketReference,
                     newLowestMarketReference,
+                    marketListingCounts,
                     view -> showPropertyHistoryDialog(offer)
             );
             FrameLayout swipeContainer = createSwipeContainer(row);
@@ -1713,7 +1754,14 @@ public class MainActivity extends AlertouActivity {
         return currency.format(unitPrice) + "/m²";
     }
 
-    private String getPropertyZipTitle(Interest interest, String fallbackTitle) {
+    private String getPropertyZipTitle(ObservedOffer offer, Interest interest, String fallbackTitle) {
+        String listingAddress = getPropertyZipAddress(offer, interest, fallbackTitle);
+        if (listingAddress.matches(".*\\d+.*")) {
+            String compactAddress = listingAddress
+                    .replaceFirst("(?i)^\\s*(rua|r\\.)\\s*", "")
+                    .replaceFirst("(?i)^doutor\\s+", "").trim();
+            if (!compactAddress.isEmpty()) return compactAddress;
+        }
         if (interest != null && !interest.getPropertyStreet().isEmpty()) {
             String compact = interest.getPropertyStreet()
                     .replaceFirst("(?i)^\\s*(rua|r\\.)\\s*", "")
@@ -1845,6 +1893,7 @@ public class MainActivity extends AlertouActivity {
                                         double propertyPriceChangePercentage,
                                         boolean propertyMarketReference,
                                         boolean newLowestMarketReference,
+                                        PropertyMarketListingCountHistory marketListingCounts,
                                         View.OnClickListener propertyHistoryClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
@@ -1867,7 +1916,7 @@ public class MainActivity extends AlertouActivity {
         titleAndBadges.setOrientation(LinearLayout.HORIZONTAL);
 
         TextView titleView = new TextView(this);
-        titleView.setText(propertyZipOffer ? getPropertyZipTitle(zipInterest, title) : title);
+        titleView.setText(propertyZipOffer ? getPropertyZipTitle(offer, zipInterest, title) : title);
         titleView.setTextColor(getColor(expired ? R.color.text_secondary : R.color.text_primary));
         titleView.setTextSize(13);
         titleView.setSingleLine(true);
@@ -2000,14 +2049,46 @@ public class MainActivity extends AlertouActivity {
             metaLine.addView(unitPriceView);
         }
         row.addView(metaLine);
-        if (!publication.isEmpty()) {
+        boolean hasMarketListingCount = marketListingCounts != null
+                && !marketListingCounts.getPoints().isEmpty();
+        if (!publication.isEmpty() || hasMarketListingCount) {
+            LinearLayout publicationLine = new LinearLayout(this);
+            publicationLine.setGravity(Gravity.CENTER_VERTICAL);
+            publicationLine.setPadding(0, dp(2), 0, 0);
+            publicationLine.setClickable(hasMarketListingCount);
+            publicationLine.setFocusable(hasMarketListingCount);
+            if (hasMarketListingCount) {
+                publicationLine.setOnClickListener(view -> showPropertyMarketListingCountHistoryDialog(
+                        offer.getInterest(), marketListingCounts));
+            }
+
             TextView publicationView = new TextView(this);
-            publicationView.setText(publication);
+            String publicationAndCount = publication;
+            if (hasMarketListingCount) {
+                String listingCount = getResources().getQuantityString(
+                        R.plurals.property_market_listing_count,
+                        marketListingCounts.getLatestCount(), marketListingCounts.getLatestCount());
+                publicationAndCount = publicationAndCount.isEmpty()
+                        ? listingCount : publicationAndCount + " • " + listingCount;
+            }
+            publicationView.setText(publicationAndCount);
             publicationView.setTextColor(getColor(R.color.text_secondary));
             publicationView.setTextSize(11.5f);
             publicationView.setSingleLine(true);
-            publicationView.setPadding(0, dp(2), 0, 0);
-            row.addView(publicationView);
+            publicationView.setEllipsize(TextUtils.TruncateAt.END);
+            publicationLine.addView(publicationView);
+            if (hasMarketListingCount && marketListingCounts.getLatestChange() != 0) {
+                TextView changeBadge = createPropertyMarketListingCountChangeBadge(
+                        marketListingCounts.getLatestChange(),
+                        view -> showPropertyMarketListingCountHistoryDialog(
+                                offer.getInterest(), marketListingCounts));
+                LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                badgeParams.leftMargin = dp(6);
+                publicationLine.addView(changeBadge, badgeParams);
+            }
+            row.addView(publicationLine);
         }
         if (!propertyZipOffer && !offer.getProductTitle().isEmpty()) {
             TextView productView = new TextView(this);
@@ -2164,6 +2245,38 @@ public class MainActivity extends AlertouActivity {
                 ? R.drawable.bg_property_price_rise_badge
                 : R.drawable.bg_property_new_badge);
         badge.setPadding(dp(6), dp(1), dp(6), dp(1));
+        badge.setClickable(true);
+        badge.setFocusable(true);
+        badge.setOnClickListener(listener);
+        return badge;
+    }
+
+    private TextView createPropertyMarketListingCountChangeBadge(int change,
+                                                                  View.OnClickListener listener) {
+        boolean increase = change > 0;
+        TextView badge = new TextView(this);
+        badge.setText(getString(increase
+                ? R.string.property_market_listing_count_change_increase
+                : R.string.property_market_listing_count_change_decrease, Math.abs(change)));
+        badge.setTextColor(getColor(increase ? R.color.action_green : R.color.danger));
+        badge.setTextSize(10.5f);
+        badge.setTypeface(null, android.graphics.Typeface.BOLD);
+        badge.setSingleLine(true);
+        badge.setBackgroundResource(increase
+                ? R.drawable.bg_property_new_badge
+                : R.drawable.bg_property_price_rise_badge);
+        android.graphics.drawable.Drawable propertyIcon = ContextCompat.getDrawable(
+                this, R.drawable.ic_property_alert);
+        if (propertyIcon != null) {
+            propertyIcon = propertyIcon.mutate();
+            propertyIcon.setColorFilter(AccentColorController.getPrimaryColor(this),
+                    android.graphics.PorterDuff.Mode.SRC_IN);
+            propertyIcon.setBounds(0, 0, dp(16), dp(16));
+            badge.setCompoundDrawables(null, null, propertyIcon, null);
+            badge.setCompoundDrawablePadding(dp(3));
+        }
+        badge.setGravity(Gravity.CENTER_VERTICAL);
+        badge.setPadding(dp(6), dp(1), dp(5), dp(1));
         badge.setClickable(true);
         badge.setFocusable(true);
         badge.setOnClickListener(listener);
@@ -2483,6 +2596,106 @@ public class MainActivity extends AlertouActivity {
 
     private void showPropertyHistoryDialog(ObservedOffer offer) {
         showPropertyHistoryDialog(offer, false);
+    }
+
+    private void showPropertyMarketListingCountHistoryDialog(String condominiumName,
+                                                              PropertyMarketListingCountHistory history) {
+        if (history == null || history.getPoints().isEmpty()) return;
+        Dialog dialog = new Dialog(this);
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        scroll.addView(content);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.property_market_listing_count_history_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        TextView condominium = new TextView(this);
+        condominium.setText(condominiumName);
+        condominium.setTextColor(getColor(R.color.text_primary));
+        condominium.setTextSize(15);
+        condominium.setPadding(0, dp(6), 0, 0);
+        content.addView(condominium);
+
+        TextView summary = new TextView(this);
+        summary.setText(R.string.property_market_listing_count_history_summary);
+        summary.setTextColor(getColor(R.color.text_secondary));
+        summary.setTextSize(13);
+        summary.setPadding(0, dp(3), 0, dp(10));
+        content.addView(summary);
+
+        TextView chartTitle = new TextView(this);
+        chartTitle.setText(R.string.property_market_listing_count_history_title);
+        chartTitle.setTextColor(getColor(R.color.text_primary));
+        chartTitle.setTextSize(16);
+        chartTitle.setPadding(0, dp(8), 0, dp(4));
+        content.addView(chartTitle);
+
+        PropertyListingCountTrendView trendView = new PropertyListingCountTrendView(this);
+        trendView.setPoints(history.getPoints());
+        content.addView(trendView, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(history.getPoints().size() <= 2 ? 140 : 180)));
+
+        TextView readingsTitle = new TextView(this);
+        readingsTitle.setText(R.string.property_market_listing_count_readings_title);
+        readingsTitle.setTextColor(getColor(R.color.text_primary));
+        readingsTitle.setTextSize(16);
+        readingsTitle.setPadding(0, dp(8), 0, dp(4));
+        content.addView(readingsTitle);
+        int firstIndex = Math.max(0, history.getPoints().size() - 8);
+        for (int index = history.getPoints().size() - 1; index >= firstIndex; index--) {
+            content.addView(createPropertyMarketListingCountPointRow(history.getPoints().get(index)));
+        }
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        actions.setPadding(0, dp(12), 0, 0);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+
+        dialog.setContentView(scroll);
+        dialog.show();
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(window.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.height = getResources().getDisplayMetrics().heightPixels - dp(72);
+            params.dimAmount = 0.38f;
+            window.setAttributes(params);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        }
+    }
+
+    private LinearLayout createPropertyMarketListingCountPointRow(
+            PropertyMarketListingCountPoint point) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setPadding(0, dp(4), 0, dp(4));
+        TextView date = new TextView(this);
+        date.setText(formatPropertyHistoryDate(point.getObservedAt()));
+        date.setTextColor(getColor(R.color.text_secondary));
+        date.setTextSize(12.5f);
+        row.addView(date, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        TextView count = new TextView(this);
+        count.setText(getResources().getQuantityString(R.plurals.property_market_listing_count,
+                point.getCount(), point.getCount()));
+        count.setTextColor(getColor(R.color.text_primary));
+        count.setTextSize(12.5f);
+        count.setSingleLine(true);
+        row.addView(count);
+        return row;
     }
 
     private void showPropertyHistoryDialog(ObservedOffer offer, boolean showListingAction) {

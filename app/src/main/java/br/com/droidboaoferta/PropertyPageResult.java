@@ -7,8 +7,14 @@ final class PropertyPageResult {
     private final String condominiumName;
     private final boolean hasCondominiumName;
     private final List<PropertyPageListing> saleListings;
+    private final int saleListingsCount;
 
     PropertyPageResult(String condominiumName, List<PropertyPageListing> saleListings) {
+        this(condominiumName, saleListings, saleListings == null ? 0 : saleListings.size());
+    }
+
+    PropertyPageResult(String condominiumName, List<PropertyPageListing> saleListings,
+                       int saleListingsCount) {
         String normalizedName = normalizeCondominiumName(condominiumName);
         this.hasCondominiumName = !normalizedName.isEmpty();
         this.condominiumName = !hasCondominiumName
@@ -17,6 +23,7 @@ final class PropertyPageResult {
         this.saleListings = saleListings == null
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(saleListings);
+        this.saleListingsCount = Math.max(0, saleListingsCount);
     }
 
     String getCondominiumName() {
@@ -36,5 +43,13 @@ final class PropertyPageResult {
 
     List<PropertyPageListing> getSaleListings() {
         return saleListings;
+    }
+
+    /**
+     * Total de anúncios de venda informado pela fonte. Pode ser maior que a lista
+     * carregada na primeira página.
+     */
+    int getSaleListingsCount() {
+        return saleListingsCount;
     }
 }

@@ -18,6 +18,7 @@ import android.text.TextUtils;
 import android.text.format.Formatter;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
@@ -120,6 +121,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_profile);
+        tintProfileActionIcons(findViewById(android.R.id.content));
 
         clientManager = TelegramClientManager.getInstance();
         avatarText = findViewById(R.id.text_profile_avatar);
@@ -2398,6 +2400,22 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             case STARTING:
             default:
                 return getString(R.string.dashboard_telegram_starting);
+        }
+    }
+
+    /**
+     * Vector drawables that resolve their own color do not honor the app theme
+     * reliably on the Android version used by the S7 Edge. Profile has only
+     * accent action icons, so tint them once at the view level.
+     */
+    private void tintProfileActionIcons(View view) {
+        if (view instanceof ImageView && ((ImageView) view).getDrawable() != null) {
+            ((ImageView) view).setColorFilter(AccentColorController.getPrimaryColor(this));
+        }
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int index = 0; index < group.getChildCount(); index++) {
+            tintProfileActionIcons(group.getChildAt(index));
         }
     }
 

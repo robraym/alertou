@@ -11,6 +11,25 @@ import static org.junit.Assert.assertTrue;
 
 public class PropertyHistoryRepositoryTest {
     @Test
+    public void reusesOnlyAnUnchangedIndividuallyVerifiedListing() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        PropertyPageListing listing = new PropertyPageListing("895590942", 27d, 399000d,
+                "Go Portugal", "https://www.quintoandar.com.br/imovel/895590942/comprar");
+
+        assertFalse(repository.hasVerifiedUnchangedListing(1L, listing));
+        repository.recordObservation(1L, listing, 1L,
+                PropertyListingMetadata.verified("895590942", 399000d, 27d, 0L, 0L));
+
+        assertTrue(repository.hasVerifiedUnchangedListing(1L, listing));
+        assertFalse(repository.hasVerifiedUnchangedListing(1L,
+                listing.withSalePrice(398000d)));
+        assertFalse(repository.hasVerifiedUnchangedListing(1L,
+                new PropertyPageListing("895590942", 28d, 399000d, "Go Portugal",
+                        listing.getUrl())));
+    }
+
+    @Test
     public void keepsWorkingLegacyHistoryIncludingGoPortugalDrop() throws Exception {
         java.util.Map<String, String> stored = new java.util.HashMap<>();
         JSONObject original = workingLegacyEntry();

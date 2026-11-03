@@ -50,6 +50,7 @@ final class OfferSectionCache {
         StringBuilder key = new StringBuilder(OfferStorage.encode(offers));
         key.append(expanded).append(summary).append(OfferDateFormatter.getGroupKey(System.currentTimeMillis()));
         GroupSpeedRepository speed = new GroupSpeedRepository(context);
+        PropertyHistoryRepository propertyHistory = new PropertyHistoryRepository(context);
         for (ObservedOffer offer : offers) {
             key.append('|').append(speed.isOfferExpired(offer));
             PropertyHistoryEntry entry = historyByOfferId.get(offer.getId());
@@ -60,6 +61,12 @@ final class OfferSectionCache {
                         .append('|').append(entry.getLatestPriceChangePercentage())
                         .append('|').append(entry.getFirstPublicationAt())
                         .append('|').append(entry.isRecent(System.currentTimeMillis()));
+            }
+            if (PropertyMarketReferenceSettings.isReference(offer)) {
+                PropertyMarketListingCountHistory listingCounts =
+                        propertyHistory.getMarketListingCountHistory(offer.getInterestId());
+                key.append('|').append(listingCounts.getLatestCount())
+                        .append('|').append(listingCounts.getLatestChange());
             }
         }
         return key.toString();

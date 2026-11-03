@@ -17,6 +17,7 @@ public class PropertyPageParserTest {
                 + "\"listings\":{"
                 + "\"rentListings\":[{\"_id\":\"rent-1\",\"_source\":{"
                 + "\"area\":30,\"salePrice\":300000,\"forSale\":true}}],"
+                + "\"saleListingsCount\":50,"
                 + "\"saleListings\":["
                 + "{\"_id\":\"sale-1\",\"_source\":{\"area\":25,"
                 + "\"salePrice\":410000,\"forSale\":false,"
@@ -36,6 +37,7 @@ public class PropertyPageParserTest {
 
         assertEquals("VN Frei Caneca", result.getCondominiumName());
         assertEquals(2, listings.size());
+        assertEquals(50, result.getSaleListingsCount());
         assertEquals("sale-1", listings.get(0).getId());
         assertEquals(25d, listings.get(0).getArea(), 0.001d);
         assertEquals(410000d, listings.get(0).getSalePrice(), 0.001d);
@@ -110,7 +112,7 @@ public class PropertyPageParserTest {
 
     @Test
     public void parsesAllSaleListingsFromSearchPages() {
-        String nextData = "{\"props\":{\"pageProps\":{\"results\":["
+        String nextData = "{\"props\":{\"pageProps\":{\"initialState\":{\"search\":{\"searchTotal\":67}},\"results\":["
                 + "{\"id\":\"good-1\",\"area\":35,\"salePrice\":320000,\"forSale\":true,"
                 + "\"shortSaleDescription\":\"Apartamento perto do metrô\","
                 + "\"listingTags\":[\"SALE_GOOD_PRICE\",\"NEW_AD\"]},"
@@ -122,10 +124,11 @@ public class PropertyPageParserTest {
         String html = "<script id=\"__NEXT_DATA__\" type=\"application/json\">"
                 + nextData + "</script>";
 
-        List<PropertyPageListing> listings = PropertyPageParser.parseSearch(html)
-                .getSaleListings();
+        PropertyPageResult result = PropertyPageParser.parseSearch(html);
+        List<PropertyPageListing> listings = result.getSaleListings();
 
         assertEquals(2, listings.size());
+        assertEquals(67, result.getSaleListingsCount());
         assertEquals("good-1", listings.get(0).getId());
         assertEquals(35d, listings.get(0).getArea(), 0.001d);
         assertEquals(320000d, listings.get(0).getSalePrice(), 0.001d);

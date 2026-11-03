@@ -353,6 +353,7 @@ final class PropertyPageMonitor {
                         SourceCheckStatus.cancel(context, interest.getId());
                     }
                     sendProgressBroadcast(context, zip);
+                    notifyPropertyInterestCompleted(context);
                 }
             }
             PropertyHistoryRepository.publishPendingChanges(context);
@@ -384,7 +385,9 @@ final class PropertyPageMonitor {
                 .edit()
                 .remove(NOTIFIED_PRICES_PREFIX + interestId)
                 .apply();
-        new PropertyHistoryRepository(context).clearMetadataAttemptsForInterest(interestId);
+        PropertyHistoryRepository history = new PropertyHistoryRepository(context);
+        history.clearMetadataAttemptsForInterest(interestId);
+        history.clearMarketListingCountHistory(interestId);
     }
 
     private void checkAllSafely() {
@@ -459,6 +462,7 @@ final class PropertyPageMonitor {
                 } else {
                     SourceCheckStatus.cancel(context, interest.getId());
                 }
+                notifyPropertyInterestCompleted(context);
             }
         }
         PropertyHistoryRepository.publishPendingChanges(context);
@@ -628,10 +632,17 @@ final class PropertyPageMonitor {
         }
         long observedAt = System.currentTimeMillis();
         PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(context);
+        if (interest.isProperty()) {
+            // Total oficial informado pela fonte, antes dos filtros de preço e metragem.
+            // A primeira página do QuintoAndar traz somente parte dos anúncios.
+            historyRepository.recordMarketListingCount(
+                    interest.getId(), result.getSaleListingsCount(), observedAt);
+        }
         List<PropertyPageListing> matches = new ArrayList<>();
         List<String> noLongerEligibleOfferIds = new ArrayList<>();
         Map<String, Integer> historyChanges = new HashMap<>();
         Map<String, PropertyPageListing> candidates = new java.util.LinkedHashMap<>();
+        java.util.Set<String> currentPageListingIds = new java.util.HashSet<>();
         boolean marketReferenceEnabled = includeMarketReferences
                 && PropertyMarketReferenceSettings.isEnabled(context);
         PropertyPageListing lowestMarketListing = null;
@@ -641,6 +652,7 @@ final class PropertyPageMonitor {
         }
         for (PropertyPageListing listing : result.getSaleListings()) {
             candidates.put(listing.getId(), listing);
+            currentPageListingIds.add(listing.getId());
         }
         List<PropertyPageListing> addressCandidates = new ArrayList<>();
         for (PropertyPageListing listing : candidates.values()) {
@@ -661,7 +673,10 @@ final class PropertyPageMonitor {
             if (!previouslyObserved && !matchesArea) continue;
             PropertyListingMetadata metadata = null;
             boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
-            if (requiresIdentity && shouldVerifyIndividualPrice(
+            boolean reusedVerifiedSnapshot = requiresIdentity
+                    && currentPageListingIds.contains(listing.getId())
+                    && historyRepository.hasVerifiedUnchangedListing(interest.getId(), listing);
+            if (!reusedVerifiedSnapshot && requiresIdentity && shouldVerifyIndividualPrice(
                     previouslyObserved,
                     listing.getSalePrice(),
                     interest.getMaximumPrice(),
@@ -679,7 +694,8 @@ final class PropertyPageMonitor {
                 forgetUnavailableNotification(context, interest.getId(), listing.getId());
                 continue;
             }
-            PropertyPageListing currentListing = resolveCurrentListing(listing, metadata);
+            PropertyPageListing currentListing = reusedVerifiedSnapshot
+                    ? listing : resolveCurrentListing(listing, metadata);
             if (currentListing == null) continue;
             if (!matchesPropertyZipAddress(interest, currentListing)) continue;
             matchesArea = currentListing.matchesArea(
@@ -687,7 +703,8 @@ final class PropertyPageMonitor {
             boolean eligible = currentListing.matches(interest.getMinimumArea(),
                     interest.getMaximumArea(), interest.getMaximumPrice());
             int historyChange = PropertyHistoryRepository.UNCHANGED;
-            if (previouslyObserved || eligible || (marketReferenceEnabled && matchesArea)) {
+            if (!reusedVerifiedSnapshot
+                    && (previouslyObserved || eligible || (marketReferenceEnabled && matchesArea))) {
                 historyChange = historyRepository.recordObservation(
                         interest.getId(), currentListing, observedAt, metadata);
                 historyChanges.put(currentListing.getId(), historyChange);
@@ -800,6 +817,15 @@ final class PropertyPageMonitor {
         if (marketReferencesRunning || manualZipCheckRunning || manualCondominiumCheckRunning) {
             return;
         }
+        context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                .setPackage(context.getPackageName()));
+    }
+
+    /**
+     * Atualiza a tela após cada condomínio concluído. As validações de anúncios internos
+     * continuam sem renderizações intermediárias, evitando engasgos durante a consulta.
+     */
+    private void notifyPropertyInterestCompleted(Context context) {
         context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
                 .setPackage(context.getPackageName()));
     }
@@ -934,6 +960,7 @@ final class PropertyPageMonitor {
                                         PropertyMarketReferenceSettings.getCheckIntervalSeconds(context,
                                                 interest.isPropertyZip())));
                         sendProgressBroadcast(context, interest.isPropertyZip());
+                        notifyPropertyInterestCompleted(context);
                     }
                     break;
                 }
