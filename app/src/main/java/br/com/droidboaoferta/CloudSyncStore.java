@@ -9,6 +9,10 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +28,7 @@ import java.util.zip.GZIPOutputStream;
 
 final class CloudSyncStore {
     static final String MARKER = "#BoaOfertaSyncV1";
+    static final String FILE_MARKER = "#BoaOfertaSyncFileV1";
     static final String GROUPS_DELTA_MARKER = "#BoaOfertaGroupsV1";
     static final String CONFIG_DELTA_MARKER = "#BoaOfertaConfigV1";
     static final String RANKING_DELTA_MARKER = "#BoaOfertaRankingV1";
@@ -39,6 +44,7 @@ final class CloudSyncStore {
     private static final String LAST_BACKUP_AT = "last_confirmed_backup_at";
     private static final String LAST_BACKED_UP_CHANGE = "last_backed_up_change";
     private static final String LAST_REMOTE_BACKUP_AT = "last_confirmed_remote_backup_at";
+    private static final String LAST_ACCOUNT_BACKUP_AT = "last_account_backup_at";
     private static final String LAST_RESTORE_AT = "last_restore_at";
     private static final String LAST_BACKUP_SIZE_BYTES = "last_backup_size_bytes";
     private static final String LAST_RESTORE_SIZE_BYTES = "last_restore_size_bytes";
@@ -1154,6 +1160,7 @@ final class CloudSyncStore {
                 .putLong(LAST_BACKUP_AT, now)
                 .putLong(LAST_BACKED_UP_CHANGE, backedUpChange)
                 .putLong(LAST_REMOTE_BACKUP_AT, backedUpChange)
+                .putLong(LAST_ACCOUNT_BACKUP_AT, now)
                 .commit();
         return !newerChangePending;
     }
@@ -1168,6 +1175,15 @@ final class CloudSyncStore {
 
     static long getLastBackupAt(Context context) {
         return syncPrefs(context).getLong(LAST_BACKUP_AT, 0L);
+    }
+
+    static long getLastAccountBackupAt(Context context) {
+        SharedPreferences preferences = syncPrefs(context);
+        long accountBackupAt = preferences.getLong(LAST_ACCOUNT_BACKUP_AT, 0L);
+        return accountBackupAt > 0L ? accountBackupAt : Math.max(
+                preferences.getLong(LAST_BACKUP_AT, 0L),
+                preferences.getLong(LAST_REMOTE_BACKUP_AT, 0L)
+        );
     }
 
     static long getPendingStartedAt(Context context) {
@@ -1256,6 +1272,7 @@ final class CloudSyncStore {
                 .remove(LAST_BACKUP_AT)
                 .remove(LAST_BACKED_UP_CHANGE)
                 .remove(LAST_REMOTE_BACKUP_AT)
+                .remove(LAST_ACCOUNT_BACKUP_AT)
                 .remove(LAST_BACKUP_SIZE_BYTES)
                 .remove(LAST_RESTORE_SIZE_BYTES)
                 .remove(LAST_EXPORTED_BACKUP_SIZE_BYTES)
@@ -1272,8 +1289,12 @@ final class CloudSyncStore {
         if (updatedAt <= 0L) {
             return;
         }
-        syncPrefs(context).edit()
+        long backupAt = backup.optLong("backup_at", updatedAt);
+        SharedPreferences preferences = syncPrefs(context);
+        preferences.edit()
                 .putLong(LAST_REMOTE_BACKUP_AT, updatedAt)
+                .putLong(LAST_ACCOUNT_BACKUP_AT, Math.max(
+                        preferences.getLong(LAST_ACCOUNT_BACKUP_AT, 0L), backupAt))
                 .putLong(LAST_BACKUP_SIZE_BYTES, backup.optLong("data_size_bytes", 0L))
                 .apply();
     }
@@ -1349,6 +1370,7 @@ final class CloudSyncStore {
             backup.put("version", 3);
             backup.put("complete", true);
             backup.put("updated_at", updatedAt);
+            backup.put("backup_at", System.currentTimeMillis());
             backup.put("data_size_bytes", sizeBytes);
             backup.put("data", data);
             syncPrefs(appContext).edit()
@@ -1361,6 +1383,81 @@ final class CloudSyncStore {
 
     static String exportBackupText(Context context) {
         return MARKER + "\n" + exportBackup(context).toString();
+    }
+
+    /**
+     * A complete snapshot travels as one compressed document. Text chunks remain readable for
+     * backward compatibility only; sending a large snapshot as many text messages can trigger
+     * Telegram's flood protection.
+     */
+    static BackupFile exportBackupFile(Context context) throws IOException {
+        Context appContext = context.getApplicationContext();
+        JSONObject backup = exportBackup(appContext);
+        long updatedAt = backup.optLong("updated_at", System.currentTimeMillis());
+        File directory = new File(appContext.getCacheDir(), "cloud_backup");
+        if (!directory.exists() && !directory.mkdirs()) {
+            throw new IOException("Não foi possível preparar o arquivo de backup.");
+        }
+        File file = new File(directory, "alertou-backup-" + updatedAt + ".json.gz");
+        try (FileOutputStream output = new FileOutputStream(file);
+             GZIPOutputStream gzip = new GZIPOutputStream(output)) {
+            gzip.write(backup.toString().getBytes(StandardCharsets.UTF_8));
+        }
+        JSONObject header = new JSONObject();
+        try {
+            header.put("version", 1);
+            header.put("updated_at", updatedAt);
+            header.put("backup_at", backup.optLong("backup_at", updatedAt));
+            header.put("data_size_bytes", backup.optLong("data_size_bytes", file.length()));
+        } catch (Exception ignored) {
+        }
+        return new BackupFile(file, FILE_MARKER + "\n" + header.toString(), updatedAt);
+    }
+
+    static BackupFileDescriptor findNewestBackupFile(JSONArray messages) {
+        BackupFileDescriptor newest = null;
+        for (int index = 0; messages != null && index < messages.length(); index++) {
+            BackupFileDescriptor candidate = parseBackupFileMessage(messages.optJSONObject(index));
+            if (candidate != null && (newest == null || candidate.updatedAt > newest.updatedAt
+                    || (candidate.updatedAt == newest.updatedAt
+                    && candidate.backupAt > newest.backupAt))) {
+                newest = candidate;
+            }
+        }
+        return newest;
+    }
+
+    static boolean hasBackupFile(JSONArray messages, Set<Long> messageIds) {
+        for (int index = 0; messages != null && index < messages.length(); index++) {
+            JSONObject message = messages.optJSONObject(index);
+            if (message != null && (messageIds == null || messageIds.contains(message.optLong("id", 0L)))
+                    && parseBackupFileMessage(message) != null) return true;
+        }
+        return false;
+    }
+
+    static JSONObject readBackupFile(BackupFileDescriptor descriptor) {
+        if (descriptor == null || descriptor.localPath.isEmpty()) return null;
+        File file = new File(descriptor.localPath);
+        if (!file.isFile() || file.length() <= 0L || file.length() > 16L * 1024L * 1024L) return null;
+        try (FileInputStream input = new FileInputStream(file);
+             GZIPInputStream gzip = new GZIPInputStream(input);
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            int total = 0;
+            while ((read = gzip.read(buffer)) != -1) {
+                total += read;
+                if (total > 16 * 1024 * 1024) return null;
+                output.write(buffer, 0, read);
+            }
+            JSONObject backup = new JSONObject(new String(output.toByteArray(), StandardCharsets.UTF_8));
+            if (backup.optLong("updated_at", 0L) != descriptor.updatedAt) return null;
+            backup.put("_message_id", descriptor.messageId);
+            return backup;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     static List<String> exportBackupTextChunks(Context context) {
@@ -1604,7 +1701,12 @@ final class CloudSyncStore {
         SharedPreferences.Editor telegram = appContext
                 .getSharedPreferences(TELEGRAM_PREFS, Context.MODE_PRIVATE)
                 .edit();
-        Set<String> mergedGroups = mergeSelectedGroups(appContext, data, remoteUpdatedAt);
+        // A manual restore is an explicit choice of a complete snapshot. Do not
+        // merge it with selection/removal timestamps created by onboarding on
+        // this device, otherwise groups present in the backup can disappear.
+        Set<String> mergedGroups = force
+                ? restoreSelectedGroups(appContext, data, remoteUpdatedAt)
+                : mergeSelectedGroups(appContext, data, remoteUpdatedAt);
         telegram.putStringSet(SELECTED_GROUPS, mergedGroups);
         telegram.apply();
 
@@ -1644,8 +1746,10 @@ final class CloudSyncStore {
         long localArchivedUpdatedAt = syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt);
         long remoteArchivedUpdatedAt = data.optLong(KEY_ARCHIVED_UPDATED_AT, remoteUpdatedAt);
         synchronized (OfferStorage.LOCK) {
-            if (data.has(KEY_ARCHIVED_OFFERS) && remoteArchivedUpdatedAt >=
-                    syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt)) {
+            // A manual restore explicitly chooses this backup. A timestamp created while
+            // onboarding a clean device must not hide the user's saved offers.
+            if (data.has(KEY_ARCHIVED_OFFERS) && (force || remoteArchivedUpdatedAt >=
+                    syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt))) {
                 offersPreferences.edit().putString(KEY_ARCHIVED_OFFERS,
                         data.optString(KEY_ARCHIVED_OFFERS, "[]")).apply();
                 syncPrefs(appContext).edit().putLong(KEY_ARCHIVED_UPDATED_AT, remoteArchivedUpdatedAt).apply();
@@ -1769,6 +1873,67 @@ final class CloudSyncStore {
             return new JSONObject(value.substring(jsonStart));
         } catch (Exception exception) {
             return null;
+        }
+    }
+
+    static boolean isBackupMessage(JSONObject message) {
+        return parseBackupFromMessage(message) != null
+                || parseBackupChunkFromMessage(message) != null
+                || parseBackupFileMessage(message) != null;
+    }
+
+    private static BackupFileDescriptor parseBackupFileMessage(JSONObject message) {
+        if (message == null) return null;
+        JSONObject content = message.optJSONObject("content");
+        if (content == null || !"messageDocument".equals(content.optString("@type"))) return null;
+        JSONObject caption = content.optJSONObject("caption");
+        String text = caption == null ? "" : caption.optString("text", "");
+        int markerIndex = text.indexOf(FILE_MARKER);
+        int jsonStart = markerIndex < 0 ? -1 : text.indexOf('{', markerIndex);
+        if (jsonStart < 0) return null;
+        try {
+            JSONObject header = new JSONObject(text.substring(jsonStart));
+            long updatedAt = header.optLong("updated_at", 0L);
+            long backupAt = header.optLong("backup_at", updatedAt);
+            JSONObject document = content.optJSONObject("document");
+            JSONObject file = document == null ? null : document.optJSONObject("document");
+            if (updatedAt <= 0L || file == null || file.optInt("id", 0) <= 0) return null;
+            JSONObject local = file.optJSONObject("local");
+            String path = local != null && local.optBoolean("is_downloading_completed", false)
+                    ? local.optString("path", "") : "";
+            return new BackupFileDescriptor(message.optLong("id", 0L), updatedAt, backupAt,
+                    file.optInt("id", 0), path);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    static final class BackupFile {
+        final File file;
+        final String caption;
+        final long updatedAt;
+
+        BackupFile(File file, String caption, long updatedAt) {
+            this.file = file;
+            this.caption = caption;
+            this.updatedAt = updatedAt;
+        }
+    }
+
+    static final class BackupFileDescriptor {
+        final long messageId;
+        final long updatedAt;
+        final long backupAt;
+        final int fileId;
+        final String localPath;
+
+        BackupFileDescriptor(long messageId, long updatedAt, long backupAt, int fileId,
+                             String localPath) {
+            this.messageId = messageId;
+            this.updatedAt = updatedAt;
+            this.backupAt = backupAt > 0L ? backupAt : updatedAt;
+            this.fileId = fileId;
+            this.localPath = localPath == null ? "" : localPath;
         }
     }
 
@@ -1914,6 +2079,24 @@ final class CloudSyncStore {
                 .putString(KEY_REMOVED_GROUPS, mergedRemoved.toString())
                 .apply();
         return mergedGroups;
+    }
+
+    private static Set<String> restoreSelectedGroups(Context context, JSONObject remoteData,
+                                                     long remoteUpdatedAt) {
+        Context appContext = context.getApplicationContext();
+        Set<String> restoredGroups = jsonArrayToStringSet(remoteData.optJSONArray(SELECTED_GROUPS));
+        JSONObject remoteSelectedAt = readObject(remoteData.optString(KEY_GROUP_SELECTED_AT, "{}"));
+        JSONObject restoredSelectedAt = new JSONObject();
+        for (String groupId : restoredGroups) {
+            long selectedAt = timestampFor(remoteSelectedAt, groupId, remoteUpdatedAt);
+            putLong(restoredSelectedAt, groupId, selectedAt > 0L ? selectedAt : remoteUpdatedAt);
+        }
+        JSONObject restoredRemoved = readObject(remoteData.optString(KEY_REMOVED_GROUPS, "{}"));
+        syncPrefs(appContext).edit()
+                .putString(KEY_GROUP_SELECTED_AT, restoredSelectedAt.toString())
+                .putString(KEY_REMOVED_GROUPS, restoredRemoved.toString())
+                .apply();
+        return restoredGroups;
     }
 
     private static JSONArray mergeInterests(String localText, String remoteText,

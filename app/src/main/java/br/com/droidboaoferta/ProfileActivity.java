@@ -365,6 +365,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     protected void onResume() {
         super.onResume();
         refreshProfile();
+        clientManager.refreshCloudBackupMetadata();
     }
 
     @Override
@@ -2604,10 +2605,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         backupSizeSummary.setVisibility(View.VISIBLE);
         updateActionIconAnimation(backupIcon, false, -dp(4));
         updateActionIconAnimation(restoreIcon, false, dp(4));
-        long lastBackupAt = Math.max(
-                CloudSyncStore.getLastBackupAt(this),
-                CloudSyncStore.getLastRemoteBackupAt(this)
-        );
+        long lastBackupAt = CloudSyncStore.getLastAccountBackupAt(this);
         long lastSyncAt = CloudSyncStore.getLastConfigurationSyncAt(this);
         backupSummary.setText(lastBackupAt > 0L
                 ? formatBackupSummary(lastBackupAt)
