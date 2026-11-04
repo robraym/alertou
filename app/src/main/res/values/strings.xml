@@ -555,8 +555,8 @@
         <item quantity="other">%1$d de %2$d ofertas</item>
     </plurals>
     <plurals name="property_market_listing_count">
-        <item quantity="one">%1$d imóvel anunciado</item>
-        <item quantity="other">%1$d imóveis anunciados</item>
+        <item quantity="one">%1$d imóvel</item>
+        <item quantity="other">%1$d imóveis</item>
     </plurals>
     <plurals name="property_zip_card_listing_count">
         <item quantity="one">%1$s • %2$d imóvel</item>
@@ -702,8 +702,8 @@
     <string name="property_history_last_seen">Última leitura</string>
     <string name="property_history_published">Anunciado em</string>
     <string name="property_history_chart_title">Histórico de preço</string>
-    <string name="property_market_listing_count_history_title">Histórico de imóveis anunciados</string>
-    <string name="property_market_listing_count_history_summary">Quantidade total anunciada na consulta, sem os filtros deste alerta.</string>
+    <string name="property_market_listing_count_history_title">Histórico de imóveis</string>
+    <string name="property_market_listing_count_history_summary">Quantidade encontrada nesta rua durante a consulta.</string>
     <string name="property_market_listing_count_readings_title">Últimas leituras</string>
     <string name="property_market_listing_count_change_increase">↑ %1$d</string>
     <string name="property_market_listing_count_change_decrease">↓ %1$d</string>

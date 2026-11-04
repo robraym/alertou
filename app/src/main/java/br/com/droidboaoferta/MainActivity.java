@@ -1034,7 +1034,8 @@ public class MainActivity extends AlertouActivity {
                     }
                     activeZipCardKey = group;
                     zipCardOfferCount = 0;
-                    zipCardOffers = addPropertyZipInterestCard(content, group, groupLabel);
+                    zipCardOffers = addPropertyZipInterestCard(content, group,
+                            offer.getInterestId(), groupLabel);
                     renderedZipInterestIds.add(offer.getInterestId());
                 } else if (zipCardOffers != null && zipCardOfferCount > 0) {
                     zipCardOffers.addView(createOfferDivider());
@@ -1123,7 +1124,7 @@ public class MainActivity extends AlertouActivity {
                     content.addView(createOfferDivider());
                 }
                 activeZipCardKey = getPropertyZipCardKey(interest.getId());
-                addPropertyZipInterestCard(content, activeZipCardKey,
+                addPropertyZipInterestCard(content, activeZipCardKey, interest.getId(),
                         getPropertyZipCardTitle(interest));
             }
         }
@@ -1215,7 +1216,7 @@ public class MainActivity extends AlertouActivity {
     }
 
     private LinearLayout addPropertyZipInterestCard(LinearLayout parent, String preferenceKey,
-                                                    String title) {
+                                                    long interestId, String title) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.bg_card_compact);
@@ -1243,8 +1244,27 @@ public class MainActivity extends AlertouActivity {
         label.setTextSize(13);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
-        header.addView(label, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        label.setMaxEms(14);
+        header.addView(label, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        PropertyMarketListingCountHistory countHistory = new PropertyHistoryRepository(this)
+                .getMarketListingCountHistory(interestId);
+        if (!countHistory.getPoints().isEmpty()) {
+            View countBadge = createPropertyZipListingCountBadge(countHistory.getLatestCount(),
+                    view -> showPropertyMarketListingCountHistoryDialog(title, countHistory));
+            LinearLayout.LayoutParams countBadgeParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            countBadgeParams.leftMargin = dp(5);
+            countBadgeParams.rightMargin = dp(6);
+            header.addView(countBadge, countBadgeParams);
+        }
+
+        header.addView(new View(this), new LinearLayout.LayoutParams(
+                0, 0, 1));
 
         boolean expanded = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
                 .getBoolean(preferenceKey, true);
@@ -1957,8 +1977,7 @@ public class MainActivity extends AlertouActivity {
                 .getMarketListingCountHistory(interest.getId());
         int count = countHistory.getLatestCount();
         street = shortenPropertyStreetTitle(street);
-        return count > 0 ? getResources().getQuantityString(
-                R.plurals.property_zip_card_listing_count, count, street, count) : street;
+        return street;
     }
 
     private String shortenPropertyStreetTitle(String street) {
@@ -2098,7 +2117,7 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
 
-        if (hasMarketListingCount) {
+        if (hasMarketListingCount && !propertyZipOffer) {
             View badge = createPropertyMarketListingCountChangeBadge(
                     marketListingCounts.getLatestChange(),
                     marketListingCounts.getLatestCount(),
@@ -2114,6 +2133,16 @@ public class MainActivity extends AlertouActivity {
 
         if (newPropertyAd) {
             TextView badge = createPropertyNewBadge();
+            LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+            );
+            badgeParams.leftMargin = dp(5);
+            titleAndBadges.addView(badge, badgeParams);
+        }
+
+        if (propertyZipOffer && propertyGoodPrice) {
+            TextView badge = createPropertyGoodPriceBadge();
             LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -2226,7 +2255,7 @@ public class MainActivity extends AlertouActivity {
             metaLine.addView(unitPriceView);
         }
         row.addView(metaLine);
-        if (!publication.isEmpty() || propertyGoodPrice) {
+        if (!publication.isEmpty() || (propertyGoodPrice && !propertyZipOffer)) {
             LinearLayout publicationLine = new LinearLayout(this);
             publicationLine.setGravity(Gravity.CENTER_VERTICAL);
             publicationLine.setPadding(0, dp(2), 0, 0);
@@ -2238,7 +2267,7 @@ public class MainActivity extends AlertouActivity {
             publicationView.setSingleLine(true);
             publicationView.setEllipsize(TextUtils.TruncateAt.END);
             publicationLine.addView(publicationView);
-            if (propertyGoodPrice) {
+            if (propertyGoodPrice && !propertyZipOffer) {
                 TextView badge = createPropertyGoodPriceBadge();
                 LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -2454,6 +2483,25 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         countParams.leftMargin = dp(2);
         badge.addView(countView, countParams);
+        return badge;
+    }
+
+    private TextView createPropertyZipListingCountBadge(int count,
+                                                         View.OnClickListener listener) {
+        TextView badge = new TextView(this);
+        badge.setText(count + (count == 1 ? " imóvel" : " imóveis"));
+        badge.setTextColor(getColor(R.color.action_green));
+        badge.setTextSize(10.5f);
+        badge.setTypeface(null, android.graphics.Typeface.BOLD);
+        badge.setSingleLine(true);
+        badge.setGravity(Gravity.CENTER);
+        badge.setBackgroundResource(R.drawable.bg_property_new_badge);
+        badge.setPadding(dp(6), dp(1), dp(6), dp(1));
+        badge.setClickable(true);
+        badge.setFocusable(true);
+        badge.setContentDescription(getResources().getQuantityString(
+                R.plurals.property_market_listing_count, count, count));
+        badge.setOnClickListener(listener);
         return badge;
     }
 
@@ -2802,13 +2850,6 @@ public class MainActivity extends AlertouActivity {
         summary.setTextSize(13);
         summary.setPadding(0, dp(3), 0, dp(10));
         content.addView(summary);
-
-        TextView chartTitle = new TextView(this);
-        chartTitle.setText(R.string.property_market_listing_count_history_title);
-        chartTitle.setTextColor(getColor(R.color.text_primary));
-        chartTitle.setTextSize(16);
-        chartTitle.setPadding(0, dp(8), 0, dp(4));
-        content.addView(chartTitle);
 
         PropertyListingCountTrendView trendView = new PropertyListingCountTrendView(this);
         trendView.setPoints(history.getPoints());

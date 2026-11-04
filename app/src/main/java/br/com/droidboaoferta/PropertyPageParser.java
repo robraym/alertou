@@ -105,6 +105,151 @@ final class PropertyPageParser {
         }
     }
 
+    /**
+     * Builds the same paginated search request used by QuintoAndar's own web
+     * application.  The rendered search page is only used to obtain the
+     * location and filters; listing totals must come from this paginated API,
+     * not from the first rendered page.
+     */
+    static String buildSearchApiRequest(String html, String normalizedUrl,
+                                        int offset, int pageSize) {
+        if (html == null || html.trim().isEmpty() || normalizedUrl == null) return null;
+        Matcher matcher = NEXT_DATA.matcher(html);
+        if (!matcher.find()) return null;
+        try {
+            JSONObject root = new JSONObject(matcher.group(1));
+            JSONObject props = root.optJSONObject("props");
+            JSONObject pageProps = props == null ? null : props.optJSONObject("pageProps");
+            JSONObject state = pageProps == null ? null : pageProps.optJSONObject("initialState");
+            JSONObject search = state == null ? null : state.optJSONObject("search");
+            JSONObject location = search == null ? null : search.optJSONObject("location");
+            JSONObject filtersState = search == null ? null : search.optJSONObject("filters");
+            JSONObject choices = filtersState == null ? null : filtersState.optJSONObject("choices");
+            if (location == null || choices == null) return null;
+
+            JSONObject request = new JSONObject();
+            request.put("slug", java.net.URI.create(normalizedUrl).getPath());
+            request.put("fields", new JSONArray()
+                    .put("id").put("salePrice").put("area").put("address")
+                    .put("forSale").put("listingTags").put("shortSaleDescription")
+                    .put("condominiumName"));
+            request.put("sorting", new JSONObject()
+                    .put("criteria", "RELEVANCE").put("order", "DESC"));
+            request.put("pagination", new JSONObject()
+                    .put("pageSize", Math.max(1, Math.min(500, pageSize)))
+                    .put("offset", Math.max(0, offset)));
+            request.put("context", new JSONObject()
+                    .put("numPhotos", 12).put("isSSR", false)
+                    .put("listShowing", true).put("mapShowing", false));
+
+            JSONObject apiFilters = new JSONObject();
+            apiFilters.put("businessContext", "SALE");
+            apiFilters.put("location", buildSearchLocation(location));
+            JSONArray priceRanges = new JSONArray();
+            priceRanges.put(buildPriceRange("SALE_PRICE", choices.optJSONObject("salePrice")));
+            priceRanges.put(buildPriceRange("IPTU_CONDO", choices.optJSONObject("condoIptu")));
+            apiFilters.put("priceRange", priceRanges);
+            apiFilters.put("availability", "ANY");
+            apiFilters.put("occupancy", "ANY");
+            apiFilters.put("partnerIds", new JSONArray());
+            apiFilters.put("specialConditions", new JSONArray());
+            apiFilters.put("excludedSpecialConditions", new JSONArray());
+            apiFilters.put("blocklist", new JSONArray());
+            apiFilters.put("categories", new JSONArray());
+            apiFilters.put("houseSpecs", buildHouseSpecs(choices));
+            apiFilters.put("origin", "HYBRID");
+            request.put("filters", apiFilters);
+            return request.toString();
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    static PropertyPageResult parseSearchApiResponse(String json) {
+        if (json == null || json.trim().isEmpty()) {
+            return new PropertyPageResult("", new ArrayList<>());
+        }
+        try {
+            JSONObject root = new JSONObject(json);
+            return new PropertyPageResult("", parseSearchListings(root));
+        } catch (Exception ignored) {
+            return new PropertyPageResult("", new ArrayList<>());
+        }
+    }
+
+    private static JSONObject buildSearchLocation(JSONObject location) throws Exception {
+        JSONObject result = new JSONObject();
+        JSONObject coordinates = location.optJSONObject("latLng");
+        if (coordinates != null) {
+            result.put("coordinate", new JSONObject()
+                    .put("lat", coordinates.optDouble("lat"))
+                    .put("lng", coordinates.optDouble("lng")));
+        }
+        JSONObject viewport = location.optJSONObject("viewport");
+        if (viewport != null) {
+            result.put("viewport", new JSONObject()
+                    .put("east", viewport.optDouble("east"))
+                    .put("north", viewport.optDouble("north"))
+                    .put("south", viewport.optDouble("south"))
+                    .put("west", viewport.optDouble("west")));
+        }
+        result.put("neighborhoods", new JSONArray());
+        result.put("city", location.optString("city", ""));
+        result.put("address", location.optString("name", ""));
+        return result;
+    }
+
+    private static JSONObject buildPriceRange(String type, JSONObject choice) throws Exception {
+        JSONObject range = new JSONObject();
+        if (choice != null) {
+            range.put("min", selectedMinimum(choice));
+            range.put("max", selectedMaximum(choice));
+        }
+        return new JSONObject().put("costType", type).put("range", range);
+    }
+
+    private static JSONObject buildHouseSpecs(JSONObject choices) throws Exception {
+        JSONObject specs = new JSONObject();
+        JSONObject areaChoice = choices.optJSONObject("area");
+        JSONObject area = new JSONObject();
+        if (areaChoice != null) {
+            area.put("min", selectedMinimum(areaChoice));
+            area.put("max", selectedMaximum(areaChoice));
+        }
+        specs.put("area", new JSONObject().put("range", area));
+        specs.put("houseTypes", new JSONArray()
+                .put("APARTMENT").put("HOUSE").put("STUDIO").put("HOUSE_CONDO"));
+        specs.put("amenities", new JSONArray());
+        specs.put("installations", new JSONArray());
+        specs.put("bathrooms", new JSONObject().put("range", new JSONObject()));
+        specs.put("bedrooms", new JSONObject().put("range", new JSONObject()));
+        specs.put("parkingSpace", new JSONObject().put("range", new JSONObject()));
+        specs.put("suites", new JSONObject().put("range", new JSONObject()));
+        putBooleanChoice(specs, "isFurnished", choices.optString("furnished", "any"));
+        putBooleanChoice(specs, "acceptPets", choices.optString("acceptsPets", "any"));
+        putBooleanChoice(specs, "nearSubway", choices.optString("nearSubway", "any"));
+        return specs;
+    }
+
+    private static double selectedMinimum(JSONObject choice) {
+        return choice.has("selectedMin") ? choice.optDouble("selectedMin")
+                : choice.optDouble("min");
+    }
+
+    private static double selectedMaximum(JSONObject choice) {
+        return choice.has("selectedMax") ? choice.optDouble("selectedMax")
+                : choice.optDouble("max");
+    }
+
+    private static void putBooleanChoice(JSONObject target, String name, String value)
+            throws Exception {
+        if ("yes".equals(value)) {
+            target.put(name, true);
+        } else if ("no".equals(value)) {
+            target.put(name, false);
+        }
+    }
+
     /** Total oficial da busca por CEP/endereço, que pode ser maior que a primeira página. */
     private static int findSearchListingsCount(JSONObject root, int fallback) {
         JSONObject props = root.optJSONObject("props");
@@ -173,8 +318,8 @@ final class PropertyPageParser {
                                 id,
                                 isQuintoAndarClassified(object, listing)
                         ),
-                        containsTag(listing.optJSONArray("listingTags"), "NEW_AD"),
-                        containsTag(listing.optJSONArray("listingTags"), "SALE_GOOD_PRICE"),
+                        containsTag(listingTags(object, listing), "NEW_AD"),
+                        containsTag(listingTags(object, listing), "SALE_GOOD_PRICE"),
                         buildListingAddress(listing)
                 ));
             }
@@ -257,6 +402,13 @@ final class PropertyPageParser {
             return fullAddress;
         }
         return number.isEmpty() ? street : street + ", " + number;
+    }
+
+    private static JSONArray listingTags(JSONObject wrapper, JSONObject listing) {
+        JSONArray tags = listing.optJSONArray("listingTags");
+        if (tags != null) return tags;
+        JSONObject fields = wrapper.optJSONObject("fields");
+        return fields == null ? null : fields.optJSONArray("listingTags");
     }
 
     private static String findNestedAddressValue(JSONObject listing, String key) {

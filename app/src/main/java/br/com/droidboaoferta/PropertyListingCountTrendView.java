@@ -51,7 +51,6 @@ final class PropertyListingCountTrendView extends View {
             minimum--;
         }
         path.reset();
-        int labelStep = Math.max(1, (int) Math.ceil(points.size() / 4d));
         for (int index = 0; index < points.size(); index++) {
             PropertyMarketListingCountPoint point = points.get(index);
             float x = points.size() == 1 ? (left + right) / 2f
@@ -59,10 +58,8 @@ final class PropertyListingCountTrendView extends View {
             float y = bottom - (point.getCount() - minimum) * (bottom - top) / (maximum - minimum);
             if (index == 0) path.moveTo(x, y); else path.lineTo(x, y);
             canvas.drawCircle(x, y, dp(5), dot);
-            if (index == 0 || index == points.size() - 1 || index % labelStep == 0) {
-                canvas.drawText(getContext().getResources().getQuantityString(
-                        R.plurals.property_market_listing_count, point.getCount(), point.getCount()),
-                        x, y - dp(13), label);
+            canvas.drawText(Integer.toString(point.getCount()), x, y - dp(13), label);
+            if (index == 0 || index == points.size() - 1) {
                 canvas.drawText(date.format(point.getObservedAt()), x, bottom + dp(25), label);
             }
         }

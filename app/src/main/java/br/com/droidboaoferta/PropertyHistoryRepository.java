@@ -16,6 +16,7 @@ final class PropertyHistoryRepository {
     private static final String PREFS = "property_history";
     private static final String KEY_ENTRIES = "entries";
     private static final String KEY_MARKET_LISTING_COUNTS = "market_listing_counts";
+    private static final int MARKET_LISTING_COUNT_SOURCE_VERSION = 3;
     private static final long METADATA_RETRY_MS = 24L * 60L * 60L * 1000L;
     private static final int MAX_POINTS = 60;
 
@@ -40,12 +41,21 @@ final class PropertyHistoryRepository {
         }
         JSONArray points = history.optJSONArray("points");
         if (points == null) points = new JSONArray();
+        // Versões anteriores misturavam amostras da página pública. Estes pontos
+        // não são comparáveis à leitura paginada da fonte usada a partir daqui.
+        if (history.optInt("source_version", 0) < MARKET_LISTING_COUNT_SOURCE_VERSION) {
+            points = new JSONArray();
+            history.remove("pending_count");
+            history.remove("pending_observed_at");
+        }
         boolean removedLegacyPageLimit = removeLegacyPageLimitedCount(points, count);
         JSONObject latest = points.optJSONObject(points.length() - 1);
         if (latest != null && latest.optInt("count", -1) == count) {
             if (removedLegacyPageLimit) {
                 try {
-                    history.put("interest_id", interestId).put("points", points);
+                    history.put("interest_id", interestId)
+                            .put("points", points)
+                            .put("source_version", MARKET_LISTING_COUNT_SOURCE_VERSION);
                     preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
                 } catch (Exception ignored) {
                 }
@@ -55,7 +65,9 @@ final class PropertyHistoryRepository {
         try {
             points.put(new JSONObject().put("observed_at", observedAt).put("count", count));
             while (points.length() > MAX_POINTS) points.remove(0);
-            history.put("interest_id", interestId).put("points", points);
+            history.put("interest_id", interestId)
+                    .put("points", points)
+                    .put("source_version", MARKET_LISTING_COUNT_SOURCE_VERSION);
             preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
         } catch (Exception ignored) {
         }
