@@ -1039,13 +1039,13 @@ public class MainActivity extends AlertouActivity {
                 } else if (zipCardOffers != null && zipCardOfferCount > 0) {
                     zipCardOffers.addView(createOfferDivider());
                 }
-            } else if (!group.equals(previousGroup)) {
+            } else if (!propertyMarketSection && !group.equals(previousGroup)) {
                 if (previousGroup != null) {
                     content.addView(createDateGroupDivider());
                 }
                 content.addView(createOfferGroupHeader(groupLabel, previousGroup != null));
                 previousGroup = group;
-            } else {
+            } else if (index > 0) {
                 content.addView(createOfferDivider());
             }
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
