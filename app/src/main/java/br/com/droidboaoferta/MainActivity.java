@@ -812,7 +812,9 @@ public class MainActivity extends AlertouActivity {
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
-        header.setPadding(dp(4), dp(2), 0, dp(3));
+        // Fontes is the visual reference for title icons: keep the same 10dp
+        // distance from the card edge on every Alertou section.
+        header.setPadding(dp(10), dp(2), 0, dp(3));
 
         boolean propertySection = propertyMarketSection
                 || SECTION_PROPERTIES_EXPANDED.equals(preferenceKey)
@@ -1224,7 +1226,9 @@ public class MainActivity extends AlertouActivity {
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(2), dp(3), dp(2), dp(3));
+        // The nested card already has 6dp of horizontal padding. Add 4dp here
+        // so its title icon also starts 10dp from its own card edge.
+        header.setPadding(dp(4), dp(3), dp(2), dp(3));
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
