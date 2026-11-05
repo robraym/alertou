@@ -17,6 +17,7 @@ final class PropertyHistoryRepository {
     private static final String KEY_ENTRIES = "entries";
     private static final String KEY_MARKET_LISTING_COUNTS = "market_listing_counts";
     private static final int MARKET_LISTING_COUNT_SOURCE_VERSION = 3;
+    private static final int MARKET_LISTING_COUNT_VISIBLE_LIST_VERSION = 4;
     private static final long METADATA_RETRY_MS = 24L * 60L * 60L * 1000L;
     private static final int MAX_POINTS = 60;
 
@@ -32,6 +33,19 @@ final class PropertyHistoryRepository {
 
     /** Stores the size of the full condominium result, before any alert filters. */
     synchronized void recordMarketListingCount(long interestId, int count, long observedAt) {
+        recordMarketListingCount(interestId, count, observedAt,
+                MARKET_LISTING_COUNT_SOURCE_VERSION);
+    }
+
+    /** Stores the same final, eligible listings that are visible in a CEP card. */
+    synchronized void recordVisiblePropertyZipListingCount(long interestId, int count,
+                                                            long observedAt) {
+        recordMarketListingCount(interestId, count, observedAt,
+                MARKET_LISTING_COUNT_VISIBLE_LIST_VERSION);
+    }
+
+    private void recordMarketListingCount(long interestId, int count, long observedAt,
+                                          int sourceVersion) {
         if (interestId <= 0L || count < 0 || observedAt <= 0L) return;
         JSONArray histories = readMarketListingCounts();
         JSONObject history = findMarketListingCountHistory(histories, interestId);
@@ -43,7 +57,7 @@ final class PropertyHistoryRepository {
         if (points == null) points = new JSONArray();
         // Versões anteriores misturavam amostras da página pública. Estes pontos
         // não são comparáveis à leitura paginada da fonte usada a partir daqui.
-        if (history.optInt("source_version", 0) < MARKET_LISTING_COUNT_SOURCE_VERSION) {
+        if (history.optInt("source_version", 0) < sourceVersion) {
             points = new JSONArray();
             history.remove("pending_count");
             history.remove("pending_observed_at");
@@ -55,7 +69,7 @@ final class PropertyHistoryRepository {
                 try {
                     history.put("interest_id", interestId)
                             .put("points", points)
-                            .put("source_version", MARKET_LISTING_COUNT_SOURCE_VERSION);
+                            .put("source_version", sourceVersion);
                     preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
                 } catch (Exception ignored) {
                 }
@@ -67,7 +81,7 @@ final class PropertyHistoryRepository {
             while (points.length() > MAX_POINTS) points.remove(0);
             history.put("interest_id", interestId)
                     .put("points", points)
-                    .put("source_version", MARKET_LISTING_COUNT_SOURCE_VERSION);
+                    .put("source_version", sourceVersion);
             preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
         } catch (Exception ignored) {
         }

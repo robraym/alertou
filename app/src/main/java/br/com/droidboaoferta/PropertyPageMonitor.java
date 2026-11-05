@@ -695,10 +695,6 @@ final class PropertyPageMonitor {
             if (addressCandidates.size() > limit) {
                 addressCandidates = new ArrayList<>(addressCandidates.subList(0, limit));
             }
-            // Para CEP, a quantidade precisa representar a rua confirmada e o
-            // teto escolhido, não o total amplo devolvido pelo buscador.
-            historyRepository.recordMarketListingCount(
-                    interest.getId(), addressCandidates.size(), observedAt);
         }
         updatePropertyZipListingProgress(context, interest, 0, addressCandidates.size());
         int addressCandidatePosition = 0;
@@ -763,6 +759,12 @@ final class PropertyPageMonitor {
             }
         }
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+        if (interest.isPropertyZip()) {
+            // O selo e o histórico do CEP refletem somente os itens que
+            // passaram pela validação individual e entram na lista visível.
+            historyRepository.recordVisiblePropertyZipListingCount(
+                    interest.getId(), matches.size(), observedAt);
+        }
         boolean removedStaleOffer = false;
         if (!noLongerEligibleOfferIds.isEmpty()) {
             OfferRepository repository = new OfferRepository(context);
