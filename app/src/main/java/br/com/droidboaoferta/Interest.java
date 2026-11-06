@@ -5,6 +5,7 @@ final class Interest {
     static final String TYPE_COUPON = "coupon";
     static final String TYPE_PROPERTY = "property";
     static final String TYPE_PROPERTY_ZIP = "property_zip";
+    static final String TYPE_TREASURY = "treasury";
     static final int DEFAULT_PROPERTY_ZIP_LISTING_LIMIT = 20;
 
     private final long id;
@@ -66,7 +67,8 @@ final class Interest {
                 ? TYPE_COUPON
                 : (TYPE_PROPERTY.equals(type)
                 ? TYPE_PROPERTY
-                : (TYPE_PROPERTY_ZIP.equals(type) ? TYPE_PROPERTY_ZIP : TYPE_PRICE));
+                : (TYPE_PROPERTY_ZIP.equals(type) ? TYPE_PROPERTY_ZIP
+                : (TYPE_TREASURY.equals(type) ? TYPE_TREASURY : TYPE_PRICE)));
         this.minimumArea = minimumArea;
         this.maximumArea = maximumArea;
         this.propertyName = propertyName == null ? "" : propertyName.trim();
@@ -114,6 +116,15 @@ final class Interest {
 
     boolean isPrice() {
         return TYPE_PRICE.equals(type);
+    }
+
+    boolean isTreasury() {
+        return TYPE_TREASURY.equals(type);
+    }
+
+    /** For Tesouro Direto alerts, this persisted numeric limit is the minimum purchase rate. */
+    double getMinimumTreasuryRate() {
+        return maximumPrice;
     }
 
     double getMinimumArea() {

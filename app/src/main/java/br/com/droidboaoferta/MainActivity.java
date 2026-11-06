@@ -63,6 +63,7 @@ public class MainActivity extends AlertouActivity {
     private static final String SECTION_PROPERTY_MARKET_EXPANDED = "home_section_property_market_expanded";
     private static final String SECTION_PROPERTIES_EXPANDED = "home_section_properties_expanded";
     private static final String SECTION_PROPERTY_ZIP_EXPANDED = "home_section_property_zip_expanded";
+    private static final String SECTION_TREASURY_EXPANDED = "home_section_treasury_expanded";
     private static final String SECTION_PRODUCTS_EXPANDED = "home_section_products_expanded";
     private static final String STARTUP_PREFS = "startup_preferences";
     private static final String BATTERY_NOTICE_SHOWN = "battery_notice_shown";
@@ -83,6 +84,7 @@ public class MainActivity extends AlertouActivity {
     private static final String PROPERTY_ZIP_COUNT_TAG = "property_zip_count";
     private static final String PROPERTY_ZIP_CARD_TAG = "property_zip_card";
     private static final String PROPERTY_ZIP_ACTION_TAG = "property_zip_action";
+    private static final String TREASURY_ACTION_TAG = "treasury_action";
     private static final String PROPERTY_MARKET_ROW_TAG_PREFIX = "property_market_row_";
     private static final String OFFER_SECTION_CONTENT_TAG_PREFIX = "offer_section_content_";
     private static final String OFFER_SECTION_TOGGLE_TAG_PREFIX = "offer_section_toggle_";
@@ -132,6 +134,10 @@ public class MainActivity extends AlertouActivity {
                 return;
             }
             String action = intent.getAction();
+            if (TreasuryDirectMonitor.ACTION_CHECK_STATE_CHANGED.equals(action)) {
+                updateTreasuryRefreshIcon();
+                return;
+            }
             // These actions report connection/sync progress only. They can arrive in bursts and
             // do not change the offers displayed in this screen.
             if (MonitorStatusStore.ACTION_STATUS_CHANGED.equals(action)
@@ -168,6 +174,9 @@ public class MainActivity extends AlertouActivity {
     private ObjectAnimator propertyMarketRefreshAnimator;
     private ImageView propertyZipSpinningIcon;
     private ObjectAnimator propertyZipRefreshAnimator;
+    private ImageButton treasuryActionView;
+    private ImageView treasurySpinningIcon;
+    private ObjectAnimator treasuryRefreshAnimator;
     private EditText offersSearchInput;
     private FloatingSearchController floatingSearchController;
     private InterestRepository interestRepository;
@@ -221,6 +230,8 @@ public class MainActivity extends AlertouActivity {
         filter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
         filter.addAction(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED);
         filter.addAction(PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS);
+        filter.addAction(TreasuryDirectMonitor.ACTION_RATES_CHANGED);
+        filter.addAction(TreasuryDirectMonitor.ACTION_CHECK_STATE_CHANGED);
         ContextCompat.registerReceiver(
                 this,
                 offerReceiver,
@@ -247,6 +258,7 @@ public class MainActivity extends AlertouActivity {
         dashboardHandler.removeCallbacks(propertyZipProgressUpdate);
         if (propertyMarketRefreshAnimator != null) propertyMarketRefreshAnimator.cancel();
         if (propertyZipRefreshAnimator != null) propertyZipRefreshAnimator.cancel();
+        if (treasuryRefreshAnimator != null) treasuryRefreshAnimator.cancel();
         if (propertyMarketSpinningIcon != null) {
             propertyMarketSpinningIcon.setLayerType(View.LAYER_TYPE_NONE, null);
         }
@@ -257,6 +269,9 @@ public class MainActivity extends AlertouActivity {
         propertyZipRefreshAnimator = null;
         propertyMarketSpinningIcon = null;
         propertyZipSpinningIcon = null;
+        treasuryRefreshAnimator = null;
+        treasurySpinningIcon = null;
+        treasuryActionView = null;
         dashboardUpdatePending = false;
         propertyZipProgressUpdatePending = false;
         propertyProgressTickerScheduled = false;
@@ -688,6 +703,7 @@ public class MainActivity extends AlertouActivity {
                         SECTION_PROPERTY_ZIP_EXPANDED,
                         getPropertySectionStatus(interestsById, true), R.drawable.ic_property_zip_alert);
             }
+            addTreasurySection();
             if (offersContainer.getChildCount() == 0) {
                 boolean awaitingLinks = offersSearchInput.getText().toString().trim().isEmpty()
                         && !offerRepository.getRecentForValidation().isEmpty();
@@ -741,9 +757,328 @@ public class MainActivity extends AlertouActivity {
                     SECTION_PROPERTY_ZIP_EXPANDED,
                     getPropertySectionStatus(interestsById, true), R.drawable.ic_property_zip_alert);
         }
+        addTreasurySection();
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
                 SECTION_PRODUCTS_EXPANDED, "");
         offerSectionCache.end(offersContainer);
+    }
+
+    /** Tesouro is not an ObservedOffer: its display comes only from confirmed official-rate reads. */
+    private void addTreasurySection() {
+        List<Interest> treasuryInterests = new java.util.ArrayList<>();
+        for (Interest interest : interestRepository.getAll()) {
+            if (interest.isTreasury()) treasuryInterests.add(interest);
+        }
+        if (treasuryInterests.isEmpty()) return;
+
+        boolean expanded = isOfferSectionExpanded(SECTION_TREASURY_EXPANDED);
+        TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(this);
+        StringBuilder fingerprint = new StringBuilder().append(expanded);
+        for (Interest interest : treasuryInterests) {
+            List<TreasuryRatePoint> points = historyRepository.get(interest.getId());
+            fingerprint.append('|').append(interest.getId()).append('|')
+                    .append(interest.getTerm()).append('|').append(interest.getMinimumTreasuryRate());
+            if (!points.isEmpty()) {
+                TreasuryRatePoint point = points.get(points.size() - 1);
+                fingerprint.append('|').append(point.getObservedAt()).append('|').append(point.getRate())
+                        .append('|').append(points.size());
+            }
+        }
+        renderingSectionKey = SECTION_TREASURY_EXPANDED;
+        renderingSectionFingerprint = fingerprint.toString();
+        View cached = offerSectionCache.find(renderingSectionKey, renderingSectionFingerprint);
+        if (cached != null) {
+            treasuryActionView = cached.findViewWithTag(TREASURY_ACTION_TAG);
+            offerSectionCache.attach(offersContainer, renderingSectionKey,
+                    renderingSectionFingerprint, cached);
+            updateTreasuryRefreshIcon();
+            return;
+        }
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundResource(R.drawable.bg_card_compact);
+        card.setClipToOutline(true);
+        card.setPadding(0, dp(2), 0, dp(2));
+
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setBackgroundResource(R.drawable.bg_row_pressed);
+        header.setClickable(true);
+        header.setFocusable(true);
+        header.setPadding(dp(10), dp(2), 0, dp(3));
+
+        ImageButton icon = new ImageButton(this);
+        icon.setTag(TREASURY_ACTION_TAG);
+        icon.setBackgroundResource(R.drawable.bg_icon_circle);
+        icon.setPadding(dp(7), dp(7), dp(7), dp(7));
+        icon.setScaleType(ImageView.ScaleType.CENTER);
+        treasuryActionView = icon;
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+        iconParams.rightMargin = dp(8);
+        header.addView(icon, iconParams);
+        icon.setOnClickListener(view -> refreshTreasuryRates());
+        updateTreasuryRefreshIcon();
+
+        LinearLayout text = new LinearLayout(this);
+        text.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1);
+        header.addView(text, textParams);
+        TextView title = new TextView(this);
+        title.setText(R.string.treasury_direct_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(16);
+        title.setSingleLine(true);
+        text.addView(title);
+        TextView count = new TextView(this);
+        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size()));
+        count.setTextColor(getColor(R.color.text_secondary));
+        count.setTextSize(13);
+        count.setPadding(0, dp(3), 0, 0);
+        text.addView(count);
+
+        LinearLayout statusLine = new LinearLayout(this);
+        statusLine.setGravity(Gravity.CENTER_VERTICAL);
+        TextView status = new TextView(this);
+        status.setTextColor(getColor(R.color.text_secondary));
+        status.setTextSize(11.5f);
+        status.setIncludeFontPadding(false);
+        status.setSingleLine(true);
+        statusLine.addView(status, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        TextView duration = new TextView(this);
+        duration.setTextColor(getColor(R.color.text_secondary));
+        duration.setTextSize(11.5f);
+        duration.setIncludeFontPadding(false);
+        duration.setSingleLine(true);
+        statusLine.addView(duration);
+        applyPropertyStatusLine(status, duration, getTreasuryLastCheckSummary());
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusParams.topMargin = dp(3);
+        text.addView(statusLine, statusParams);
+
+        ImageButton toggle = new ImageButton(this);
+        toggle.setImageResource(R.drawable.ic_chevron_right);
+        toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
+        toggle.setBackgroundResource(R.drawable.bg_icon_circle);
+        toggle.setPadding(dp(7), dp(7), dp(7), dp(7));
+        toggle.setRotation(expanded ? 90f : 0f);
+        toggle.setContentDescription(getString(expanded ? R.string.alerts_section_collapse
+                : R.string.alerts_section_expand));
+        LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(dp(32), dp(32));
+        toggleParams.rightMargin = 0;
+        header.addView(toggle, toggleParams);
+        View.OnClickListener toggleListener = view -> {
+            getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
+                    .putBoolean(SECTION_TREASURY_EXPANDED, !expanded).apply();
+            refreshDashboard(false);
+        };
+        header.setOnClickListener(toggleListener);
+        toggle.setOnClickListener(toggleListener);
+        card.addView(header);
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(6), 0, dp(6), dp(4));
+        content.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        if (expanded) {
+            for (int index = 0; index < treasuryInterests.size(); index++) {
+                Interest interest = treasuryInterests.get(index);
+                if (index > 0) {
+                    content.addView(createOfferDivider());
+                }
+                content.addView(createTreasuryRateRow(interest,
+                        historyRepository.get(interest.getId())));
+            }
+        }
+        card.addView(content);
+        addOfferSectionCard(card);
+    }
+
+    private View createTreasuryRateRow(Interest interest, List<TreasuryRatePoint> points) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.VERTICAL);
+        row.setMinimumHeight(dp(52));
+        row.setPadding(0, dp(7), 0, dp(7));
+        row.setBackgroundColor(getColor(R.color.card));
+        row.setClickable(true);
+        row.setFocusable(true);
+
+        LinearLayout titleLine = new LinearLayout(this);
+        titleLine.setGravity(Gravity.CENTER_VERTICAL);
+        row.addView(titleLine);
+        TextView title = new TextView(this);
+        title.setText(interest.getTerm());
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(13);
+        title.setSingleLine(true);
+        title.setEllipsize(TextUtils.TruncateAt.END);
+        titleLine.addView(title, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        TreasuryRatePoint latest = points.isEmpty() ? null : points.get(points.size() - 1);
+        if (points.size() >= 2) {
+            TreasuryRatePoint previous = points.get(points.size() - 2);
+            titleLine.addView(createTreasuryRateChangeBadge(latest.getRate() - previous.getRate(),
+                    previous.getRate(), view -> showTreasuryRateHistoryDialog(interest)));
+        }
+        TextView rate = new TextView(this);
+        rate.setText(latest == null ? "—" : formatTreasuryRate(latest.getRate()) + "% a.a.");
+        rate.setTextColor(getColor(R.color.text_primary));
+        rate.setTextSize(13);
+        rate.setSingleLine(true);
+        titleLine.addView(rate);
+
+        if (latest == null) {
+            TextView waiting = new TextView(this);
+            waiting.setText(R.string.treasury_direct_rate_waiting);
+            waiting.setTextColor(getColor(R.color.text_secondary));
+            waiting.setTextSize(11.5f);
+            waiting.setSingleLine(true);
+            waiting.setPadding(0, dp(2), 0, 0);
+            row.addView(waiting);
+        } else {
+            LinearLayout metaLine = new LinearLayout(this);
+            metaLine.setGravity(Gravity.CENTER_VERTICAL);
+            metaLine.setPadding(0, dp(2), 0, 0);
+            TextView time = new TextView(this);
+            time.setText(new SimpleDateFormat("HH:mm", new Locale("pt", "BR"))
+                    .format(new java.util.Date(latest.getObservedAt())));
+            time.setTextColor(getColor(R.color.text_secondary));
+            time.setTextSize(11.5f);
+            time.setSingleLine(true);
+            metaLine.addView(time);
+            TextView threshold = new TextView(this);
+            threshold.setText("• " + getString(R.string.treasury_direct_alert_threshold,
+                    formatTreasuryRate(interest.getMinimumTreasuryRate())));
+            threshold.setTextColor(getColor(R.color.text_secondary));
+            threshold.setTextSize(11.5f);
+            threshold.setSingleLine(true);
+            threshold.setPadding(dp(4), 0, 0, 0);
+            metaLine.addView(threshold);
+            row.addView(metaLine);
+        }
+        row.setOnClickListener(view -> showTreasuryRateHistoryDialog(interest));
+        return row;
+    }
+
+    private TextView createTreasuryRateChangeBadge(double change, double previousRate,
+                                                    View.OnClickListener listener) {
+        boolean increase = change >= 0d;
+        double percentage = previousRate == 0d ? 0d : Math.abs(change / previousRate * 100d);
+        NumberFormat number = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        number.setMaximumFractionDigits(1);
+        TextView badge = new TextView(this);
+        badge.setText((increase ? "↑ " : "↓ ") + number.format(percentage) + "%");
+        badge.setTextColor(getColor(increase ? R.color.action_green : R.color.danger));
+        badge.setTextSize(10.5f);
+        badge.setTypeface(null, android.graphics.Typeface.BOLD);
+        badge.setBackgroundResource(increase ? R.drawable.bg_property_new_badge
+                : R.drawable.bg_property_price_rise_badge);
+        badge.setPadding(dp(6), dp(1), dp(6), dp(1));
+        badge.setClickable(true);
+        badge.setOnClickListener(listener);
+        badge.setContentDescription(getString(R.string.treasury_direct_rate_change_description));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.leftMargin = dp(7);
+        badge.setLayoutParams(params);
+        return badge;
+    }
+
+    private String formatTreasuryRate(double value) {
+        NumberFormat number = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        number.setMinimumFractionDigits(0);
+        number.setMaximumFractionDigits(3);
+        return number.format(value);
+    }
+
+    private void showTreasuryRateHistoryDialog(Interest interest) {
+        List<TreasuryRatePoint> points = new TreasuryRateHistoryRepository(this).get(interest.getId());
+        if (points.isEmpty()) {
+            Toast.makeText(this, R.string.treasury_direct_rate_waiting, Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Dialog dialog = new Dialog(this);
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        scroll.addView(content);
+        TextView title = new TextView(this);
+        title.setText(R.string.treasury_direct_history_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+        TextView bond = new TextView(this);
+        bond.setText(interest.getTerm());
+        bond.setTextColor(getColor(R.color.text_primary));
+        bond.setTextSize(15);
+        bond.setPadding(0, dp(6), 0, 0);
+        content.addView(bond);
+        TextView summary = new TextView(this);
+        summary.setText(R.string.treasury_direct_history_summary);
+        summary.setTextColor(getColor(R.color.text_secondary));
+        summary.setTextSize(13);
+        summary.setPadding(0, dp(3), 0, dp(10));
+        content.addView(summary);
+        TextView chartTitle = new TextView(this);
+        chartTitle.setText(R.string.treasury_direct_history_chart_title);
+        chartTitle.setTextColor(getColor(R.color.text_primary));
+        chartTitle.setTextSize(16);
+        content.addView(chartTitle);
+        TreasuryRateTrendView graph = new TreasuryRateTrendView(this);
+        graph.setPoints(points);
+        content.addView(graph, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+                dp(points.size() <= 2 ? 140 : 180)));
+        TextView readings = new TextView(this);
+        readings.setText(R.string.treasury_direct_history_readings_title);
+        readings.setTextColor(getColor(R.color.text_primary));
+        readings.setTextSize(16);
+        readings.setPadding(0, dp(8), 0, dp(4));
+        content.addView(readings);
+        SimpleDateFormat date = new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR"));
+        for (int index = points.size() - 1; index >= Math.max(0, points.size() - 8); index--) {
+            TreasuryRatePoint point = points.get(index);
+            LinearLayout row = new LinearLayout(this);
+            row.setGravity(Gravity.CENTER_VERTICAL);
+            row.setPadding(0, dp(4), 0, dp(4));
+            TextView observed = new TextView(this);
+            observed.setText(date.format(point.getObservedAt()));
+            observed.setTextColor(getColor(R.color.text_secondary));
+            observed.setTextSize(12.5f);
+            row.addView(observed, new LinearLayout.LayoutParams(0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+            TextView rate = new TextView(this);
+            rate.setText(formatTreasuryRate(point.getRate()) + "% a.a.");
+            rate.setTextColor(getColor(R.color.text_primary));
+            rate.setTextSize(12.5f);
+            row.addView(rate);
+            content.addView(row);
+        }
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        actions.setPadding(0, dp(12), 0, 0);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
+        dialog.setContentView(scroll);
+        dialog.show();
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+            params.copyFrom(window.getAttributes());
+            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+            params.height = getResources().getDisplayMetrics().heightPixels - dp(72);
+            params.dimAmount = .38f;
+            window.setAttributes(params);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        }
     }
 
     private void addOfferSection(int titleResource, List<ObservedOffer> offers,
@@ -1387,6 +1722,13 @@ public class MainActivity extends AlertouActivity {
                 + OfferDateFormatter.formatTime(time);
     }
 
+    private String getTreasuryLastCheckSummary() {
+        long lastCheckAt = TreasuryDirectMonitor.getLastCheckAt(this);
+        if (lastCheckAt <= 0L) return getString(R.string.property_alerts_status_empty);
+        return appendCheckDuration(formatCompactCheckTime(lastCheckAt),
+                TreasuryDirectMonitor.getLastCheckDurationMillis(this));
+    }
+
     private String getPropertyStatusName(Interest interest) {
         if (interest.isPropertyZip()) {
             String city = interest.getPropertyCity();
@@ -1780,6 +2122,54 @@ public class MainActivity extends AlertouActivity {
             @Override
             public void onViewDetachedFromWindow(View view) {
                 if (propertyMarketSpinningIcon == icon) spin.cancel();
+            }
+        });
+        if (icon.isAttachedToWindow()) spin.start();
+    }
+
+    private void refreshTreasuryRates() {
+        MonitorServiceController.update(this);
+        TreasuryDirectMonitor.getInstance().checkNow(this);
+        updateTreasuryRefreshIcon();
+    }
+
+    private void updateTreasuryRefreshIcon() {
+        if (treasuryActionView == null) return;
+        boolean checking = TreasuryDirectMonitor.getInstance().isChecking();
+        treasuryActionView.setContentDescription(getString(checking
+                ? R.string.action_checking_treasury_rates
+                : R.string.action_refresh_treasury_rates));
+        if (checking) {
+            treasuryActionView.setImageResource(R.drawable.ic_sync);
+            treasuryActionView.setColorFilter(AccentColorController.getPrimaryColor(this));
+            animateTreasuryRefreshIcon(treasuryActionView);
+            return;
+        }
+        if (treasuryRefreshAnimator != null) treasuryRefreshAnimator.cancel();
+        treasuryRefreshAnimator = null;
+        treasurySpinningIcon = null;
+        treasuryActionView.setRotation(0f);
+        treasuryActionView.setImageResource(R.drawable.ic_tesouro_direto);
+        treasuryActionView.setColorFilter(AccentColorController.getPrimaryColor(this));
+    }
+
+    private void animateTreasuryRefreshIcon(ImageView icon) {
+        if (treasurySpinningIcon == icon && treasuryRefreshAnimator != null
+                && treasuryRefreshAnimator.isRunning()) return;
+        if (treasuryRefreshAnimator != null) treasuryRefreshAnimator.cancel();
+        ObjectAnimator spin = ObjectAnimator.ofFloat(icon, View.ROTATION, 0f, 360f);
+        spin.setDuration(900L);
+        spin.setInterpolator(new LinearInterpolator());
+        spin.setRepeatCount(ValueAnimator.INFINITE);
+        treasurySpinningIcon = icon;
+        treasuryRefreshAnimator = spin;
+        icon.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        icon.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) {
+                if (treasurySpinningIcon == icon) spin.start();
+            }
+            @Override public void onViewDetachedFromWindow(View view) {
+                if (treasurySpinningIcon == icon) spin.cancel();
             }
         });
         if (icon.isAttachedToWindow()) spin.start();

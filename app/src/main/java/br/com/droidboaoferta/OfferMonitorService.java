@@ -58,6 +58,7 @@ public class OfferMonitorService extends Service {
         OfferMonitor.getInstance().stop();
         CouponPageMonitor.getInstance().stop();
         PropertyPageMonitor.getInstance().stop();
+        TreasuryDirectMonitor.getInstance().stop();
         VivoOutletMonitor.getInstance().stop();
         PelandoMonitor.getInstance().stop();
         PromobitMonitor.getInstance().stop();
@@ -82,11 +83,14 @@ public class OfferMonitorService extends Service {
         boolean hasPriceAlert = false;
         boolean hasCouponAlert = false;
         boolean hasPropertyAlert = false;
+        boolean hasTreasuryAlert = false;
         for (Interest interest : new InterestRepository(this).getAll()) {
             if (interest.isCoupon()) {
                 hasCouponAlert = true;
             } else if (interest.isProperty()) {
                 hasPropertyAlert = true;
+            } else if (interest.isTreasury()) {
+                hasTreasuryAlert = true;
             } else if (interest.isPrice()) {
                 hasPriceAlert = true;
             }
@@ -162,6 +166,11 @@ public class OfferMonitorService extends Service {
             PropertyPageMonitor.getInstance().start(this);
         } else {
             PropertyPageMonitor.getInstance().stop();
+        }
+        if (hasTreasuryAlert) {
+            TreasuryDirectMonitor.getInstance().start(this);
+        } else {
+            TreasuryDirectMonitor.getInstance().stop();
         }
     }
 

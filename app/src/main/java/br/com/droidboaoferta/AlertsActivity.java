@@ -49,6 +49,7 @@ public class AlertsActivity extends AlertouActivity {
     private static final String SECTION_COUPONS_EXPANDED = "alerts_section_coupons_expanded";
     private static final String SECTION_PROPERTIES_EXPANDED = "alerts_section_properties_expanded";
     private static final String SECTION_PROPERTY_ZIP_EXPANDED = "alerts_section_property_zip_expanded";
+    private static final String SECTION_TREASURY_EXPANDED = "alerts_section_treasury_expanded";
     private static final String SECTION_PRODUCTS_EXPANDED = "alerts_section_products_expanded";
     private static final int REQUEST_NOTIFICATIONS = 1202;
     private static final int SORT_RECENT = 0;
@@ -62,15 +63,18 @@ public class AlertsActivity extends AlertouActivity {
     private LinearLayout couponInterestsContainer;
     private LinearLayout propertyInterestsContainer;
     private LinearLayout propertyZipInterestsContainer;
+    private LinearLayout treasuryInterestsContainer;
     private LinearLayout priceInterestsContainer;
     private ImageButton couponAlertsToggle;
     private ImageButton propertyAlertsToggle;
     private ImageButton propertyZipAlertsToggle;
+    private ImageButton treasuryAlertsToggle;
     private ImageButton priceAlertsToggle;
     private EditText interestsSearchInput;
     private TextView couponAlertsCountText;
     private TextView propertyAlertsCountText;
     private TextView propertyZipAlertsCountText;
+    private TextView treasuryAlertsCountText;
     private TextView priceAlertsCountText;
     private FloatingSearchController floatingSearchController;
     private final BroadcastReceiver syncReceiver = new BroadcastReceiver() {
@@ -95,10 +99,12 @@ public class AlertsActivity extends AlertouActivity {
         couponInterestsContainer = findViewById(R.id.container_coupon_interests);
         propertyInterestsContainer = findViewById(R.id.container_property_interests);
         propertyZipInterestsContainer = findViewById(R.id.container_property_zip_interests);
+        treasuryInterestsContainer = findViewById(R.id.container_treasury_interests);
         priceInterestsContainer = findViewById(R.id.container_price_interests);
         couponAlertsToggle = findViewById(R.id.button_toggle_coupon_alerts);
         propertyAlertsToggle = findViewById(R.id.button_toggle_property_alerts);
         propertyZipAlertsToggle = findViewById(R.id.button_toggle_property_zip_alerts);
+        treasuryAlertsToggle = findViewById(R.id.button_toggle_treasury_alerts);
         priceAlertsToggle = findViewById(R.id.button_toggle_price_alerts);
         floatingSearchController = FloatingSearchController.attach(
                 this,
@@ -109,6 +115,7 @@ public class AlertsActivity extends AlertouActivity {
         couponAlertsCountText = findViewById(R.id.text_coupon_alerts_count);
         propertyAlertsCountText = findViewById(R.id.text_property_alerts_count);
         propertyZipAlertsCountText = findViewById(R.id.text_property_zip_alerts_count);
+        treasuryAlertsCountText = findViewById(R.id.text_treasury_alerts_count);
         priceAlertsCountText = findViewById(R.id.text_price_alerts_count);
 
         findViewById(R.id.button_profile).setOnClickListener(view -> startActivity(
@@ -134,6 +141,12 @@ public class AlertsActivity extends AlertouActivity {
                 SECTION_PROPERTY_ZIP_EXPANDED
         );
         configureCollapsibleSection(
+                R.id.header_treasury_alerts,
+                treasuryAlertsToggle,
+                treasuryInterestsContainer,
+                SECTION_TREASURY_EXPANDED
+        );
+        configureCollapsibleSection(
                 R.id.header_price_alerts,
                 priceAlertsToggle,
                 priceInterestsContainer,
@@ -147,6 +160,8 @@ public class AlertsActivity extends AlertouActivity {
                 view -> showPropertyDialog(null));
         findViewById(R.id.button_add_property_zip_interest).setOnClickListener(
                 view -> showPropertyZipDialog(null));
+        findViewById(R.id.button_add_treasury_interest).setOnClickListener(
+                view -> showTreasuryDialog(null));
         interestsSearchInput.addTextChangedListener(new SimpleTextWatcher() {
             @Override
             public void afterTextChanged(Editable editable) {
@@ -194,6 +209,7 @@ public class AlertsActivity extends AlertouActivity {
         int couponCount = 0;
         int propertyCount = 0;
         int propertyZipCount = 0;
+        int treasuryCount = 0;
         int priceCount = 0;
         for (Interest interest : registeredInterests) {
             if (interest.isCoupon()) {
@@ -202,6 +218,8 @@ public class AlertsActivity extends AlertouActivity {
                 propertyZipCount++;
             } else if (interest.isPropertyCondominium()) {
                 propertyCount++;
+            } else if (interest.isTreasury()) {
+                treasuryCount++;
             } else if (interest.isPrice()) {
                 priceCount++;
             }
@@ -226,6 +244,11 @@ public class AlertsActivity extends AlertouActivity {
                 : getString(propertyZipCount == 1
                         ? R.string.property_zip_alerts_registered_count_one
                         : R.string.property_zip_alerts_registered_count_many, propertyZipCount));
+        treasuryAlertsCountText.setText(treasuryCount == 0
+                ? getString(R.string.treasury_alerts_registered_count_empty)
+                : getString(treasuryCount == 1
+                        ? R.string.treasury_alerts_registered_count_one
+                        : R.string.treasury_alerts_registered_count_many, treasuryCount));
 
         List<Interest> filteredInterests = filterInterests(
                 registeredInterests,
@@ -235,6 +258,7 @@ public class AlertsActivity extends AlertouActivity {
         List<Interest> coupons = new java.util.ArrayList<>();
         List<Interest> properties = new java.util.ArrayList<>();
         List<Interest> propertyZips = new java.util.ArrayList<>();
+        List<Interest> treasuries = new java.util.ArrayList<>();
         List<Interest> prices = new java.util.ArrayList<>();
         for (Interest interest : filteredInterests) {
             if (interest.isCoupon()) {
@@ -243,6 +267,8 @@ public class AlertsActivity extends AlertouActivity {
                 propertyZips.add(interest);
             } else if (interest.isPropertyCondominium()) {
                 properties.add(interest);
+            } else if (interest.isTreasury()) {
+                treasuries.add(interest);
             } else if (interest.isPrice()) {
                 prices.add(interest);
             }
@@ -256,6 +282,9 @@ public class AlertsActivity extends AlertouActivity {
         renderInterestSection(
                 propertyZips, propertyZipInterestsContainer, propertyZipAlertsToggle,
                 SECTION_PROPERTY_ZIP_EXPANDED, propertyZipCount > 0);
+        renderInterestSection(
+                treasuries, treasuryInterestsContainer, treasuryAlertsToggle,
+                SECTION_TREASURY_EXPANDED, treasuryCount > 0);
         renderInterestSection(
                 prices, priceInterestsContainer, priceAlertsToggle,
                 SECTION_PRODUCTS_EXPANDED, priceCount > 0);
@@ -287,6 +316,8 @@ public class AlertsActivity extends AlertouActivity {
                     showPropertyZipDialog(interest);
                 } else if (interest.isPropertyCondominium()) {
                     showPropertyDialog(interest);
+                } else if (interest.isTreasury()) {
+                    showTreasuryDialog(interest);
                 } else {
                     showInterestDialog(interest, interest.getType());
                 }
@@ -493,6 +524,23 @@ public class AlertsActivity extends AlertouActivity {
             subtitle.setEllipsize(TextUtils.TruncateAt.END);
             textContainer.addView(subtitle);
 
+            row.addView(textContainer, new LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        } else if (interest.isTreasury()) {
+            LinearLayout textContainer = new LinearLayout(this);
+            textContainer.setOrientation(LinearLayout.VERTICAL);
+
+            TextView title = createInterestText();
+            title.setText(interest.getTerm());
+            title.setEllipsize(TextUtils.TruncateAt.END);
+            textContainer.addView(title);
+
+            TextView subtitle = createInterestText();
+            subtitle.setText(getString(R.string.treasury_alert_rate_value,
+                    formatTreasuryRate(interest.getMinimumTreasuryRate())));
+            subtitle.setTextColor(getColor(R.color.text_secondary));
+            subtitle.setTextSize(12);
+            textContainer.addView(subtitle);
             row.addView(textContainer, new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         } else {
@@ -961,6 +1009,104 @@ public class AlertsActivity extends AlertouActivity {
     private String formatCouponPercentage(double value) {
         return value == Math.rint(value) ? String.valueOf((long) value) + "%"
                 : String.format(Locale.US, "%.2f", value).replace('.', ',') + "%";
+    }
+
+    private String formatTreasuryRate(double value) {
+        NumberFormat format = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        format.setMinimumFractionDigits(0);
+        format.setMaximumFractionDigits(3);
+        return format.format(value);
+    }
+
+    private void showTreasuryDialog(Interest interestToEdit) {
+        showTreasuryRateDialog(interestToEdit == null ? "" : interestToEdit.getTerm(),
+                interestToEdit);
+    }
+
+    private void showTreasuryRateDialog(String treasuryTitle, Interest interestToEdit) {
+        boolean editing = interestToEdit != null;
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(editing ? R.string.treasury_dialog_edit_title : R.string.treasury_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(22);
+        content.addView(title);
+
+        EditText nameInput = createDialogInput(R.string.interest_term_hint,
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        nameInput.setText(treasuryTitle);
+        content.addView(nameInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
+
+        TextView message = new TextView(this);
+        message.setText(R.string.treasury_dialog_summary);
+        message.setTextColor(getColor(R.color.text_secondary));
+        message.setTextSize(14);
+        message.setPadding(0, 0, 0, dp(14));
+        content.addView(message);
+
+        EditText rateInput = createDialogInput(R.string.treasury_rate_hint,
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        rateInput.setKeyListener(android.text.method.DigitsKeyListener.getInstance("0123456789,."));
+        if (editing) rateInput.setText(formatTreasuryRate(interestToEdit.getMinimumTreasuryRate()));
+        content.addView(rateInput, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        actions.setPadding(0, dp(14), 0, 0);
+        TextView cancel = createDialogAction(R.string.action_cancel);
+        cancel.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(cancel);
+        TextView save = createPrimaryDialogAction(R.string.action_save);
+        save.setOnClickListener(view -> {
+            String selectedTitle = nameInput.getText().toString().trim();
+            if (selectedTitle.isEmpty()) {
+                nameInput.setError(getString(R.string.interest_term_required));
+                return;
+            }
+            Double minimumRate = parsePositiveNumber(rateInput);
+            if (minimumRate == null) {
+                rateInput.setError(getString(R.string.treasury_rate_required));
+                return;
+            }
+            if (editing) {
+                interestRepository.update(interestToEdit.getId(), selectedTitle, minimumRate);
+            } else {
+                interestRepository.addTreasury(selectedTitle, minimumRate);
+            }
+            MonitorServiceController.update(this);
+            dialog.dismiss();
+            renderInterests();
+        });
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, dp(42));
+        saveParams.leftMargin = dp(10);
+        actions.addView(save, saveParams);
+        content.addView(actions);
+        showDialog(dialog, content);
+    }
+
+    private void showDialog(Dialog dialog, LinearLayout content) {
+        dialog.setContentView(content);
+        Window window = dialog.getWindow();
+        if (window != null) window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        dialog.show();
+        Window shownWindow = dialog.getWindow();
+        if (shownWindow == null) return;
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+        params.copyFrom(shownWindow.getAttributes());
+        params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
+        params.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        params.dimAmount = 0.65f;
+        shownWindow.setAttributes(params);
+        shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
+        shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
     }
 
     private void updateCouponValueHint(EditText urlInput, EditText valueInput) {

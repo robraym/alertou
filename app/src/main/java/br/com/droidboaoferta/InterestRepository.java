@@ -62,6 +62,10 @@ final class InterestRepository {
         return add(term, maximumPrice, Interest.TYPE_PRICE);
     }
 
+    long addTreasury(String title, double minimumRate) {
+        return add(title, minimumRate, Interest.TYPE_TREASURY);
+    }
+
     long addCoupon(String pageUrl, double minimumCouponValue) {
         return addCoupon(pageUrl, minimumCouponValue, "");
     }

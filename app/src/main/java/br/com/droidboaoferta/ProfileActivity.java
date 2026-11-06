@@ -54,6 +54,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private static final String PROFILE_PREFS = "profile_preferences";
     private static final String PREF_APPEARANCE_EXPANDED = "appearance_expanded";
     private static final String PREF_PROPERTIES_EXPANDED = "properties_expanded";
+    private static final String PREF_TREASURY_EXPANDED = "treasury_expanded";
     private static final String PREF_EXTERNAL_SOURCES_EXPANDED = "external_sources_expanded";
     private static final String PREF_SYNC_EXPANDED = "sync_expanded";
     private static final String PREF_INFO_EXPANDED = "info_expanded";
@@ -98,6 +99,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView navigationAnimationSummary;
     private TextView propertyIntervalSummary;
     private TextView propertyZipIntervalSummary;
+    private TextView treasuryIntervalSummary;
     private TextView vivoOutletIntervalSummary;
     private TextView vivoMadrugadaIntervalSummary;
     private TextView pelandoIntervalSummary;
@@ -144,6 +146,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         navigationAnimationSummary = findViewById(R.id.text_navigation_animation_summary);
         propertyIntervalSummary = findViewById(R.id.text_property_interval_summary);
         propertyZipIntervalSummary = findViewById(R.id.text_property_zip_interval_summary);
+        treasuryIntervalSummary = findViewById(R.id.text_treasury_interval_summary);
         vivoOutletIntervalSummary = findViewById(R.id.text_vivo_outlet_interval_summary);
         vivoMadrugadaIntervalSummary = findViewById(R.id.text_vivo_madrugada_interval_summary);
         pelandoIntervalSummary = findViewById(R.id.text_pelando_interval_summary);
@@ -213,6 +216,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         findViewById(R.id.row_property_zip_interval).setOnClickListener(
                 view -> showPropertyIntervalDialog(true)
         );
+        findViewById(R.id.row_treasury_interval).setOnClickListener(
+                view -> showTreasuryIntervalDialog()
+        );
         findViewById(R.id.row_vivo_outlet_interval).setOnClickListener(
                 view -> showVivoOutletIntervalDialog()
         );
@@ -276,6 +282,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.id.button_toggle_profile_properties,
                 R.id.container_profile_properties,
                 PREF_PROPERTIES_EXPANDED
+        );
+        configureCollapsibleSection(
+                R.id.header_profile_treasury,
+                R.id.button_toggle_profile_treasury,
+                R.id.container_profile_treasury,
+                PREF_TREASURY_EXPANDED
         );
         configureCollapsibleSection(
                 R.id.header_profile_external_sources,
@@ -439,6 +451,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         ));
         propertyIntervalSummary.setText(getPropertyIntervalSummary(false));
         propertyZipIntervalSummary.setText(getPropertyIntervalSummary(true));
+        treasuryIntervalSummary.setText(formatCheckIntervalSeconds(
+                TreasuryDirectSettings.getCheckIntervalSeconds(this)));
         vivoOutletIntervalSummary.setText(formatStoreInterval(R.string.vivo_outlet_source_title, VivoOutletSource.getCheckIntervalSeconds(this)));
         vivoMadrugadaIntervalSummary.setText(formatStoreInterval(R.string.vivo_madrugada_source_title, VivoMadrugadaSource.getCheckIntervalSeconds(this)));
         pelandoIntervalSummary.setText(formatStoreInterval(R.string.pelando_source_title, PelandoSource.getCheckIntervalSeconds(this)));
@@ -602,6 +616,45 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         actions.addView(close);
         content.addView(actions);
 
+        showCompactDialog(dialog, content);
+    }
+
+    private void showTreasuryIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.treasury_direct_interval_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = TreasuryDirectSettings.getCheckIntervalSeconds(this);
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    interval == savedInterval);
+            option.setOnClickListener(view -> {
+                TreasuryDirectSettings.saveCheckIntervalSeconds(this, interval);
+                treasuryIntervalSummary.setText(formatCheckIntervalSeconds(interval));
+                TreasuryDirectMonitor.getInstance().rescheduleIfRunning(this);
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
         showCompactDialog(dialog, content);
     }
 
