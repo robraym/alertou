@@ -1156,6 +1156,8 @@ public class MainActivity extends AlertouActivity {
         boolean propertySection = propertyMarketSection
                 || SECTION_PROPERTIES_EXPANDED.equals(preferenceKey)
                 || propertyZipSection;
+        boolean countBelowTitle = propertySection
+                || SECTION_PRODUCTS_EXPANDED.equals(preferenceKey);
         if (propertyMarketSection) {
             card.setTag(PROPERTY_MARKET_CARD_TAG);
             propertyMarketCardView = card;
@@ -1234,7 +1236,7 @@ public class MainActivity extends AlertouActivity {
 
         TextView count = new TextView(this);
         String countText = getPropertyReferenceCountText(preferenceKey, offers.size());
-        count.setText(propertySection ? stripCountBullet(countText) : countText);
+        count.setText(countBelowTitle ? stripCountBullet(countText) : countText);
         count.setTextColor(AccentColorController.getPrimaryColor(this));
         count.setTextSize(14);
         if (propertyMarketSection) {
@@ -1249,7 +1251,7 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT
         ));
 
-        if (propertySection) {
+        if (countBelowTitle) {
             count.setTextColor(getColor(R.color.text_secondary));
             count.setTextSize(13);
             count.setSingleLine(true);
@@ -1585,10 +1587,8 @@ public class MainActivity extends AlertouActivity {
         label.setTextSize(13);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
-        label.setMaxEms(14);
         header.addView(label, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         PropertyMarketListingCountHistory countHistory = new PropertyHistoryRepository(this)
                 .getMarketListingCountHistory(interestId);
@@ -1603,9 +1603,6 @@ public class MainActivity extends AlertouActivity {
             countBadgeParams.rightMargin = dp(6);
             header.addView(countBadge, countBadgeParams);
         }
-
-        header.addView(new View(this), new LinearLayout.LayoutParams(
-                0, 0, 1));
 
         boolean expanded = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
                 .getBoolean(preferenceKey, true);
@@ -2308,18 +2305,8 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getPropertyZipTitle(ObservedOffer offer, Interest interest, String fallbackTitle) {
-        String listingAddress = getPropertyZipAddress(offer, interest, fallbackTitle);
-        if (listingAddress.matches(".*\\d+.*")) {
-            String compactAddress = listingAddress
-                    .replaceFirst("(?i)^\\s*(rua|r\\.)\\s*", "")
-                    .replaceFirst("(?i)^doutor\\s+", "").trim();
-            if (!compactAddress.isEmpty()) return compactAddress;
-        }
         if (interest != null && !interest.getPropertyStreet().isEmpty()) {
-            String compact = interest.getPropertyStreet()
-                    .replaceFirst("(?i)^\\s*(rua|r\\.)\\s*", "")
-                    .replaceFirst("(?i)^doutor\\s+", "").trim();
-            if (!compact.isEmpty()) return compact;
+            return abbreviatePropertyStreetTitle(interest.getPropertyStreet());
         }
         String title = fallbackTitle == null ? "" : fallbackTitle.trim();
         return title.isEmpty() ? getString(R.string.property_interest_unknown_name) : title;
@@ -2369,19 +2356,20 @@ public class MainActivity extends AlertouActivity {
     private String getPropertyZipCardTitle(Interest interest) {
         if (interest == null) return getString(R.string.property_interest_unknown_name);
         String street = interest.getPropertyStreet().trim();
-        PropertyMarketListingCountHistory countHistory = new PropertyHistoryRepository(this)
-                .getMarketListingCountHistory(interest.getId());
-        int count = countHistory.getLatestCount();
-        street = shortenPropertyStreetTitle(street);
-        return street;
+        return street.isEmpty() ? getString(R.string.property_interest_unknown_name)
+                : abbreviatePropertyStreetTitle(street);
     }
 
-    private String shortenPropertyStreetTitle(String street) {
-        if (street == null) return "";
-        String shortName = street.trim()
-                .replaceFirst("(?i)^(rua|r\\.?|avenida|av\\.?|alameda|travessa|estrada|rodovia)\\s+", "")
-                .replaceFirst("(?i)^(doutor|dr\\.?|doutora|dra\\.?|professor|prof\\.?|professora|profa\\.?)\\s+", "");
-        return shortName.isEmpty() ? street.trim() : shortName;
+    private String abbreviatePropertyStreetTitle(String street) {
+        return street.trim()
+                .replaceFirst("(?i)^avenida\\s+", "Av. ")
+                .replaceFirst("(?i)^rua\\s+", "R. ")
+                .replaceFirst("(?i)^alameda\\s+", "Al. ")
+                .replaceFirst("(?i)^travessa\\s+", "Tv. ")
+                .replaceFirst("(?i)^estrada\\s+", "Est. ")
+                .replaceFirst("(?i)^rodovia\\s+", "Rod. ")
+                .replaceFirst("(?i)^(R\\.|Av\\.|Al\\.|Tv\\.|Est\\.|Rod\\.)\\s+doutor\\s+", "$1 Dr. ")
+                .replaceFirst("(?i)^(R\\.|Av\\.|Al\\.|Tv\\.|Est\\.|Rod\\.)\\s+doutora\\s+", "$1 Dra. ");
     }
 
     private List<ObservedOffer> groupPropertyZipOffersByStreet(List<ObservedOffer> offers) {
