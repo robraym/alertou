@@ -2,7 +2,6 @@ package br.com.droidboaoferta;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
@@ -12,10 +11,6 @@ import java.util.Locale;
 
 final class PropertyPageClient {
     private static final int MAX_RESPONSE_BYTES = 3 * 1024 * 1024;
-    private static final String QUINTOANDAR_SEARCH_API =
-            "https://apigw.prod.quintoandar.com.br/house-listing-search/v3/search/list";
-    private static final int SEARCH_API_PAGE_SIZE = 500;
-    private static final int MAX_SEARCH_LISTINGS = 2_000;
 
     private PropertyPageClient() {
     }
@@ -95,43 +90,9 @@ final class PropertyPageClient {
     private static PropertyPageResult fetchSearchPages(String normalizedUrl,
                                                         int maximumListings) throws Exception {
         String searchPage = fetchHtml(normalizedUrl);
-        PropertyPageResult renderedPage = PropertyPageParser.parseSearch(searchPage);
-        String request = PropertyPageParser.buildSearchApiRequest(
-                searchPage, normalizedUrl, 0, SEARCH_API_PAGE_SIZE);
-        if (request == null) {
-            // Sem os dados de consulta estruturados, use apenas a página inicial.
-            // Não simulamos paginação por "page": esse parâmetro não é suportado
-            // pela página pública e misturava amostras diferentes da busca.
-            return renderedPage;
-        }
-        java.util.List<PropertyPageListing> collected = new java.util.ArrayList<>();
-        java.util.HashSet<String> ids = new java.util.HashSet<>();
-        try {
-            for (int offset = 0; offset < MAX_SEARCH_LISTINGS; offset += SEARCH_API_PAGE_SIZE) {
-                String pageRequest = PropertyPageParser.buildSearchApiRequest(
-                        searchPage, normalizedUrl, offset, SEARCH_API_PAGE_SIZE);
-                PropertyPageResult page = PropertyPageParser.parseSearchApiResponse(
-                        fetchSearchApi(pageRequest));
-                appendListings(collected, ids, page.getSaleListings(), MAX_SEARCH_LISTINGS);
-                if (page.getSaleListings().size() < SEARCH_API_PAGE_SIZE) {
-                    break;
-                }
-            }
-        } catch (Exception error) {
-            // Preserva a consulta já existente caso a API oficial fique indisponível.
-            if (collected.isEmpty()) return renderedPage;
-        }
-        return new PropertyPageResult("", collected, collected.size());
-    }
-
-    private static void appendListings(java.util.List<PropertyPageListing> target,
-                                       java.util.Set<String> ids,
-                                       java.util.List<PropertyPageListing> source,
-                                       int limit) {
-        for (PropertyPageListing listing : source) {
-            if (target.size() >= limit) return;
-            if (listing != null && ids.add(listing.getId())) target.add(listing);
-        }
+        // A página pública contém os resultados da rua pesquisada. A API interna
+        // retornava uma área ampla e podia omitir a rua do alerta por CEP.
+        return PropertyPageParser.parseSearch(searchPage);
     }
 
     static String buildLoftDataUrl(String normalizedUrl) {
@@ -293,35 +254,6 @@ final class PropertyPageClient {
         connection.setRequestProperty("Cache-Control", "no-cache, no-store");
         connection.setRequestProperty("Pragma", "no-cache");
         connection.setRequestProperty("User-Agent", "Alertou/1.0 Android");
-        try {
-            int status = connection.getResponseCode();
-            if (status < 200 || status >= 300) {
-                throw new IllegalStateException("HTTP " + status);
-            }
-            return readResponse(connection.getInputStream());
-        } finally {
-            connection.disconnect();
-        }
-    }
-
-    private static String fetchSearchApi(String requestBody) throws Exception {
-        if (requestBody == null || requestBody.trim().isEmpty()) {
-            throw new IllegalArgumentException("Missing search request");
-        }
-        HttpURLConnection connection = (HttpURLConnection) new URL(QUINTOANDAR_SEARCH_API)
-                .openConnection();
-        connection.setConnectTimeout(12_000);
-        connection.setReadTimeout(18_000);
-        connection.setRequestMethod("POST");
-        connection.setDoOutput(true);
-        connection.setUseCaches(false);
-        connection.setRequestProperty("Accept", "application/json");
-        connection.setRequestProperty("Content-Type", "application/json");
-        connection.setRequestProperty("User-Agent", "Alertou/1.0 Android");
-        byte[] payload = requestBody.getBytes(StandardCharsets.UTF_8);
-        try (OutputStream output = connection.getOutputStream()) {
-            output.write(payload);
-        }
         try {
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) {

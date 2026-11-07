@@ -189,6 +189,21 @@ final class OfferRepository {
         }
     }
 
+    /** Reconciles only the visible listings of one successfully checked CEP alert. */
+    boolean retainRecentPropertyListings(long interestId, java.util.Set<String> listingIds) {
+        synchronized (OfferStorage.LOCK) {
+            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            String prefix = "property|" + interestId + "|";
+            boolean changed = recent.removeIf(offer -> offer.getId().startsWith(prefix)
+                    && !listingIds.contains(offer.getId().substring(prefix.length())));
+            if (changed) {
+                saveOffers(KEY_OFFERS, recent);
+                CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+            }
+            return changed;
+        }
+    }
+
     boolean clearPropertyMarketReferences() {
         synchronized (OfferStorage.LOCK) {
             List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));

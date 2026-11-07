@@ -1013,7 +1013,7 @@ public class AlertsActivity extends AlertouActivity {
 
     private String formatTreasuryRate(double value) {
         NumberFormat format = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
-        format.setMinimumFractionDigits(0);
+        format.setMinimumFractionDigits(2);
         format.setMaximumFractionDigits(3);
         return format.format(value);
     }

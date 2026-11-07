@@ -207,9 +207,17 @@ final class PropertyHistoryRepository {
     synchronized int recordObservation(long interestId, PropertyPageListing listing,
                                        long observedAt,
                                        PropertyListingMetadata metadata) {
+        return recordObservation(interestId, listing, observedAt, metadata, false);
+    }
+
+    synchronized int recordObservation(long interestId, PropertyPageListing listing,
+                                       long observedAt,
+                                       PropertyListingMetadata metadata,
+                                       boolean publicZipPage) {
         synchronized (preferences) {
             if (PropertyPageClient.normalizeListingUrl(listing.getUrl()) == null) return UNCHANGED;
-            boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
+            boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl())
+                    && !publicZipPage;
             if (requiresIdentity && (metadata == null || !metadata.isVerifiedFor(listing.getId())
                     || Double.compare(metadata.getSalePrice(), listing.getSalePrice()) != 0
                     || Double.compare(metadata.getArea(), listing.getArea()) != 0)) {
@@ -233,7 +241,12 @@ final class PropertyHistoryRepository {
             String before;
             try {
                 before = PropertyHistorySync.changeKey(item);
-                restoreCompatibleLegacyHistory(item, metadata);
+                // A busca por CEP usa a própria página pública como leitura autoritativa.
+                // Não deixe um histórico pendente do fluxo antigo bloquear a migração
+                // do restante dos anúncios da rua.
+                if (!publicZipPage) {
+                    restoreCompatibleLegacyHistory(item, metadata);
+                }
             } catch (org.json.JSONException ignored) {
                 return UNCHANGED;
             }
@@ -255,7 +268,7 @@ final class PropertyHistoryRepository {
                         // "Novo" indica que o Alertou encontrou o anúncio agora, não uma
                         // etiqueta permanente que a página de origem possa reutilizar.
                         .put("new_ad", created || item.optBoolean("new_ad", false));
-                if (requiresIdentity) {
+                if (requiresIdentity || publicZipPage) {
                     item.put("identity_validation_version", 1)
                             .put("validation_status", "available");
                 }
@@ -273,7 +286,7 @@ final class PropertyHistoryRepository {
                             .put("observed_at", observedAt)
                             .put("price", listing.getSalePrice())
                             .put("area", listing.getArea())
-                            .put("identity_verified", requiresIdentity));
+                            .put("identity_verified", requiresIdentity || publicZipPage));
                     while (points.length() > MAX_POINTS) {
                         points.remove(0);
                     }

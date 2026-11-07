@@ -729,7 +729,9 @@ public class MainActivity extends AlertouActivity {
                     continue;
                 }
                 if (isZipInterest(interestsById, offer.getInterestId())) {
-                    propertyZipOffers.add(offer);
+                    // A referência de mercado pode repetir um anúncio ou exceder
+                    // os filtros do CEP; o cartão mostra somente anúncios válidos.
+                    continue;
                 } else {
                     propertyMarketOffers.add(offer);
                 }
@@ -990,7 +992,7 @@ public class MainActivity extends AlertouActivity {
 
     private String formatTreasuryRate(double value) {
         NumberFormat number = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
-        number.setMinimumFractionDigits(0);
+        number.setMinimumFractionDigits(2);
         number.setMaximumFractionDigits(3);
         return number.format(value);
     }

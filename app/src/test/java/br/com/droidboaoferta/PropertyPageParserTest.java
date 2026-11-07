@@ -139,6 +139,27 @@ public class PropertyPageParserTest {
     }
 
     @Test
+    public void prefersPublicStreetListingsOverTheGenericSearchTotal() {
+        String html = "<script type=\"application/ld+json\">{\"@graph\":[{"
+                + "\"@type\":\"RealEstateListing\",\"url\":\"https://www.quintoandar.com.br/imovel/123/comprar\","
+                + "\"description\":\"Apartamento à venda\",\"about\":{\"floorSize\":{\"value\":58},"
+                + "\"address\":{\"streetAddress\":\"Rua Peixoto Gomide\"}},"
+                + "\"offers\":{\"price\":530000}}]}</script>"
+                + "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"initialState\":{"
+                + "\"search\":{\"searchTotal\":9904}}}}}</script>";
+
+        PropertyPageResult result = PropertyPageParser.parseSearch(html);
+
+        assertEquals(1, result.getSaleListings().size());
+        assertEquals(1, result.getSaleListingsCount());
+        PropertyPageListing listing = result.getSaleListings().get(0);
+        assertEquals("123", listing.getId());
+        assertEquals("Rua Peixoto Gomide", listing.getAddress());
+        assertEquals(58d, listing.getArea(), 0.001d);
+        assertEquals(530000d, listing.getSalePrice(), 0.001d);
+    }
+
+    @Test
     public void normalizesQuintoAndarListingPages() {
         String expected = "https://www.quintoandar.com.br/imovel/114071763/comprar";
 

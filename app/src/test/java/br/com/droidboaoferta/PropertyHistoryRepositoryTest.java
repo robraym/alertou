@@ -43,6 +43,22 @@ public class PropertyHistoryRepositoryTest {
     }
 
     @Test
+    public void trustsThePublicPageForZipListingPrice() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        PropertyPageListing listing = new PropertyPageListing("123", 31d, 341000d,
+                "Kitnet", "https://www.quintoandar.com.br/imovel/123/comprar", false, false,
+                "Rua Peixoto Gomide");
+
+        repository.recordObservation(1L, listing, 1L, PropertyListingMetadata.empty(), true);
+        ObservedOffer offer = new ObservedOffer("property|1|123", 1L, "Peixoto Gomide",
+                "QuintoAndar", 341000d, 880000d, 1L, listing.getUrl(), listing.getAddress());
+
+        assertFalse(repository.getForOffer(offer).isPendingValidation());
+        assertEquals(341000d, repository.getForOffer(offer).getLatestPrice(0d), 0.001d);
+    }
+
+    @Test
     public void keepsWorkingLegacyHistoryIncludingGoPortugalDrop() throws Exception {
         java.util.Map<String, String> stored = new java.util.HashMap<>();
         JSONObject original = workingLegacyEntry();

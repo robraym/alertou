@@ -32,6 +32,9 @@ final class PropertyPageMonitor {
     private static final String KEY_LAST_ZIP_DURATION = "last_zip_duration";
     private static final String PREFS = "property_page_monitor";
     private static final String NOTIFIED_PRICES_PREFIX = "notified_prices_";
+    private static final String KEY_PUBLIC_ZIP_PAGE_FORMAT_VERSION =
+            "public_zip_page_format_version";
+    private static final int PUBLIC_ZIP_PAGE_FORMAT_VERSION = 2;
     private static final double PRICE_VERIFICATION_MARGIN = 1.10d;
     private static final PropertyPageMonitor INSTANCE = new PropertyPageMonitor();
 
@@ -73,6 +76,7 @@ final class PropertyPageMonitor {
         appContext = context.getApplicationContext();
         if (!MonitorRunPolicy.canRun(appContext)) return;
         reconcileSchedulers();
+        requestPublicZipPageMigrationIfNeeded();
     }
 
     synchronized void stop() {
@@ -222,6 +226,23 @@ final class PropertyPageMonitor {
         if (!PropertyMarketReferenceSettings.isVisible(appContext, zip)) return;
         CoalescingCheckScheduler scheduler = schedulerFor(zip);
         if (scheduler.isStarted()) scheduler.request(0, () -> checkCategorySafely(zip));
+    }
+
+    /** Reprocesses every CEP alert once after changing its source to the public search page. */
+    private void requestPublicZipPageMigrationIfNeeded() {
+        SharedPreferences preferences = appContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (preferences.getInt(KEY_PUBLIC_ZIP_PAGE_FORMAT_VERSION, 0)
+                >= PUBLIC_ZIP_PAGE_FORMAT_VERSION) {
+            return;
+        }
+        if (!PropertyMarketReferenceSettings.isVisible(appContext, true)
+                || !zipScheduler.isStarted()) {
+            return;
+        }
+        // Persist before queueing so a service restart does not run simultaneous full scans.
+        preferences.edit().putInt(KEY_PUBLIC_ZIP_PAGE_FORMAT_VERSION,
+                PUBLIC_ZIP_PAGE_FORMAT_VERSION).apply();
+        zipScheduler.request(0, () -> checkCategorySafely(true));
     }
 
     private CoalescingCheckScheduler schedulerFor(boolean zip) {
@@ -708,7 +729,12 @@ final class PropertyPageMonitor {
                     interest.getMinimumArea(), interest.getMaximumArea());
             if (!previouslyObserved && !matchesArea) continue;
             PropertyListingMetadata metadata = null;
-            boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
+            // Para CEP, a página pública é a fonte escolhida e já fornece endereço,
+            // metragem e preço do anúncio. Não bloqueie o resultado em uma segunda
+            // consulta individual que pode falhar apesar da busca da rua ter dado certo.
+            boolean publicZipListing = interest.isPropertyZip();
+            boolean requiresIdentity = !publicZipListing
+                    && PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
             boolean reusedVerifiedSnapshot = requiresIdentity
                     && currentPageListingIds.contains(listing.getId())
                     && historyRepository.hasVerifiedUnchangedListing(interest.getId(), listing);
@@ -730,7 +756,7 @@ final class PropertyPageMonitor {
                 forgetUnavailableNotification(context, interest.getId(), listing.getId());
                 continue;
             }
-            PropertyPageListing currentListing = reusedVerifiedSnapshot
+            PropertyPageListing currentListing = publicZipListing || reusedVerifiedSnapshot
                     ? listing : resolveCurrentListing(listing, metadata);
             if (currentListing == null) continue;
             if (!matchesPropertyZipAddress(interest, currentListing)) continue;
@@ -742,7 +768,7 @@ final class PropertyPageMonitor {
             if (!reusedVerifiedSnapshot
                     && (previouslyObserved || eligible || (marketReferenceEnabled && matchesArea))) {
                 historyChange = historyRepository.recordObservation(
-                        interest.getId(), currentListing, observedAt, metadata);
+                        interest.getId(), currentListing, observedAt, metadata, publicZipListing);
                 historyChanges.put(currentListing.getId(), historyChange);
             }
             if (marketReferenceEnabled && matchesArea
@@ -765,14 +791,19 @@ final class PropertyPageMonitor {
             historyRepository.recordVisiblePropertyZipListingCount(
                     interest.getId(), matches.size(), observedAt);
         }
+        OfferRepository repository = new OfferRepository(context);
         boolean removedStaleOffer = false;
+        if (interest.isPropertyZip()) {
+            java.util.Set<String> currentIds = new java.util.HashSet<>();
+            for (PropertyPageListing listing : matches) currentIds.add(listing.getId());
+            removedStaleOffer = repository.retainRecentPropertyListings(
+                    interest.getId(), currentIds);
+        }
         if (!noLongerEligibleOfferIds.isEmpty()) {
-            OfferRepository repository = new OfferRepository(context);
             for (String id : noLongerEligibleOfferIds) {
                 removedStaleOffer |= repository.clearRecentOffer(id);
             }
         }
-        OfferRepository repository = new OfferRepository(context);
         boolean changedMarketReference = includeMarketReferences
                 && upsertMarketReferenceIfNeeded(
                         context,
@@ -1064,10 +1095,13 @@ final class PropertyPageMonitor {
         if (interest == null || !interest.isPropertyZip()) return true;
         if (listing == null) return false;
         String requestedStreet = normalizeStreetForPropertyZip(interest.getPropertyStreet());
-        String listingAddress = normalizeStreetForPropertyZip(listing.getAddress());
+        String address = listing.getAddress();
+        int separator = address.indexOf(',');
+        String listingAddress = normalizeStreetForPropertyZip(
+                separator < 0 ? address : address.substring(0, separator));
         return !requestedStreet.isEmpty()
                 && !listingAddress.isEmpty()
-                && listingAddress.contains(requestedStreet);
+                && listingAddress.equals(requestedStreet);
     }
 
     private void updatePropertyZipListingProgress(Context context, Interest interest,
