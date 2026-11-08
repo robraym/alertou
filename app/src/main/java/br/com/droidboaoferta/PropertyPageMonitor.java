@@ -665,7 +665,7 @@ final class PropertyPageMonitor {
                 interest.isPropertyZip()
                         // Primeiro carregamos candidatos suficientes para localizar a rua;
                         // o limite do alerta é aplicado só depois dessa confirmação.
-                        ? Math.min(100, interest.getPropertyZipListingLimit() * 5)
+                        ? Math.min(100, interest.getPropertyListingLimit() * 5)
                         : Integer.MAX_VALUE
         );
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
@@ -709,12 +709,6 @@ final class PropertyPageMonitor {
         for (PropertyPageListing listing : candidates.values()) {
             if (matchesPropertyZipAddress(interest, listing)) {
                 addressCandidates.add(listing);
-            }
-        }
-        if (interest.isPropertyZip()) {
-            int limit = interest.getPropertyZipListingLimit();
-            if (addressCandidates.size() > limit) {
-                addressCandidates = new ArrayList<>(addressCandidates.subList(0, limit));
             }
         }
         updatePropertyZipListingProgress(context, interest, 0, addressCandidates.size());
@@ -785,6 +779,14 @@ final class PropertyPageMonitor {
             }
         }
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+        // O limite não pode escolher os primeiros itens vindos da fonte: essa ordem
+        // é de relevância do QuintoAndar e poderia excluir um imóvel mais barato.
+        // Primeiro aplicamos os filtros do alerta, ordenamos pelo preço e só então
+        // mantemos a quantidade configurada para este condomínio ou CEP.
+        matches.sort(Comparator.comparingDouble(PropertyPageListing::getSalePrice));
+        if (interest.isProperty() && matches.size() > interest.getPropertyListingLimit()) {
+            matches = new ArrayList<>(matches.subList(0, interest.getPropertyListingLimit()));
+        }
         if (interest.isPropertyZip()) {
             // O selo e o histórico do CEP refletem somente os itens que
             // passaram pela validação individual e entram na lista visível.
@@ -793,7 +795,7 @@ final class PropertyPageMonitor {
         }
         OfferRepository repository = new OfferRepository(context);
         boolean removedStaleOffer = false;
-        if (interest.isPropertyZip()) {
+        if (interest.isPropertyZip() || interest.isPropertyCondominium()) {
             java.util.Set<String> currentIds = new java.util.HashSet<>();
             for (PropertyPageListing listing : matches) currentIds.add(listing.getId());
             removedStaleOffer = repository.retainRecentPropertyListings(
@@ -820,8 +822,6 @@ final class PropertyPageMonitor {
             }
             return;
         }
-        matches.sort(Comparator.comparingDouble(PropertyPageListing::getSalePrice));
-
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         String stateKey = NOTIFIED_PRICES_PREFIX + interest.getId();
         JSONObject notifiedPrices;

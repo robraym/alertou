@@ -2,15 +2,25 @@ package br.com.droidboaoferta;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 final class PropertyPageClient {
     private static final int MAX_RESPONSE_BYTES = 3 * 1024 * 1024;
+    private static final int QUINTO_ANDAR_LISTING_PAGE_SIZE = 20;
+    private static final String QUINTO_ANDAR_LISTING_SEARCH_URL =
+            "https://apigw.prod.quintoandar.com.br/house-listing-search/v3/search/list";
 
     private PropertyPageClient() {
     }
@@ -84,7 +94,79 @@ final class PropertyPageClient {
         if (isSearchPath(URI.create(normalizedUrl).getPath())) {
             return fetchSearchPages(normalizedUrl, maximumSearchListings);
         }
-        return PropertyPageParser.parse(fetchHtml(normalizedUrl));
+        String page = fetchHtml(normalizedUrl);
+        PropertyPageResult initialResult = PropertyPageParser.parse(page);
+        if (!isQuintoAndarCondominiumUrl(normalizedUrl)
+                || initialResult.getSaleListingsCount() <= initialResult.getSaleListings().size()) {
+            return initialResult;
+        }
+        long condominiumId = PropertyPageParser.parseQuintoAndarCondominiumId(page);
+        if (condominiumId <= 0L) {
+            return initialResult;
+        }
+        List<PropertyPageListing> allListings = fetchAllQuintoAndarCondominiumListings(
+                condominiumId, initialResult.getSaleListingsCount());
+        return new PropertyPageResult(initialResult.getCondominiumName(), allListings,
+                initialResult.getSaleListingsCount());
+    }
+
+    private static boolean isQuintoAndarCondominiumUrl(String normalizedUrl) {
+        try {
+            URI uri = URI.create(normalizedUrl);
+            String host = uri.getHost() == null ? "" : uri.getHost().toLowerCase(Locale.ROOT);
+            return ("quintoandar.com.br".equals(host) || "www.quintoandar.com.br".equals(host))
+                    && isCondominiumPath(uri.getPath());
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+    }
+
+    private static List<PropertyPageListing> fetchAllQuintoAndarCondominiumListings(
+            long condominiumId, int expectedCount) throws Exception {
+        LinkedHashMap<String, PropertyPageListing> listings = new LinkedHashMap<>();
+        for (int offset = 0; offset < expectedCount; offset += QUINTO_ANDAR_LISTING_PAGE_SIZE) {
+            List<PropertyPageListing> page = PropertyPageParser.parseQuintoAndarSearchResponse(
+                    postJson(QUINTO_ANDAR_LISTING_SEARCH_URL,
+                            buildQuintoAndarListingSearchRequest(condominiumId, offset)));
+            if (page.isEmpty()) {
+                throw new IllegalStateException("QuintoAndar returned an empty listings page");
+            }
+            for (PropertyPageListing listing : page) {
+                listings.put(listing.getId(), listing);
+            }
+        }
+        if (listings.size() < expectedCount) {
+            throw new IllegalStateException("QuintoAndar did not return all condominium listings");
+        }
+        return new ArrayList<>(listings.values());
+    }
+
+    private static String buildQuintoAndarListingSearchRequest(long condominiumId, int offset)
+            throws Exception {
+        JSONArray fields = new JSONArray();
+        for (String field : new String[]{
+                "id", "coverImage", "rent", "area", "bedrooms", "totalCost", "imageList",
+                "imageCaptionList", "address", "regionName", "neighbourhood", "city",
+                "visitStatus", "activeSpecialConditions", "attributeTags", "type", "forRent",
+                "forSale", "salePrice", "iptu", "condominium", "iptuPlusCondominium",
+                "parkingSpaces", "listingTags", "amenities", "bathrooms", "installations",
+                "isFurnished", "shortRentDescription", "shortSaleDescription", "condoId"
+        }) {
+            fields.put(field);
+        }
+        JSONObject filters = new JSONObject()
+                .put("businessContext", "SALE")
+                .put("condoIds", new JSONArray().put(condominiumId))
+                .put("availability", "ANY")
+                .put("occupancy", "ANY")
+                .put("origin", "HYBRID");
+        return new JSONObject()
+                .put("filters", filters)
+                .put("sorting", new JSONObject().put("criteria", "RELEVANCE").put("order", "ASC"))
+                .put("pagination", new JSONObject()
+                        .put("pageSize", QUINTO_ANDAR_LISTING_PAGE_SIZE).put("offset", offset))
+                .put("fields", fields)
+                .toString();
     }
 
     private static PropertyPageResult fetchSearchPages(String normalizedUrl,
@@ -255,6 +337,32 @@ final class PropertyPageClient {
         connection.setRequestProperty("Pragma", "no-cache");
         connection.setRequestProperty("User-Agent", "Alertou/1.0 Android");
         try {
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                throw new IllegalStateException("HTTP " + status);
+            }
+            return readResponse(connection.getInputStream());
+        } finally {
+            connection.disconnect();
+        }
+    }
+
+    private static String postJson(String url, String body) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        connection.setConnectTimeout(12_000);
+        connection.setReadTimeout(18_000);
+        connection.setInstanceFollowRedirects(true);
+        connection.setUseCaches(false);
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Content-Type", "application/json");
+        connection.setRequestProperty("Origin", "https://www.quintoandar.com.br");
+        connection.setRequestProperty("User-Agent", "Alertou/1.0 Android");
+        try {
+            try (OutputStream output = connection.getOutputStream()) {
+                output.write(body.getBytes(StandardCharsets.UTF_8));
+            }
             int status = connection.getResponseCode();
             if (status < 200 || status >= 300) {
                 throw new IllegalStateException("HTTP " + status);

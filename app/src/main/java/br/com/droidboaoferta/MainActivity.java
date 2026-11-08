@@ -1352,34 +1352,41 @@ public class MainActivity extends AlertouActivity {
         content.setPadding(dp(6), 0, dp(6), dp(4));
         content.setVisibility(expanded ? View.VISIBLE : View.GONE);
 
+        boolean propertyInterestCards = propertyZipSection || propertyMarketSection;
         List<ObservedOffer> sectionOffers = propertyZipSection
-                ? groupPropertyZipOffersByStreet(offers) : offers;
+                ? groupPropertyZipOffersByStreet(offers)
+                : propertyMarketSection ? groupPropertyCondominiumOffersByInterest(offers) : offers;
         String previousGroup = null;
-        String activeZipCardKey = null;
-        LinearLayout zipCardOffers = null;
-        int zipCardOfferCount = 0;
-        java.util.Set<Long> renderedZipInterestIds = new java.util.HashSet<>();
+        String activePropertyCardKey = null;
+        LinearLayout propertyCardOffers = null;
+        int propertyCardOfferCount = 0;
+        java.util.Set<Long> renderedPropertyInterestIds = new java.util.HashSet<>();
         for (int index = 0; index < sectionOffers.size(); index++) {
             ObservedOffer offer = sectionOffers.get(index);
             boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
             boolean newLowestMarketReference = propertyMarketReference
                     && PropertyMarketWinnerStore.isActive(this, offer);
             String group = propertyZipSection
-                    ? getPropertyZipCardKey(offer) : OfferDateFormatter.getGroupKey(offer.getObservedAt());
+                    ? getPropertyZipCardKey(offer)
+                    : propertyMarketSection ? getPropertyCondominiumCardKey(offer.getInterestId())
+                    : OfferDateFormatter.getGroupKey(offer.getObservedAt());
             String groupLabel = propertyZipSection
-                    ? getPropertyZipCardTitle(offer) : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
-            if (propertyZipSection) {
-                if (!group.equals(activeZipCardKey)) {
-                    if (activeZipCardKey != null) {
+                    ? getPropertyZipCardTitle(offer)
+                    : propertyMarketSection
+                    ? getPropertyCondominiumCardTitle(getInterestsById().get(offer.getInterestId()))
+                    : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
+            if (propertyInterestCards) {
+                if (!group.equals(activePropertyCardKey)) {
+                    if (activePropertyCardKey != null) {
                         content.addView(createOfferDivider());
                     }
-                    activeZipCardKey = group;
-                    zipCardOfferCount = 0;
-                    zipCardOffers = addPropertyZipInterestCard(content, group,
+                    activePropertyCardKey = group;
+                    propertyCardOfferCount = 0;
+                    propertyCardOffers = addPropertyInterestCard(content, group,
                             offer.getInterestId(), groupLabel);
-                    renderedZipInterestIds.add(offer.getInterestId());
-                } else if (zipCardOffers != null && zipCardOfferCount > 0) {
-                    zipCardOffers.addView(createOfferDivider());
+                    renderedPropertyInterestIds.add(offer.getInterestId());
+                } else if (propertyCardOffers != null && propertyCardOfferCount > 0) {
+                    propertyCardOffers.addView(createOfferDivider());
                 }
             } else if (!propertyMarketSection && !group.equals(previousGroup)) {
                 if (previousGroup != null) {
@@ -1392,9 +1399,6 @@ public class MainActivity extends AlertouActivity {
             }
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
             PropertyHistoryEntry propertyHistory = displayedPropertyHistory.get(offer.getId());
-            PropertyMarketListingCountHistory marketListingCounts = propertyMarketReference
-                    ? new PropertyHistoryRepository(this).getMarketListingCountHistory(offer.getInterestId())
-                    : null;
             double propertyPriceChange = propertyHistory == null
                     ? 0d : propertyHistory.getLatestPriceChangeAmount();
             double propertyPriceChangePercentage = propertyHistory == null
@@ -1438,7 +1442,6 @@ public class MainActivity extends AlertouActivity {
                     propertyPriceChangePercentage,
                     propertyMarketReference,
                     newLowestMarketReference,
-                    marketListingCounts,
                     view -> showPropertyHistoryDialog(offer)
             );
             FrameLayout swipeContainer = createSwipeContainer(row);
@@ -1447,26 +1450,31 @@ public class MainActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             );
-            (propertyZipSection && zipCardOffers != null ? zipCardOffers : content)
+            (propertyInterestCards && propertyCardOffers != null ? propertyCardOffers : content)
                     .addView(swipeContainer, rowParams);
-            if (propertyZipSection) {
-                zipCardOfferCount++;
+            if (propertyInterestCards) {
+                propertyCardOfferCount++;
             }
         }
-        if (propertyZipSection) {
-            // A rua permanece visível mesmo quando esta rodada não devolve anúncios
-            // individuais. O cartão principal e os cartões internos passam a refletir
-            // exatamente os mesmos CEPs configurados no Perfil.
+        if (propertyInterestCards) {
+            // O condomínio ou rua permanece visível mesmo quando a última rodada não
+            // devolve anúncios individuais. Os cartões internos refletem exatamente
+            // os alertas configurados no Perfil.
             for (Interest interest : interestRepository.getAll()) {
-                if (!interest.isPropertyZip() || renderedZipInterestIds.contains(interest.getId())) {
+                boolean belongsToSection = propertyZipSection
+                        ? interest.isPropertyZip() : interest.isPropertyCondominium();
+                if (!belongsToSection || renderedPropertyInterestIds.contains(interest.getId())) {
                     continue;
                 }
-                if (activeZipCardKey != null) {
+                if (activePropertyCardKey != null) {
                     content.addView(createOfferDivider());
                 }
-                activeZipCardKey = getPropertyZipCardKey(interest.getId());
-                addPropertyZipInterestCard(content, activeZipCardKey, interest.getId(),
-                        getPropertyZipCardTitle(interest));
+                activePropertyCardKey = propertyZipSection
+                        ? getPropertyZipCardKey(interest.getId())
+                        : getPropertyCondominiumCardKey(interest.getId());
+                addPropertyInterestCard(content, activePropertyCardKey, interest.getId(),
+                        propertyZipSection ? getPropertyZipCardTitle(interest)
+                                : getPropertyCondominiumCardTitle(interest));
             }
         }
         card.addView(content);
@@ -1556,8 +1564,8 @@ public class MainActivity extends AlertouActivity {
         return header;
     }
 
-    private LinearLayout addPropertyZipInterestCard(LinearLayout parent, String preferenceKey,
-                                                    long interestId, String title) {
+    private LinearLayout addPropertyInterestCard(LinearLayout parent, String preferenceKey,
+                                                 long interestId, String title) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.bg_card_compact);
@@ -2001,7 +2009,7 @@ public class MainActivity extends AlertouActivity {
             if (!interest.isPropertyZip()) continue;
             int count = history.getMarketListingCountHistory(interest.getId()).getLatestCount();
             if (count > 0) {
-                total += Math.min(count, interest.getPropertyZipListingLimit());
+                total += Math.min(count, interest.getPropertyListingLimit());
                 hasReading = true;
             }
         }
@@ -2347,6 +2355,16 @@ public class MainActivity extends AlertouActivity {
         return "property_zip_interest_expanded_" + interestId;
     }
 
+    private String getPropertyCondominiumCardKey(long interestId) {
+        return "property_condominium_interest_expanded_" + interestId;
+    }
+
+    private String getPropertyCondominiumCardTitle(Interest interest) {
+        if (interest == null) return getString(R.string.property_interest_unknown_name);
+        String name = PropertyPageResult.normalizeCondominiumName(interest.getPropertyName());
+        return name.isEmpty() ? getString(R.string.property_interest_unknown_name) : name;
+    }
+
     private String getPropertyZipCardTitle(ObservedOffer offer) {
         Interest interest = getInterestsById().get(offer.getInterestId());
         if (interest == null) return getPropertyZipGroupName(offer);
@@ -2386,6 +2404,27 @@ public class MainActivity extends AlertouActivity {
         List<ObservedOffer> groupedOffers = new java.util.ArrayList<>();
         for (List<ObservedOffer> streetOffers : grouped.values()) {
             groupedOffers.addAll(streetOffers);
+        }
+        return groupedOffers;
+    }
+
+    private List<ObservedOffer> groupPropertyCondominiumOffersByInterest(
+            List<ObservedOffer> offers) {
+        java.util.LinkedHashMap<Long, List<ObservedOffer>> grouped = new java.util.LinkedHashMap<>();
+        for (Interest interest : interestRepository.getAll()) {
+            if (interest.isPropertyCondominium()) {
+                grouped.put(interest.getId(), new java.util.ArrayList<>());
+            }
+        }
+        for (ObservedOffer offer : offers) {
+            List<ObservedOffer> condominiumOffers = grouped.get(offer.getInterestId());
+            if (condominiumOffers != null) {
+                condominiumOffers.add(offer);
+            }
+        }
+        List<ObservedOffer> groupedOffers = new java.util.ArrayList<>();
+        for (List<ObservedOffer> condominiumOffers : grouped.values()) {
+            groupedOffers.addAll(condominiumOffers);
         }
         return groupedOffers;
     }
@@ -2466,7 +2505,6 @@ public class MainActivity extends AlertouActivity {
                                         double propertyPriceChangePercentage,
                                         boolean propertyMarketReference,
                                         boolean newLowestMarketReference,
-                                        PropertyMarketListingCountHistory marketListingCounts,
                                         View.OnClickListener propertyHistoryClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
@@ -2479,8 +2517,6 @@ public class MainActivity extends AlertouActivity {
         java.util.Map<Long, Interest> interestsById = getInterestsById();
         Interest zipInterest = interestsById.get(interestId);
         boolean propertyZipOffer = zipInterest != null && zipInterest.isPropertyZip();
-        boolean hasMarketListingCount = marketListingCounts != null
-                && !marketListingCounts.getPoints().isEmpty();
 
         LinearLayout mainLine = new LinearLayout(this);
         mainLine.setOrientation(LinearLayout.HORIZONTAL);
@@ -2500,20 +2536,6 @@ public class MainActivity extends AlertouActivity {
         titleAndBadges.addView(titleView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
-
-        if (hasMarketListingCount && !propertyZipOffer) {
-            View badge = createPropertyMarketListingCountChangeBadge(
-                    marketListingCounts.getLatestChange(),
-                    marketListingCounts.getLatestCount(),
-                    view -> showPropertyMarketListingCountHistoryDialog(
-                            offer.getInterest(), marketListingCounts));
-            LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            badgeParams.leftMargin = dp(5);
-            titleAndBadges.addView(badge, badgeParams);
-        }
 
         if (newPropertyAd) {
             TextView badge = createPropertyNewBadge();

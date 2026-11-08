@@ -663,6 +663,7 @@
     <string name="property_state_hint">UF</string>
     <string name="property_zip_required">Informe um CEP válido</string>
     <string name="property_zip_listing_limit_hint">Máximo de imóveis da rua</string>
+    <string name="property_condominium_listing_limit_hint">Máximo de imóveis do condomínio</string>
     <string name="property_zip_listing_limit_invalid">Informe de 1 a 100 imóveis</string>
     <string name="treasury_direct_title">Tesouro Direto</string>
     <string name="treasury_direct_profile_summary">Taxas e intervalo de consulta</string>

@@ -139,6 +139,32 @@ public class PropertyPageParserTest {
     }
 
     @Test
+    public void parsesQuintoAndarPaginatedCondominiumResults() {
+        String response = "{\"hits\":{\"hits\":[{\"_id\":\"895590942\","
+                + "\"_source\":{\"id\":895590942,\"area\":27,\"salePrice\":378500,"
+                + "\"forSale\":true,\"shortSaleDescription\":\"Studio com 1 quarto\"},"
+                + "\"fields\":{\"listingTags\":[\"SALE_GOOD_PRICE\",\"NEW_AD\"]}}]}}";
+
+        List<PropertyPageListing> listings = PropertyPageParser
+                .parseQuintoAndarSearchResponse(response);
+
+        assertEquals(1, listings.size());
+        assertEquals("895590942", listings.get(0).getId());
+        assertEquals(27d, listings.get(0).getArea(), 0.001d);
+        assertEquals(378500d, listings.get(0).getSalePrice(), 0.001d);
+        assertTrue(listings.get(0).isNewAd());
+        assertTrue(listings.get(0).isGoodPrice());
+    }
+
+    @Test
+    public void readsNumericCondominiumIdForPaginatedResults() {
+        String html = "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"listings\":{"
+                + "\"saleListings\":[{\"_id\":\"one\",\"_source\":{\"condoId\":603199}}]}}}}</script>";
+
+        assertEquals(603199L, PropertyPageParser.parseQuintoAndarCondominiumId(html));
+    }
+
+    @Test
     public void prefersPublicStreetListingsOverTheGenericSearchTotal() {
         String html = "<script type=\"application/ld+json\">{\"@graph\":[{"
                 + "\"@type\":\"RealEstateListing\",\"url\":\"https://www.quintoandar.com.br/imovel/123/comprar\","

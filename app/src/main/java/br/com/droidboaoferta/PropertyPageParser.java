@@ -116,6 +116,52 @@ final class PropertyPageParser {
         }
     }
 
+    /**
+     * Lê uma página da busca interna do QuintoAndar. A página pública do
+     * condomínio mostra somente os vinte primeiros anúncios; esta resposta é
+     * paginada e contém os demais resultados do mesmo condomínio.
+     */
+    static List<PropertyPageListing> parseQuintoAndarSearchResponse(String response) {
+        if (response == null || response.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        try {
+            return parseSearchListings(new JSONObject(response));
+        } catch (Exception ignored) {
+            return new ArrayList<>();
+        }
+    }
+
+    /** Returns the numeric condominium id used by QuintoAndar's listings API. */
+    static long parseQuintoAndarCondominiumId(String html) {
+        if (html == null || html.trim().isEmpty()) {
+            return 0L;
+        }
+        Matcher matcher = NEXT_DATA.matcher(html);
+        if (!matcher.find()) {
+            return 0L;
+        }
+        try {
+            JSONObject root = new JSONObject(matcher.group(1));
+            JSONObject listings = findObjectContainingArray(root, "saleListings");
+            if (listings == null) {
+                return 0L;
+            }
+            JSONArray saleListings = listings.optJSONArray("saleListings");
+            for (int index = 0; saleListings != null && index < saleListings.length(); index++) {
+                JSONObject wrapper = saleListings.optJSONObject(index);
+                if (wrapper == null) continue;
+                JSONObject source = wrapper.optJSONObject("_source");
+                if (source == null) source = wrapper;
+                long condominiumId = source.optLong("condoId", 0L);
+                if (condominiumId > 0L) return condominiumId;
+            }
+        } catch (Exception ignored) {
+            // The public first page remains the fallback when the provider changes its markup.
+        }
+        return 0L;
+    }
+
     private static List<PropertyPageListing> parsePublicSearchListings(String html) {
         List<PropertyPageListing> listings = new ArrayList<>();
         Set<String> seenIds = new HashSet<>();
