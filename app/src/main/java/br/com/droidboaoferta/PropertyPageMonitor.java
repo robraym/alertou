@@ -752,6 +752,13 @@ final class PropertyPageMonitor {
             }
             PropertyPageListing currentListing = publicZipListing || reusedVerifiedSnapshot
                     ? listing : resolveCurrentListing(listing, metadata);
+            // A listagem do condomínio já foi devolvida pela fonte oficial com ID,
+            // área e preço. A página individual é uma confirmação adicional: se ela
+            // falhar, não pode fazer todos os anúncios válidos desaparecerem da
+            // lista. Só descartamos quando a própria página confirma indisponibilidade.
+            if (currentListing == null && requiresIdentity) {
+                currentListing = listing;
+            }
             if (currentListing == null) continue;
             if (!matchesPropertyZipAddress(interest, currentListing)) continue;
             matchesArea = currentListing.matchesArea(

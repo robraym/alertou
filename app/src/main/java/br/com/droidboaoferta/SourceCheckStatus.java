@@ -53,6 +53,10 @@ final class SourceCheckStatus {
         );
     }
 
+    static boolean hasFailure(Context context, long id) {
+        return prefs(context).getBoolean(id + ":failed", false);
+    }
+
     static long getCurrentDurationMillis(Context context, long id) {
         long startedAt = prefs(context).getLong(id + ":started_at", 0L);
         return startedAt <= 0L ? 0L

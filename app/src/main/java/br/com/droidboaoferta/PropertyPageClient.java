@@ -135,9 +135,11 @@ final class PropertyPageClient {
                 listings.put(listing.getId(), listing);
             }
         }
-        if (listings.size() < expectedCount) {
-            throw new IllegalStateException("QuintoAndar did not return all condominium listings");
-        }
+        // saleListingsCount é o total oficial de anúncios do condomínio. Ele pode
+        // incluir anúncios sem preço ou metragem no payload, que o parser não pode
+        // transformar em oferta válida. Uma diferença entre esse total e a lista
+        // utilizável não é falha de paginação; erros reais de rede ou página vazia
+        // continuam lançando exceção acima e são informados ao usuário.
         return new ArrayList<>(listings.values());
     }
 

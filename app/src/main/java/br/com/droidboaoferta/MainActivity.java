@@ -1589,28 +1589,39 @@ public class MainActivity extends AlertouActivity {
         iconParams.rightMargin = dp(7);
         header.addView(icon, iconParams);
 
+        LinearLayout textColumn = new LinearLayout(this);
+        textColumn.setOrientation(LinearLayout.VERTICAL);
+
         TextView label = new TextView(this);
         label.setText(title);
         label.setTextColor(getColor(R.color.text_primary));
         label.setTextSize(13);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
-        header.addView(label, new LinearLayout.LayoutParams(
-                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        textColumn.addView(label, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         PropertyMarketListingCountHistory countHistory = new PropertyHistoryRepository(this)
                 .getMarketListingCountHistory(interestId);
         if (!countHistory.getPoints().isEmpty()) {
-            View countBadge = createPropertyZipListingCountBadge(countHistory.getLatestCount(),
-                    view -> showPropertyMarketListingCountHistoryDialog(title, countHistory));
-            LinearLayout.LayoutParams countBadgeParams = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
+            int total = countHistory.getLatestCount();
+            TextView count = new TextView(this);
+            count.setText(getResources().getQuantityString(
+                    R.plurals.property_market_listing_count, total, total));
+            count.setTextColor(getColor(R.color.text_secondary));
+            count.setTextSize(12);
+            count.setIncludeFontPadding(false);
+            count.setPadding(0, dp(2), 0, 0);
+            count.setClickable(true);
+            count.setOnClickListener(view -> showPropertyMarketListingCountHistoryDialog(
+                    title, countHistory));
+            textColumn.addView(count, new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            countBadgeParams.leftMargin = dp(5);
-            countBadgeParams.rightMargin = dp(6);
-            header.addView(countBadge, countBadgeParams);
+            ));
         }
+        header.addView(textColumn, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         boolean expanded = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
                 .getBoolean(preferenceKey, true);
@@ -1712,12 +1723,32 @@ public class MainActivity extends AlertouActivity {
             );
         }
         if (latest != null) {
+            if (SourceCheckStatus.hasFailure(this, latest.getId())) {
+                return getString(R.string.property_section_check_failed_retry);
+            }
             return appendCheckDuration(formatCompactCheckTime(latestAt),
                     zipSection
                             ? PropertyPageMonitor.getLastMarketCheckDurationMillis(this, true)
                             : SourceCheckStatus.getLastDurationMillis(this, latest.getId()));
         }
         return getString(R.string.property_alerts_status_empty);
+    }
+
+    private boolean hasPropertySectionFailure(boolean zipSection) {
+        long latestAt = 0L;
+        boolean failed = false;
+        for (Interest interest : getInterestsById().values()) {
+            if (zipSection != interest.isPropertyZip()
+                    || (!zipSection && !interest.isPropertyCondominium())) {
+                continue;
+            }
+            long resultAt = SourceCheckStatus.getLastResultAt(this, interest.getId());
+            if (resultAt > latestAt) {
+                latestAt = resultAt;
+                failed = SourceCheckStatus.hasFailure(this, interest.getId());
+            }
+        }
+        return failed;
     }
 
     private String formatCompactCheckTime(long time) {
@@ -1839,7 +1870,8 @@ public class MainActivity extends AlertouActivity {
         applyPropertyStatusLine(propertyZipSummaryView, propertyZipDurationView,
                 getPropertySectionStatus(getInterestsById(), true));
         int zipStatusColor = getColor(monitor.isCheckingPropertyZip()
-                ? R.color.action_green : R.color.text_secondary);
+                ? R.color.action_green : hasPropertySectionFailure(true)
+                ? R.color.danger : R.color.text_secondary);
         propertyZipSummaryView.setTextColor(zipStatusColor);
         if (propertyZipDurationView != null) propertyZipDurationView.setTextColor(zipStatusColor);
         if (propertyZipCountView != null) {
@@ -1867,10 +1899,11 @@ public class MainActivity extends AlertouActivity {
             return;
         }
         applyPropertyStatusLine(propertyMarketSummaryView, propertyMarketDurationView,
-                getPropertyMarketLastCheckSummary(displayedOffers));
+                getPropertySectionStatus(getInterestsById(), false));
         int marketStatusColor = getColor(
                 PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
-                        ? R.color.action_green : R.color.text_secondary);
+                        ? R.color.action_green : hasPropertySectionFailure(false)
+                        ? R.color.danger : R.color.text_secondary);
         propertyMarketSummaryView.setTextColor(marketStatusColor);
         if (propertyMarketDurationView != null) {
             propertyMarketDurationView.setTextColor(marketStatusColor);

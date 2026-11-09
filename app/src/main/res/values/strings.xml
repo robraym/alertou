@@ -398,6 +398,7 @@
     <string name="check_duration_seconds">%1$d s</string>
     <string name="check_duration_minutes_seconds">%1$d min %2$d s</string>
     <string name="property_market_reference_section_updating">Imóveis agora…</string>
+    <string name="property_section_check_failed_retry">Falha ao consultar. Toque para tentar novamente.</string>
     <string name="property_market_reference_section_updating_property">%1$s · %2$s</string>
     <string name="property_zip_section_updating_listings">%1$d de %2$d imóveis</string>
     <string name="property_zip_section_updating_street">%1$s</string>
