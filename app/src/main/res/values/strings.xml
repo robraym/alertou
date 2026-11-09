@@ -546,6 +546,11 @@
     <string name="price_interest_value"> • até %1$s</string>
     <string name="search_hint">Pesquisar</string>
     <string name="dashboard_no_offers">Ainda não apareceu nenhuma por aqui.</string>
+    <string name="dashboard_loading_starting">Preparando Alertou</string>
+    <string name="dashboard_loading_alerts">Carregando alertas configurados</string>
+    <string name="dashboard_loading_offers">Carregando ofertas salvas</string>
+    <string name="dashboard_loading_history">Carregando histórico de preços</string>
+    <string name="dashboard_loading_screen">Montando sua tela</string>
     <string name="dashboard_offer_summary">%1$s • %2$s • %3$s</string>
     <string name="offer_group_today">Hoje</string>
     <string name="offer_group_yesterday">Ontem</string>

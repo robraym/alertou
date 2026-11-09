@@ -35,6 +35,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -94,6 +95,9 @@ public class MainActivity extends AlertouActivity {
     private long dashboardRenderGeneration;
     private boolean dashboardSnapshotLoading;
     private boolean dashboardSnapshotRefreshQueued;
+    // Until the first database snapshot arrives, keep a real card on screen instead of an
+    // empty dashboard below the title. Subsequent refreshes always preserve the current cards.
+    private boolean dashboardInitialContentRendered;
     private boolean dashboardUpdatePending;
     private boolean propertyZipProgressUpdatePending;
     private boolean propertyProgressTickerScheduled;
@@ -157,6 +161,18 @@ public class MainActivity extends AlertouActivity {
     private TextView groupsSummary;
     private TextView alertsSummary;
     private LinearLayout offersContainer;
+    private View dashboardStartupSplash;
+    private ProgressBar dashboardStartupProgress;
+    private TextView dashboardStartupStatus;
+    private ValueAnimator dashboardStartupProgressAnimator;
+    private final java.util.ArrayDeque<Integer> dashboardStartupStatusQueue =
+            new java.util.ArrayDeque<>();
+    private boolean dashboardStartupStatusShowing;
+    private Runnable dashboardStartupCompletion;
+    private final Runnable dashboardStartupStatusAdvance = () -> {
+        dashboardStartupStatusShowing = false;
+        showNextDashboardStartupStatus();
+    };
     private TextView propertyMarketSummaryView;
     private TextView propertyMarketDurationView;
     private TextView propertyMarketCountView;
@@ -199,6 +215,10 @@ public class MainActivity extends AlertouActivity {
         interestRepository = new InterestRepository(this);
         offerRepository = new OfferRepository(this);
         offersContainer = findViewById(R.id.container_offers);
+        dashboardStartupSplash = findViewById(R.id.dashboard_startup_splash);
+        dashboardStartupProgress = findViewById(R.id.splash_progress);
+        dashboardStartupStatus = findViewById(R.id.splash_loading_status);
+        startDashboardStartupProgressAnimation();
         floatingSearchController = FloatingSearchController.attach(
                 this,
                 "home",
@@ -308,9 +328,12 @@ public class MainActivity extends AlertouActivity {
             List<ObservedOffer> offers = null;
             java.util.Map<String, PropertyHistoryEntry> propertyHistory = null;
             try {
+                updateDashboardStartupStatus(R.string.dashboard_loading_alerts);
                 interests = interestRepository.getAll();
+                updateDashboardStartupStatus(R.string.dashboard_loading_offers);
                 offerRepository.reconcileRecentWithInterests(interests);
                 offers = offerRepository.getRecent();
+                updateDashboardStartupStatus(R.string.dashboard_loading_history);
                 propertyHistory = new PropertyHistoryRepository(this).getForOffers(offers);
             } catch (Exception ignored) {
                 // Preserve the current cards if a transient storage read fails.
@@ -322,6 +345,7 @@ public class MainActivity extends AlertouActivity {
                     dashboardSnapshotLoading = false;
                     if (snapshotInterests != null && snapshotOffers != null
                             && snapshotPropertyHistory != null) {
+                        updateDashboardStartupStatus(R.string.dashboard_loading_screen);
                         applyDashboardSnapshot(generation, snapshotInterests, snapshotOffers,
                                 snapshotPropertyHistory);
                     }
@@ -344,7 +368,19 @@ public class MainActivity extends AlertouActivity {
                 && isDestroyed()) || generation != dashboardRenderGeneration) {
             return;
         }
+        if (!dashboardInitialContentRendered && dashboardStartupSplash != null) {
+            finishDashboardStartupProgress(() -> renderDashboardSnapshot(
+                    interests, offers, propertyHistory));
+            return;
+        }
+        renderDashboardSnapshot(interests, offers, propertyHistory);
+    }
+
+    private void renderDashboardSnapshot(List<Interest> interests, List<ObservedOffer> offers,
+                                         java.util.Map<String, PropertyHistoryEntry> propertyHistory) {
+        dashboardInitialContentRendered = true;
         renderOffers(offers, propertyHistory);
+        hideDashboardStartupSplash();
         schedulePropertyMarketProgressUpdate();
 
         boolean hasCouponAlert = false;
@@ -3869,6 +3905,106 @@ public class MainActivity extends AlertouActivity {
         text.setTextSize(13);
         text.setPadding(dp(10), dp(8), dp(10), dp(10));
         return text;
+    }
+
+    private void hideDashboardStartupSplash() {
+        dashboardHandler.removeCallbacks(dashboardStartupStatusAdvance);
+        dashboardStartupStatusQueue.clear();
+        dashboardStartupStatusShowing = false;
+        dashboardStartupCompletion = null;
+        if (dashboardStartupProgressAnimator != null) {
+            dashboardStartupProgressAnimator.cancel();
+            dashboardStartupProgressAnimator = null;
+        }
+        if (dashboardStartupSplash != null) {
+            dashboardStartupSplash.setVisibility(View.GONE);
+            dashboardStartupSplash = null;
+        }
+        dashboardStartupProgress = null;
+        dashboardStartupStatus = null;
+    }
+
+    private void startDashboardStartupProgressAnimation() {
+        if (dashboardStartupProgress == null || dashboardInitialContentRendered) return;
+        int start = dashboardStartupProgress.getProgress();
+        dashboardStartupProgressAnimator = ValueAnimator.ofInt(start, 90);
+        dashboardStartupProgressAnimator.setDuration(Math.max(1L, (90L - start) * 28L));
+        dashboardStartupProgressAnimator.setInterpolator(new LinearInterpolator());
+        dashboardStartupProgressAnimator.addUpdateListener(animation -> {
+            if (dashboardStartupProgress != null) {
+                dashboardStartupProgress.setProgress((Integer) animation.getAnimatedValue());
+            }
+        });
+        dashboardStartupProgressAnimator.start();
+    }
+
+    private void finishDashboardStartupProgress(Runnable onFinished) {
+        dashboardStartupCompletion = onFinished;
+        if (dashboardStartupStatusShowing || !dashboardStartupStatusQueue.isEmpty()) {
+            return;
+        }
+        animateDashboardStartupProgressToEnd();
+    }
+
+    private void animateDashboardStartupProgressToEnd() {
+        if (dashboardStartupProgress == null) {
+            runDashboardStartupCompletion();
+            return;
+        }
+        if (dashboardStartupProgressAnimator != null) {
+            dashboardStartupProgressAnimator.cancel();
+        }
+        int start = dashboardStartupProgress.getProgress();
+        ValueAnimator finishAnimator = ValueAnimator.ofInt(start, 100);
+        finishAnimator.setDuration(Math.max(180L, (100L - start) * 28L));
+        finishAnimator.setInterpolator(new LinearInterpolator());
+        finishAnimator.addUpdateListener(animation -> {
+            if (dashboardStartupProgress != null) {
+                dashboardStartupProgress.setProgress((Integer) animation.getAnimatedValue());
+            }
+        });
+        finishAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                if (dashboardStartupSplash != null) runDashboardStartupCompletion();
+            }
+        });
+        dashboardStartupProgressAnimator = finishAnimator;
+        finishAnimator.start();
+    }
+
+    private void updateDashboardStartupStatus(int statusResource) {
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            enqueueDashboardStartupStatus(statusResource);
+        } else {
+            dashboardHandler.post(() -> enqueueDashboardStartupStatus(statusResource));
+        }
+    }
+
+    private void enqueueDashboardStartupStatus(int statusResource) {
+        if (dashboardInitialContentRendered || dashboardStartupSplash == null) return;
+        dashboardStartupStatusQueue.add(statusResource);
+        showNextDashboardStartupStatus();
+    }
+
+    private void showNextDashboardStartupStatus() {
+        if (dashboardStartupStatusShowing) return;
+        Integer statusResource = dashboardStartupStatusQueue.poll();
+        if (statusResource == null) {
+            if (dashboardStartupCompletion != null) animateDashboardStartupProgressToEnd();
+            return;
+        }
+        if (dashboardStartupStatus != null) {
+            dashboardStartupStatus.setText(statusResource);
+        }
+        dashboardStartupStatusShowing = true;
+        dashboardHandler.postDelayed(dashboardStartupStatusAdvance, 450L);
+    }
+
+    private void runDashboardStartupCompletion() {
+        Runnable completion = dashboardStartupCompletion;
+        dashboardStartupCompletion = null;
+        if (completion != null) completion.run();
     }
 
     private TextView createInlineAction(int textResource) {
