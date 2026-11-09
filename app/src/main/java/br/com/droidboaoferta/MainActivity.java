@@ -869,31 +869,30 @@ public class MainActivity extends AlertouActivity {
         toggle.setRotation(expanded ? 90f : 0f);
         toggle.setContentDescription(getString(expanded ? R.string.alerts_section_collapse
                 : R.string.alerts_section_expand));
+        toggle.setTag(OFFER_SECTION_TOGGLE_TAG_PREFIX + SECTION_TREASURY_EXPANDED);
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(dp(32), dp(32));
         toggleParams.rightMargin = 0;
         header.addView(toggle, toggleParams);
-        View.OnClickListener toggleListener = view -> {
-            getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit()
-                    .putBoolean(SECTION_TREASURY_EXPANDED, !expanded).apply();
-            refreshDashboard(false);
-        };
+        View.OnClickListener toggleListener = view ->
+                toggleOfferSection(SECTION_TREASURY_EXPANDED);
         header.setOnClickListener(toggleListener);
         toggle.setOnClickListener(toggleListener);
         card.addView(header);
 
         LinearLayout content = new LinearLayout(this);
+        content.setTag(OFFER_SECTION_CONTENT_TAG_PREFIX + SECTION_TREASURY_EXPANDED);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(6), 0, dp(6), dp(4));
         content.setVisibility(expanded ? View.VISIBLE : View.GONE);
-        if (expanded) {
-            for (int index = 0; index < treasuryInterests.size(); index++) {
-                Interest interest = treasuryInterests.get(index);
-                if (index > 0) {
-                    content.addView(createOfferDivider());
-                }
-                content.addView(createTreasuryRateRow(interest,
-                        historyRepository.get(interest.getId())));
+        // Monte as poucas linhas uma vez, mesmo fechado. A interação passa a
+        // alternar apenas a visibilidade, sem reconstruir toda a tela Alertou.
+        for (int index = 0; index < treasuryInterests.size(); index++) {
+            Interest interest = treasuryInterests.get(index);
+            if (index > 0) {
+                content.addView(createOfferDivider());
             }
+            content.addView(createTreasuryRateRow(interest,
+                    historyRepository.get(interest.getId())));
         }
         card.addView(content);
         addOfferSectionCard(card);

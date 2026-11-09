@@ -554,8 +554,8 @@
         <item quantity="other">• %d ofertas</item>
     </plurals>
     <plurals name="property_market_reference_section_progress">
-        <item quantity="one">• %1$d de %2$d oferta</item>
-        <item quantity="other">• %1$d de %2$d ofertas</item>
+        <item quantity="one">• %1$d de %2$d condomínio cadastrado</item>
+        <item quantity="other">• %1$d de %2$d condomínios cadastrados</item>
     </plurals>
     <plurals name="property_zip_section_progress">
         <item quantity="one">• %1$d de %2$d imóvel</item>
