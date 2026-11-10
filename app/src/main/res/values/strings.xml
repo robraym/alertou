@@ -787,7 +787,7 @@
     <string name="monitor_channel_name">Monitoramento do Alertou</string>
     <string name="monitor_channel_description">Mantém o monitoramento local dos grupos e páginas escolhidos</string>
     <string name="monitor_service_title">Monitorando</string>
-    <string name="monitor_service_summary">Produtos, cupons e imóveis</string>
+    <string name="monitor_service_summary">Produtos, cupons, imóveis e Tesouro Direto</string>
     <string name="telegram_group_ranking_title">Grupos mais rápidos</string>
     <string name="telegram_group_ranking_summary">Quem costuma publicar a mesma promoção primeiro.</string>
     <string name="telegram_group_ranking_empty">Acompanhe promoções repetidas para formar o ranking.</string>

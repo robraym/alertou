@@ -38,6 +38,7 @@ public class PropertyPageParserTest {
         assertEquals("VN Frei Caneca", result.getCondominiumName());
         assertEquals(2, listings.size());
         assertEquals(50, result.getSaleListingsCount());
+        assertTrue(result.hasReliableSaleListingsCount());
         assertEquals("sale-1", listings.get(0).getId());
         assertEquals(25d, listings.get(0).getArea(), 0.001d);
         assertEquals(410000d, listings.get(0).getSalePrice(), 0.001d);
@@ -59,6 +60,18 @@ public class PropertyPageParserTest {
                 + "\"salePrice\":400000,\"forSale\":true}}]}}</script>";
 
         assertTrue(PropertyPageParser.parse(html).getSaleListings().isEmpty());
+    }
+
+    @Test
+    public void doesNotTreatAMissingOfficialCountAsZeroListings() {
+        String html = "<script id='__NEXT_DATA__'>{\"listings\":{"
+                + "\"saleListings\":[{\"_id\":\"sale-1\",\"_source\":{"
+                + "\"area\":25,\"salePrice\":400000}}]}}</script>";
+
+        PropertyPageResult result = PropertyPageParser.parse(html);
+
+        assertEquals(1, result.getSaleListingsCount());
+        assertFalse(result.hasReliableSaleListingsCount());
     }
 
     @Test

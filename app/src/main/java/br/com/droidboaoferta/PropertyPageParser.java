@@ -84,10 +84,15 @@ final class PropertyPageParser {
                         containsTag(source.optJSONArray("listingTags"), "NEW_AD")
                 ));
             }
+            Object rawSaleListingsCount = listings.opt("saleListingsCount");
+            boolean hasOfficialSaleListingsCount = rawSaleListingsCount instanceof Number
+                    || (rawSaleListingsCount instanceof String
+                    && ((String) rawSaleListingsCount).trim().matches("\\d+"));
             return new PropertyPageResult(
                     condominiumName,
                     parsed,
-                    listings.optInt("saleListingsCount", parsed.size())
+                    listings.optInt("saleListingsCount", parsed.size()),
+                    hasOfficialSaleListingsCount
             );
         } catch (Exception ignored) {
             return new PropertyPageResult("", new ArrayList<>());

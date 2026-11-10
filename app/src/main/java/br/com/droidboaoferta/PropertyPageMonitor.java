@@ -681,7 +681,8 @@ final class PropertyPageMonitor {
         }
         long observedAt = System.currentTimeMillis();
         PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(context);
-        if (interest.isPropertyCondominium()) {
+        if (interest.isPropertyCondominium()
+                && isConfirmedMarketListingCount(context, interest, result, historyRepository)) {
             // Total oficial informado pela fonte, antes dos filtros de preço e metragem.
             // A primeira página do QuintoAndar traz somente parte dos anúncios.
             historyRepository.recordMarketListingCount(
@@ -898,6 +899,34 @@ final class PropertyPageMonitor {
         if (removedStaleOffer || changedMarketReference || restoredMissingOffer
                 || !changed.isEmpty()) {
             notifyPropertyOfferChanges(context);
+        }
+    }
+
+    /**
+     * A missing or partially rendered page used to be interpreted as zero listings and was
+     * persisted in the market-count history. A sharp drop is now accepted only after a second
+     * independent read returns the exact same official total.
+     */
+    private boolean isConfirmedMarketListingCount(Context context, Interest interest,
+                                                  PropertyPageResult result,
+                                                  PropertyHistoryRepository historyRepository) {
+        if (!result.hasReliableSaleListingsCount()) {
+            return false;
+        }
+        int candidateCount = result.getSaleListingsCount();
+        PropertyMarketListingCountHistory history =
+                historyRepository.getMarketListingCountHistory(interest.getId());
+        int previousCount = history.getLatestCount();
+        if (!PropertyHistoryRepository.isSuspiciousCountDrop(previousCount, candidateCount)) {
+            return true;
+        }
+        try {
+            PropertyPageResult confirmation = PropertyPageClient.fetch(interest.getTerm());
+            return confirmation.hasReliableSaleListingsCount()
+                    && confirmation.getSaleListingsCount() == candidateCount;
+        } catch (Exception ignored) {
+            // Keep the last confirmed value. The next scheduled check will try again.
+            return false;
         }
     }
 

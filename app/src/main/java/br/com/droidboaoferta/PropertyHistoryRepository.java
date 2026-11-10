@@ -63,9 +63,10 @@ final class PropertyHistoryRepository {
             history.remove("pending_observed_at");
         }
         boolean removedLegacyPageLimit = removeLegacyPageLimitedCount(points, count);
+        boolean removedIsolatedDrop = removeIsolatedUnconfirmedDrop(points);
         JSONObject latest = points.optJSONObject(points.length() - 1);
         if (latest != null && latest.optInt("count", -1) == count) {
-            if (removedLegacyPageLimit) {
+            if (removedLegacyPageLimit || removedIsolatedDrop) {
                 try {
                     history.put("interest_id", interestId)
                             .put("points", points)
@@ -92,7 +93,8 @@ final class PropertyHistoryRepository {
         JSONObject history = findMarketListingCountHistory(histories, interestId);
         List<PropertyMarketListingCountPoint> result = new ArrayList<>();
         JSONArray points = history == null ? null : history.optJSONArray("points");
-        if (history != null && removeLegacyPageLimitedCount(points, findHighestCount(points))) {
+        if (history != null && (removeLegacyPageLimitedCount(points, findHighestCount(points))
+                || removeIsolatedUnconfirmedDrop(points))) {
             try {
                 history.put("points", points);
                 preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
@@ -130,6 +132,36 @@ final class PropertyHistoryRepository {
             if (point != null) highest = Math.max(highest, point.optInt("count", -1));
         }
         return highest;
+    }
+
+    /**
+     * Older versions accepted every parsed count, including a one-off empty response.  A point
+     * surrounded by the same count cannot represent a stable market change, so discard it.
+     */
+    private boolean removeIsolatedUnconfirmedDrop(JSONArray points) {
+        boolean changed = false;
+        for (int index = 1; points != null && index < points.length() - 1; index++) {
+            JSONObject previous = points.optJSONObject(index - 1);
+            JSONObject current = points.optJSONObject(index);
+            JSONObject next = points.optJSONObject(index + 1);
+            if (previous == null || current == null || next == null) continue;
+            int previousCount = previous.optInt("count", -1);
+            int currentCount = current.optInt("count", -1);
+            int nextCount = next.optInt("count", -1);
+            if (previousCount == nextCount && isSuspiciousCountDrop(previousCount, currentCount)) {
+                points.remove(index);
+                changed = true;
+                index--;
+            }
+        }
+        return changed;
+    }
+
+    static boolean isSuspiciousCountDrop(int previousCount, int candidateCount) {
+        if (previousCount <= 0 || candidateCount >= previousCount) return false;
+        if (candidateCount == 0) return true;
+        int decrease = previousCount - candidateCount;
+        return decrease >= Math.max(3, (previousCount + 1) / 2);
     }
 
     synchronized void clearMarketListingCountHistory(long interestId) {

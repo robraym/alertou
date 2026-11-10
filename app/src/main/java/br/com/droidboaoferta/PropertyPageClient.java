@@ -107,7 +107,8 @@ final class PropertyPageClient {
         List<PropertyPageListing> allListings = fetchAllQuintoAndarCondominiumListings(
                 condominiumId, initialResult.getSaleListingsCount());
         return new PropertyPageResult(initialResult.getCondominiumName(), allListings,
-                initialResult.getSaleListingsCount());
+                initialResult.getSaleListingsCount(),
+                initialResult.hasReliableSaleListingsCount());
     }
 
     private static boolean isQuintoAndarCondominiumUrl(String normalizedUrl) {

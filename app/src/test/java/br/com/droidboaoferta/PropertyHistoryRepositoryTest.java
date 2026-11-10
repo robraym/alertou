@@ -24,6 +24,29 @@ public class PropertyHistoryRepositoryTest {
     }
 
     @Test
+    public void removesAnIsolatedEmptyListingCountBetweenMatchingReadings() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+
+        repository.recordMarketListingCount(1L, 4, 1L);
+        repository.recordMarketListingCount(1L, 0, 2L);
+        repository.recordMarketListingCount(1L, 4, 3L);
+
+        PropertyMarketListingCountHistory history = repository.getMarketListingCountHistory(1L);
+        assertEquals(2, history.getPoints().size());
+        assertEquals(4, history.getPoints().get(0).getCount());
+        assertEquals(4, history.getLatestCount());
+    }
+
+    @Test
+    public void flagsAnEmptyOrLargeUnexpectedDropForConfirmation() {
+        assertTrue(PropertyHistoryRepository.isSuspiciousCountDrop(4, 0));
+        assertTrue(PropertyHistoryRepository.isSuspiciousCountDrop(10, 4));
+        assertFalse(PropertyHistoryRepository.isSuspiciousCountDrop(4, 3));
+        assertFalse(PropertyHistoryRepository.isSuspiciousCountDrop(4, 4));
+    }
+
+    @Test
     public void reusesOnlyAnUnchangedIndividuallyVerifiedListing() {
         java.util.Map<String, String> stored = new java.util.HashMap<>();
         PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));

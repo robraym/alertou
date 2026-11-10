@@ -8,6 +8,7 @@ final class PropertyPageResult {
     private final boolean hasCondominiumName;
     private final List<PropertyPageListing> saleListings;
     private final int saleListingsCount;
+    private final boolean hasReliableSaleListingsCount;
 
     PropertyPageResult(String condominiumName, List<PropertyPageListing> saleListings) {
         this(condominiumName, saleListings, saleListings == null ? 0 : saleListings.size());
@@ -15,6 +16,11 @@ final class PropertyPageResult {
 
     PropertyPageResult(String condominiumName, List<PropertyPageListing> saleListings,
                        int saleListingsCount) {
+        this(condominiumName, saleListings, saleListingsCount, false);
+    }
+
+    PropertyPageResult(String condominiumName, List<PropertyPageListing> saleListings,
+                       int saleListingsCount, boolean hasReliableSaleListingsCount) {
         String normalizedName = normalizeCondominiumName(condominiumName);
         this.hasCondominiumName = !normalizedName.isEmpty();
         this.condominiumName = !hasCondominiumName
@@ -24,6 +30,7 @@ final class PropertyPageResult {
                 ? Collections.emptyList()
                 : Collections.unmodifiableList(saleListings);
         this.saleListingsCount = Math.max(0, saleListingsCount);
+        this.hasReliableSaleListingsCount = hasReliableSaleListingsCount;
     }
 
     String getCondominiumName() {
@@ -51,5 +58,10 @@ final class PropertyPageResult {
      */
     int getSaleListingsCount() {
         return saleListingsCount;
+    }
+
+    /** True only when the QuintoAndar payload explicitly supplied its official total. */
+    boolean hasReliableSaleListingsCount() {
+        return hasReliableSaleListingsCount;
     }
 }
