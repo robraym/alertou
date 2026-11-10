@@ -17,7 +17,7 @@ final class PropertyHistoryRepository {
     private static final String KEY_ENTRIES = "entries";
     private static final String KEY_MARKET_LISTING_COUNTS = "market_listing_counts";
     private static final int MARKET_LISTING_COUNT_SOURCE_VERSION = 3;
-    private static final int MARKET_LISTING_COUNT_VISIBLE_LIST_VERSION = 4;
+    private static final int ZIP_LISTING_COUNT_ADDRESS_VERSION = 7;
     private static final long METADATA_RETRY_MS = 24L * 60L * 60L * 1000L;
     private static final int MAX_POINTS = 60;
 
@@ -37,16 +37,13 @@ final class PropertyHistoryRepository {
                 MARKET_LISTING_COUNT_SOURCE_VERSION);
     }
 
-    /** Stores the same final, eligible listings that are visible in a CEP card. */
-    synchronized void recordVisiblePropertyZipListingCount(long interestId, int count,
-                                                            long observedAt) {
-        recordMarketListingCount(interestId, count, observedAt,
-                MARKET_LISTING_COUNT_VISIBLE_LIST_VERSION);
+    synchronized boolean recordPropertyZipListingCount(long interestId, int count, long observedAt) {
+        return recordMarketListingCount(interestId, count, observedAt, ZIP_LISTING_COUNT_ADDRESS_VERSION);
     }
 
-    private void recordMarketListingCount(long interestId, int count, long observedAt,
+    private boolean recordMarketListingCount(long interestId, int count, long observedAt,
                                           int sourceVersion) {
-        if (interestId <= 0L || count < 0 || observedAt <= 0L) return;
+        if (interestId <= 0L || count < 0 || observedAt <= 0L) return false;
         JSONArray histories = readMarketListingCounts();
         JSONObject history = findMarketListingCountHistory(histories, interestId);
         if (history == null) {
@@ -62,8 +59,9 @@ final class PropertyHistoryRepository {
             history.remove("pending_count");
             history.remove("pending_observed_at");
         }
-        boolean removedLegacyPageLimit = removeLegacyPageLimitedCount(points, count);
-        boolean removedIsolatedDrop = removeIsolatedUnconfirmedDrop(points);
+        boolean condominiumCount = sourceVersion == MARKET_LISTING_COUNT_SOURCE_VERSION;
+        boolean removedLegacyPageLimit = condominiumCount && removeLegacyPageLimitedCount(points, count);
+        boolean removedIsolatedDrop = condominiumCount && removeIsolatedUnconfirmedDrop(points);
         JSONObject latest = points.optJSONObject(points.length() - 1);
         if (latest != null && latest.optInt("count", -1) == count) {
             if (removedLegacyPageLimit || removedIsolatedDrop) {
@@ -75,7 +73,7 @@ final class PropertyHistoryRepository {
                 } catch (Exception ignored) {
                 }
             }
-            return;
+            return false;
         }
         try {
             points.put(new JSONObject().put("observed_at", observedAt).put("count", count));
@@ -84,16 +82,29 @@ final class PropertyHistoryRepository {
                     .put("points", points)
                     .put("source_version", sourceVersion);
             preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
+            return true;
         } catch (Exception ignored) {
+            return false;
         }
     }
 
     synchronized PropertyMarketListingCountHistory getMarketListingCountHistory(long interestId) {
+        return getMarketListingCountHistory(interestId, false);
+    }
+
+    synchronized PropertyMarketListingCountHistory getMarketListingCountHistory(long interestId,
+                                                                                 boolean propertyZip) {
         JSONArray histories = readMarketListingCounts();
         JSONObject history = findMarketListingCountHistory(histories, interestId);
         List<PropertyMarketListingCountPoint> result = new ArrayList<>();
         JSONArray points = history == null ? null : history.optJSONArray("points");
-        if (history != null && (removeLegacyPageLimitedCount(points, findHighestCount(points))
+        if (propertyZip && (history == null
+                || history.optInt("source_version", 0) < ZIP_LISTING_COUNT_ADDRESS_VERSION)) {
+            points = null;
+        }
+        if (!propertyZip && history != null
+                && history.optInt("source_version", 0) < ZIP_LISTING_COUNT_ADDRESS_VERSION
+                && (removeLegacyPageLimitedCount(points, findHighestCount(points))
                 || removeIsolatedUnconfirmedDrop(points))) {
             try {
                 history.put("points", points);

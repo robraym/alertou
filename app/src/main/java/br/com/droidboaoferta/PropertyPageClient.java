@@ -82,6 +82,16 @@ final class PropertyPageClient {
         return fetch(rawUrl, Integer.MAX_VALUE);
     }
 
+    static String withoutPropertyZipAlertFilters(String searchUrl) {
+        String normalizedUrl = normalizeSupportedUrl(searchUrl);
+        if (normalizedUrl == null || !isSearchPath(URI.create(normalizedUrl).getPath())) {
+            return searchUrl;
+        }
+        int addressEnd = normalizedUrl.indexOf('/', normalizedUrl.indexOf("/comprar/imovel/")
+                + "/comprar/imovel/".length());
+        return addressEnd < 0 ? normalizedUrl : normalizedUrl.substring(0, addressEnd);
+    }
+
     static PropertyPageResult fetch(String rawUrl, int maximumSearchListings) throws Exception {
         String normalizedUrl = normalizeSupportedUrl(rawUrl);
         if (normalizedUrl == null) {

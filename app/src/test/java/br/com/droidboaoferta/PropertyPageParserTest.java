@@ -121,6 +121,11 @@ public class PropertyPageParserTest {
                 url
         );
         assertEquals(url, PropertyPageClient.normalizeSupportedUrl(url + "?pagina=2"));
+        assertEquals(
+                "https://www.quintoandar.com.br/comprar/imovel/"
+                        + "rua-frei-caneca-consolacao-sao-paulo-sp-brasil",
+                PropertyPageClient.withoutPropertyZipAlertFilters(url)
+        );
     }
 
     @Test

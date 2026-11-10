@@ -795,12 +795,6 @@ final class PropertyPageMonitor {
         if (interest.isProperty() && matches.size() > interest.getPropertyListingLimit()) {
             matches = new ArrayList<>(matches.subList(0, interest.getPropertyListingLimit()));
         }
-        if (interest.isPropertyZip()) {
-            // O selo e o histórico do CEP refletem somente os itens que
-            // passaram pela validação individual e entram na lista visível.
-            historyRepository.recordVisiblePropertyZipListingCount(
-                    interest.getId(), matches.size(), observedAt);
-        }
         OfferRepository repository = new OfferRepository(context);
         boolean removedStaleOffer = false;
         if (interest.isPropertyZip() || interest.isPropertyCondominium()) {
@@ -825,7 +819,8 @@ final class PropertyPageMonitor {
                         observedAt
                 );
         if (matches.isEmpty()) {
-            if (removedStaleOffer || changedMarketReference) {
+            boolean zipCountChanged = refreshPropertyZipListingCount(context, interest, historyRepository);
+            if (zipCountChanged || removedStaleOffer || changedMarketReference) {
                 notifyPropertyOfferChanges(context);
             }
             return;
@@ -896,9 +891,32 @@ final class PropertyPageMonitor {
         if (!changed.isEmpty()) {
             showNotification(context, interest, result, changed);
         }
-        if (removedStaleOffer || changedMarketReference || restoredMissingOffer
+        boolean zipCountChanged = refreshPropertyZipListingCount(context, interest, historyRepository);
+        if (zipCountChanged || removedStaleOffer || changedMarketReference || restoredMissingOffer
                 || !changed.isEmpty()) {
             notifyPropertyOfferChanges(context);
+        }
+    }
+
+    private boolean refreshPropertyZipListingCount(Context context, Interest interest,
+                                                   PropertyHistoryRepository historyRepository) {
+        if (!interest.isPropertyZip() || !MonitorRunPolicy.isCurrent(context, interest)) return false;
+        try {
+            String addressUrl = PropertyPageClient.withoutPropertyZipAlertFilters(interest.getTerm());
+            PropertyPageResult result = PropertyPageClient.fetch(addressUrl);
+            // Uma página sem anúncios reconhecíveis também pode indicar falha na leitura.
+            if (result.getSaleListings().isEmpty() || !MonitorRunPolicy.isCurrent(context, interest)) {
+                return false;
+            }
+            java.util.Set<String> listingIds = new java.util.HashSet<>();
+            for (PropertyPageListing listing : result.getSaleListings()) {
+                if (matchesPropertyZipAddress(interest, listing)) listingIds.add(listing.getId());
+            }
+            return historyRepository.recordPropertyZipListingCount(
+                    interest.getId(), listingIds.size(), System.currentTimeMillis());
+        } catch (Exception error) {
+            android.util.Log.w("PropertyPageMonitor", "Falha na contagem de imóveis por CEP", error);
+            return false;
         }
     }
 
