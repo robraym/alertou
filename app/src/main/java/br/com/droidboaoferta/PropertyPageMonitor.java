@@ -681,13 +681,6 @@ final class PropertyPageMonitor {
         }
         long observedAt = System.currentTimeMillis();
         PropertyHistoryRepository historyRepository = new PropertyHistoryRepository(context);
-        if (interest.isPropertyCondominium()
-                && isConfirmedMarketListingCount(context, interest, result, historyRepository)) {
-            // Total oficial informado pela fonte, antes dos filtros de preço e metragem.
-            // A primeira página do QuintoAndar traz somente parte dos anúncios.
-            historyRepository.recordMarketListingCount(
-                    interest.getId(), result.getSaleListingsCount(), observedAt);
-        }
         List<PropertyPageListing> matches = new ArrayList<>();
         List<String> noLongerEligibleOfferIds = new ArrayList<>();
         Map<String, Integer> historyChanges = new HashMap<>();
@@ -814,6 +807,16 @@ final class PropertyPageMonitor {
             }
         }
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
+        if (interest.isPropertyCondominium()
+                && isConfirmedMarketListingCount(context, interest, result, historyRepository)) {
+            // O total parte da lista completa do condomínio, sem filtro de preço ou metragem.
+            // Anúncios que ainda aparecem nessa lista, mas cuja página individual confirmou
+            // indisponibilidade, já venderam ou foram retirados e não contam como ativos.
+            int unavailable = historyRepository.countUnavailableListingsIn(
+                    interest.getId(), result.getSaleListings());
+            historyRepository.recordMarketListingCount(interest.getId(),
+                    Math.max(0, result.getSaleListingsCount() - unavailable), observedAt);
+        }
         // O limite não pode escolher os primeiros itens vindos da fonte: essa ordem
         // é de relevância do QuintoAndar e poderia excluir um imóvel mais barato.
         // Primeiro aplicamos os filtros do alerta, ordenamos pelo preço e só então

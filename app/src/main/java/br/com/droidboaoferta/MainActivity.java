@@ -1427,11 +1427,18 @@ public class MainActivity extends AlertouActivity {
                 ? groupPropertyZipOffersByStreet(offers)
                 : propertyMarketSection ? groupPropertyCondominiumOffersByInterest(offers) : offers;
         java.util.Map<Long, Integer> propertyInterestOfferCounts = new java.util.HashMap<>();
+        java.util.Map<Long, Integer> propertyInterestUnavailableCounts = new java.util.HashMap<>();
         if (propertyInterestCards) {
             for (ObservedOffer offer : sectionOffers) {
-                int offerCountForInterest = propertyInterestOfferCounts.containsKey(offer.getInterestId())
-                        ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0;
-                propertyInterestOfferCounts.put(offer.getInterestId(), offerCountForInterest + 1);
+                if (isUnavailablePropertyOffer(offer)) {
+                    int unavailableCount = propertyInterestUnavailableCounts.containsKey(offer.getInterestId())
+                            ? propertyInterestUnavailableCounts.get(offer.getInterestId()) : 0;
+                    propertyInterestUnavailableCounts.put(offer.getInterestId(), unavailableCount + 1);
+                } else if (countsAsCurrentPropertyOffer(offer)) {
+                    int offerCountForInterest = propertyInterestOfferCounts.containsKey(offer.getInterestId())
+                            ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0;
+                    propertyInterestOfferCounts.put(offer.getInterestId(), offerCountForInterest + 1);
+                }
             }
         }
         int sectionOfferCount = offers.size();
@@ -1473,7 +1480,9 @@ public class MainActivity extends AlertouActivity {
                     propertyCardOffers = addPropertyInterestCard(content, group,
                             offer.getInterestId(), groupLabel, propertyZipSection,
                             propertyInterestOfferCounts.containsKey(offer.getInterestId())
-                                    ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0);
+                                    ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0,
+                            propertyInterestUnavailableCounts.containsKey(offer.getInterestId())
+                                    ? propertyInterestUnavailableCounts.get(offer.getInterestId()) : 0);
                     renderedPropertyInterestIds.add(offer.getInterestId());
                 } else if (propertyCardOffers != null && propertyCardOfferCount > 0) {
                     propertyCardOffers.addView(createOfferDivider());
@@ -1564,7 +1573,7 @@ public class MainActivity extends AlertouActivity {
                         : getPropertyCondominiumCardKey(interest.getId());
                 addPropertyInterestCard(content, activePropertyCardKey, interest.getId(),
                         propertyZipSection ? getPropertyZipCardTitle(interest)
-                                : getPropertyCondominiumCardTitle(interest), propertyZipSection, 0);
+                                : getPropertyCondominiumCardTitle(interest), propertyZipSection, 0, 0);
             }
         }
         card.addView(content);
@@ -1658,7 +1667,8 @@ public class MainActivity extends AlertouActivity {
 
     private LinearLayout addPropertyInterestCard(LinearLayout parent, String preferenceKey,
                                                  long interestId, String title, boolean propertyZip,
-                                                 int returnedOfferCount) {
+                                                 int returnedOfferCount,
+                                                 int unavailableOfferCount) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.bg_card_compact);
@@ -1695,9 +1705,15 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         TextView returnedOffers = new TextView(this);
-        returnedOffers.setText(stripCountBullet(getResources().getQuantityString(
+        String offerCountText = stripCountBullet(getResources().getQuantityString(
                 R.plurals.dashboard_offer_section_count,
-                returnedOfferCount, returnedOfferCount)));
+                returnedOfferCount, returnedOfferCount));
+        if (unavailableOfferCount > 0) {
+            offerCountText += " · " + getResources().getQuantityString(
+                    R.plurals.property_unavailable_offer_count,
+                    unavailableOfferCount, unavailableOfferCount);
+        }
+        returnedOffers.setText(offerCountText);
         returnedOffers.setTextColor(getColor(R.color.text_secondary));
         returnedOffers.setTextSize(12);
         returnedOffers.setIncludeFontPadding(false);
@@ -2300,18 +2316,26 @@ public class MainActivity extends AlertouActivity {
             };
         } else if (sortOrder == SORT_PRICE_ASCENDING) {
             comparator = (first, second) -> {
+                int availability = compareUnavailableLast(first, second, propertyHistoryByOfferId);
+                if (availability != 0) return availability;
                 int byPrice = Double.compare(first.getPrice(), second.getPrice());
                 return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
         } else if (sortOrder == SORT_PRICE_DESCENDING) {
             comparator = (first, second) -> {
+                int availability = compareUnavailableLast(first, second, propertyHistoryByOfferId);
+                if (availability != 0) return availability;
                 int byPrice = Double.compare(second.getPrice(), first.getPrice());
                 return byPrice != 0 ? byPrice : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
         } else if (sortOrder == SORT_PRICE_PER_SQUARE_METER_ASCENDING
                 || sortOrder == SORT_PRICE_PER_SQUARE_METER_DESCENDING) {
             boolean ascending = sortOrder == SORT_PRICE_PER_SQUARE_METER_ASCENDING;
-            comparator = (first, second) -> comparePropertyUnitPrices(first, second, ascending);
+            comparator = (first, second) -> {
+                int availability = compareUnavailableLast(first, second, propertyHistoryByOfferId);
+                return availability != 0 ? availability
+                        : comparePropertyUnitPrices(first, second, ascending);
+            };
         } else {
             comparator = (first, second) -> {
                 long firstRecentAt = getRecentSortTimestamp(first, propertyHistoryByOfferId);
@@ -2321,7 +2345,25 @@ public class MainActivity extends AlertouActivity {
                         : Long.compare(second.getObservedAt(), first.getObservedAt());
             };
         }
-        offers.sort(comparator);
+        Comparator<ObservedOffer> selectedOrder = comparator;
+        // Indisponível é estado, não critério de ordenação: ele sempre permanece no fim
+        // do próprio grupo, seja qual for a ordenação escolhida pelo usuário.
+        offers.sort((first, second) -> {
+            int availability = compareUnavailableLast(first, second, propertyHistoryByOfferId);
+            return availability != 0 ? availability : selectedOrder.compare(first, second);
+        });
+    }
+
+    /** An unavailable property has no current comparable price, so it stays after active offers. */
+    private int compareUnavailableLast(ObservedOffer first, ObservedOffer second,
+                                       java.util.Map<String, PropertyHistoryEntry> propertyHistoryByOfferId) {
+        PropertyHistoryEntry firstHistory = propertyHistoryByOfferId == null
+                ? null : propertyHistoryByOfferId.get(first.getId());
+        PropertyHistoryEntry secondHistory = propertyHistoryByOfferId == null
+                ? null : propertyHistoryByOfferId.get(second.getId());
+        boolean firstUnavailable = firstHistory != null && firstHistory.isUnavailable();
+        boolean secondUnavailable = secondHistory != null && secondHistory.isUnavailable();
+        return firstUnavailable == secondUnavailable ? 0 : firstUnavailable ? 1 : -1;
     }
 
     private int comparePropertyUnitPrices(ObservedOffer first, ObservedOffer second,
@@ -3114,6 +3156,15 @@ public class MainActivity extends AlertouActivity {
         return entry != null && entry.isUnavailable();
     }
 
+    /** Cards count only active listing offers; a market reference or unavailable row is not an offer. */
+    private boolean countsAsCurrentPropertyOffer(ObservedOffer offer) {
+        if (!isPropertyOffer(offer) || PropertyMarketReferenceSettings.isReference(offer)) {
+            return false;
+        }
+        PropertyHistoryEntry entry = displayedPropertyHistory.get(offer.getId());
+        return entry == null || !entry.isUnavailable();
+    }
+
     private String getPropertyListingCode(ObservedOffer offer) {
         if (!isPropertyOffer(offer)) {
             return "";
@@ -3474,6 +3525,12 @@ public class MainActivity extends AlertouActivity {
         content.addView(code);
         if (entry.isUnavailable()) {
             content.addView(createPropertyHistoryNotice(R.string.property_unavailable_description));
+            if (entry.hasLastKnownPrice()) {
+                content.addView(createPropertyHistoryFact(
+                        R.string.property_history_last_price_before_unavailable,
+                        currency.format(entry.getLastKnownPrice())
+                ));
+            }
         } else if (entry.isPendingValidation()) {
             content.addView(createPropertyHistoryNotice(R.string.property_price_pending_description));
         }
@@ -3957,8 +4014,15 @@ public class MainActivity extends AlertouActivity {
 
     private void enqueueDashboardStartupStatus(int statusResource) {
         if (dashboardInitialContentRendered || dashboardStartupSplash == null) return;
-        dashboardStartupStatusQueue.add(statusResource);
-        showNextDashboardStartupStatus();
+        // The label is a real checkpoint, not a carousel. A queued, timed sequence can
+        // repeat while storage is still busy and makes the splash look staged instead of
+        // explaining the work that is actually pending.
+        dashboardHandler.removeCallbacks(dashboardStartupStatusAdvance);
+        dashboardStartupStatusQueue.clear();
+        dashboardStartupStatusShowing = false;
+        if (dashboardStartupStatus != null) {
+            dashboardStartupStatus.setText(statusResource);
+        }
     }
 
     private void showNextDashboardStartupStatus() {

@@ -578,6 +578,10 @@
         <item quantity="one">• %d oferta</item>
         <item quantity="other">• %d ofertas</item>
     </plurals>
+    <plurals name="property_unavailable_offer_count">
+        <item quantity="one">%d indisponível</item>
+        <item quantity="other">%d indisponíveis</item>
+    </plurals>
     <plurals name="property_market_reference_section_progress">
         <item quantity="one">• %1$d de %2$d condomínio cadastrado</item>
         <item quantity="other">• %1$d de %2$d condomínios cadastrados</item>
@@ -737,6 +741,7 @@
     <string name="dashboard_waiting_offer_links">As ofertas aguardam confirmação de que seus links abrem a mensagem original. Os registros foram preservados.</string>
     <string name="property_unavailable">Indisponível</string>
     <string name="property_unavailable_description">O QuintoAndar informou que este anúncio está indisponível. Preços de outros imóveis sugeridos na página não são usados.</string>
+    <string name="property_history_last_price_before_unavailable">Último preço antes de ficar indisponível</string>
     <string name="property_price_pending">Preço a confirmar</string>
     <string name="property_price_pending_description">Aguardando uma leitura válida da página deste anúncio para confirmar o preço.</string>
     <string name="property_history_unverified_notice">Parte do histórico anterior está preservada separadamente e fora do cálculo de quedas. Ela só volta ao gráfico quando houver uma leitura compatível do mesmo anúncio, sem registro de indisponibilidade durante a validação.</string>

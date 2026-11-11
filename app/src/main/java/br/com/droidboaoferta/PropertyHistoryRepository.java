@@ -334,7 +334,9 @@ final class PropertyHistoryRepository {
                         points.remove(0);
                     }
                 }
-                item.put("points", points);
+                item.put("points", points)
+                        .put("last_known_price", listing.getSalePrice())
+                        .put("last_known_price_at", observedAt);
                 SharedPreferences.Editor editor = preferences.edit().putString(KEY_ENTRIES, entries.toString());
                 if (!before.equals(PropertyHistorySync.changeKey(item))) editor.putBoolean("sync_dirty", true);
                 editor.apply();
@@ -566,12 +568,46 @@ final class PropertyHistoryRepository {
                         .put("identity_validation_version", 1)
                         .put("last_summary_area", listing.getArea())
                         .put("last_summary_price", listing.getSalePrice());
+                // A lista oficial do condomínio ainda identifica este anúncio e seu valor.
+                // Guarde a última cotação conhecida mesmo quando a página individual já
+                // confirma indisponibilidade; nunca use os imóveis sugeridos nessa página.
+                if (item.optDouble("last_known_price", 0d) <= 0d
+                        && listing.getSalePrice() > 0d) {
+                    item.put("last_known_price", listing.getSalePrice())
+                            .put("last_known_price_at", checkedAt);
+                }
                 SharedPreferences.Editor editor = preferences.edit().putString(KEY_ENTRIES, entries.toString());
                 if (!before.equals(PropertyHistorySync.changeKey(item))) editor.putBoolean("sync_dirty", true);
                 editor.apply();
             } catch (org.json.JSONException ignored) {
             }
         }
+    }
+
+    /**
+     * Counts only listings that are still present in the source result but whose own page
+     * has confirmed that they are unavailable. Those stale entries must not inflate the
+     * active condominium total.
+     */
+    synchronized int countUnavailableListingsIn(long interestId,
+                                                  List<PropertyPageListing> sourceListings) {
+        if (sourceListings == null || sourceListings.isEmpty()) return 0;
+        java.util.Set<String> sourceIds = new java.util.HashSet<>();
+        for (PropertyPageListing listing : sourceListings) {
+            if (listing != null && !listing.getId().trim().isEmpty()) sourceIds.add(listing.getId());
+        }
+        if (sourceIds.isEmpty()) return 0;
+        int unavailable = 0;
+        JSONArray entries = readEntries();
+        for (int index = 0; index < entries.length(); index++) {
+            JSONObject item = entries.optJSONObject(index);
+            if (item != null && item.optLong("interest_id", 0L) == interestId
+                    && "unavailable".equals(item.optString("validation_status"))
+                    && sourceIds.contains(item.optString("listing_id"))) {
+                unavailable++;
+            }
+        }
+        return unavailable;
     }
 
     synchronized List<PropertyPageListing> getTrackedListings(long interestId) {
@@ -744,7 +780,9 @@ final class PropertyHistoryRepository {
                 (item.optJSONObject("legacy_unverified") != null
                         && !item.optBoolean("legacy_history_restored", false))
                         || (item.optJSONArray("sync_quarantined_points") != null
-                        && item.optJSONArray("sync_quarantined_points").length() > 0));
+                        && item.optJSONArray("sync_quarantined_points").length() > 0),
+                item.optDouble("last_known_price", 0d),
+                item.optLong("last_known_price_at", 0L));
     }
 
     private String normalizeListingUrl(String url) {

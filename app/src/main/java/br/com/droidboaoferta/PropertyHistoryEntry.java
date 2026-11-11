@@ -16,12 +16,14 @@ final class PropertyHistoryEntry {
     private final List<PropertyHistoryPoint> points;
     private final String validationStatus;
     private final boolean hasUnverifiedHistory;
+    private final double lastKnownPrice;
+    private final long lastKnownPriceAt;
 
     PropertyHistoryEntry(long interestId, String listingId, String title, String url,
                          long firstSeenAt, long lastSeenAt, long firstPublicationAt,
                          boolean newAd, List<PropertyHistoryPoint> points) {
         this(interestId, listingId, title, url, firstSeenAt, lastSeenAt, firstPublicationAt,
-                newAd, false, points, "available", false);
+                newAd, false, points, "available", false, 0d, 0L);
     }
 
     PropertyHistoryEntry(long interestId, String listingId, String title, String url,
@@ -29,13 +31,22 @@ final class PropertyHistoryEntry {
                          boolean newAd, List<PropertyHistoryPoint> points,
                          String validationStatus, boolean hasUnverifiedHistory) {
         this(interestId, listingId, title, url, firstSeenAt, lastSeenAt, firstPublicationAt,
-                newAd, false, points, validationStatus, hasUnverifiedHistory);
+                newAd, false, points, validationStatus, hasUnverifiedHistory, 0d, 0L);
     }
 
     PropertyHistoryEntry(long interestId, String listingId, String title, String url,
                          long firstSeenAt, long lastSeenAt, long firstPublicationAt,
                          boolean newAd, boolean goodPrice, List<PropertyHistoryPoint> points,
                          String validationStatus, boolean hasUnverifiedHistory) {
+        this(interestId, listingId, title, url, firstSeenAt, lastSeenAt, firstPublicationAt,
+                newAd, goodPrice, points, validationStatus, hasUnverifiedHistory, 0d, 0L);
+    }
+
+    PropertyHistoryEntry(long interestId, String listingId, String title, String url,
+                         long firstSeenAt, long lastSeenAt, long firstPublicationAt,
+                         boolean newAd, boolean goodPrice, List<PropertyHistoryPoint> points,
+                         String validationStatus, boolean hasUnverifiedHistory,
+                         double lastKnownPrice, long lastKnownPriceAt) {
         this.interestId = interestId;
         this.listingId = listingId;
         this.title = title == null ? "" : title;
@@ -48,6 +59,8 @@ final class PropertyHistoryEntry {
         this.points = points == null ? Collections.emptyList() : Collections.unmodifiableList(points);
         this.validationStatus = validationStatus;
         this.hasUnverifiedHistory = hasUnverifiedHistory;
+        this.lastKnownPrice = lastKnownPrice;
+        this.lastKnownPriceAt = lastKnownPriceAt;
     }
 
     long getInterestId() { return interestId; }
@@ -63,6 +76,17 @@ final class PropertyHistoryEntry {
     boolean isUnavailable() { return "unavailable".equals(validationStatus); }
     boolean isPendingValidation() { return "pending".equals(validationStatus); }
     boolean hasUnverifiedHistory() { return hasUnverifiedHistory; }
+    boolean hasLastKnownPrice() {
+        return lastKnownPrice > 0d || !points.isEmpty() && points.get(points.size() - 1).getPrice() > 0d;
+    }
+    double getLastKnownPrice() {
+        return lastKnownPrice > 0d ? lastKnownPrice
+                : points.isEmpty() ? 0d : points.get(points.size() - 1).getPrice();
+    }
+    long getLastKnownPriceAt() {
+        return lastKnownPriceAt > 0L ? lastKnownPriceAt
+                : points.isEmpty() ? 0L : points.get(points.size() - 1).getObservedAt();
+    }
     double getLatestPrice(double fallback) {
         return points.isEmpty() ? fallback : points.get(points.size() - 1).getPrice();
     }
