@@ -229,7 +229,12 @@ final class CloudSyncStore {
 
     /** A clean device imports its saved configuration once immediately after Telegram login. */
     static boolean shouldRestoreConfigurationOnConnect(Context context) {
-        if (context == null || !isAutomaticSyncEnabled(context)) return false;
+        return isAutomaticSyncEnabled(context) && shouldOfferInitialRestore(context);
+    }
+
+    /** A clean install may offer a saved backup even when automatic sync is off. */
+    static boolean shouldOfferInitialRestore(Context context) {
+        if (context == null) return false;
         SharedPreferences sync = syncPrefs(context);
         if (sync.getBoolean(INITIAL_RESTORE_COMPLETED, false)) return false;
         Context appContext = context.getApplicationContext();

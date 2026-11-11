@@ -46,6 +46,7 @@ import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -86,6 +87,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class TelegramSetupActivity extends AlertouActivity implements TelegramClientManager.Listener {
+    static final String EXTRA_CONNECTION_REQUIRED =
+            "br.com.droidboaoferta.extra.CONNECTION_REQUIRED";
     private static final String TAG = "TelegramSetup";
     private static final String PREFS = "telegram_preferences";
     private static final String PREF_SELECTED_GROUPS = "selected_groups";
@@ -103,7 +106,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private static final String MANUAL_VIVO_MADRUGADA = "manual_vivo_madrugada";
 
     private boolean initialTelegramOnboarding;
+    private boolean connectionRequired;
     private boolean onboardingCompletionHandled;
+    private boolean waitingForInitialRestoreChoice;
+    private Dialog requiredConnectionDialog;
+    private Dialog initialRestoreProgressDialog;
+    private ProgressBar initialRestoreProgressBar;
+    private TextView initialRestoreProgressText;
+    private int initialRestoreProgressValue;
 
     private TelegramClientManager clientManager;
     private TextView statusText;
@@ -230,6 +240,22 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 renderGroupsSyncState();
                 return;
             }
+            if (intent != null && TelegramClientManager.ACTION_INITIAL_BACKUP_RESTORE_CHECKED.equals(
+                    intent.getAction())) {
+                handleInitialBackupRestoreCheck(intent);
+                return;
+            }
+            if (intent != null && TelegramClientManager.ACTION_INITIAL_BACKUP_RESTORE_FINISHED.equals(
+                    intent.getAction())) {
+                finishInitialRestore();
+                return;
+            }
+            if (intent != null && TelegramClientManager.ACTION_INITIAL_BACKUP_RESTORE_PROGRESS.equals(
+                    intent.getAction())) {
+                updateInitialRestoreProgress(intent.getIntExtra(
+                        TelegramClientManager.EXTRA_INITIAL_RESTORE_PROGRESS, 0));
+                return;
+            }
             updateStoreRefreshProgress(intent);
             renderGroups(availableGroups, showingCachedGroups);
             renderVivoOutletSource();
@@ -279,6 +305,8 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         initialTelegramOnboarding = TelegramOnboarding.isRequired(this);
+        connectionRequired = getIntent().getBooleanExtra(EXTRA_CONNECTION_REQUIRED, false)
+                || initialTelegramOnboarding;
         setContentView(R.layout.activity_telegram_setup);
         BottomNavigationController.setup(
                 this,
@@ -286,6 +314,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 R.id.section_telegram_status,
                 R.id.scroll_groups
         );
+        if (connectionRequired) {
+            View bottomNavigation = findViewById(R.id.bottom_navigation);
+            if (bottomNavigation != null) bottomNavigation.setVisibility(View.GONE);
+        }
 
         statusText = findViewById(R.id.text_telegram_status);
         instructionsText = findViewById(R.id.text_telegram_instructions);
@@ -491,6 +523,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     collapseGroupsSearch(true);
                     return;
                 }
+                if (connectionRequired && clientManager.getState()
+                        != TelegramClientManager.State.READY) {
+                    finishAffinity();
+                    return;
+                }
                 setEnabled(false);
                 getOnBackPressedDispatcher().onBackPressed();
             }
@@ -499,6 +536,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         loadSelectedGroupsFromPreferences();
 
         clientManager = TelegramClientManager.getInstance();
+        if (connectionRequired) {
+            showRequiredConnectionDialog();
+        }
     }
 
     @Override
@@ -522,6 +562,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             sourceStatusFilter.addAction(StoreSourceCheckStatus.ACTION_CHANGED);
             sourceStatusFilter.addAction(StoreNetworkReconnectMonitor.ACTION_CHANGED);
             sourceStatusFilter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
+            sourceStatusFilter.addAction(TelegramClientManager.ACTION_INITIAL_BACKUP_RESTORE_CHECKED);
+            sourceStatusFilter.addAction(TelegramClientManager.ACTION_INITIAL_BACKUP_RESTORE_FINISHED);
+            sourceStatusFilter.addAction(TelegramClientManager.ACTION_INITIAL_BACKUP_RESTORE_PROGRESS);
             ContextCompat.registerReceiver(
                     this,
                     cloudSyncReceiver,
@@ -583,8 +626,10 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         authenticationInput.setFilters(new InputFilter[0]);
         statusSection.setVisibility(showAuthentication ? View.VISIBLE : View.GONE);
         loginSpacer.setVisibility(showAuthentication ? View.VISIBLE : View.GONE);
-        groupsContentArea.setVisibility(View.VISIBLE);
-        groupsScroll.setVisibility(View.VISIBLE);
+        // During mandatory onboarding this activity is only the authentication modal.
+        // Never flash the Fontes/groups screen between login and the restored dashboard.
+        groupsContentArea.setVisibility(connectionRequired ? View.GONE : View.VISIBLE);
+        groupsScroll.setVisibility(connectionRequired ? View.GONE : View.VISIBLE);
         groupsSearchBar.setVisibility(ready
                 && isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED)
                 ? View.VISIBLE : View.GONE);
@@ -606,7 +651,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 hideAuthenticationInput();
                 break;
             case WAITING_PHONE:
-                showStatus(R.string.telegram_status_login, R.string.telegram_phone_message);
+                showStatus(connectionRequired ? R.string.telegram_step_phone_title
+                                : R.string.telegram_status_login,
+                        R.string.telegram_phone_message);
                 showPhoneAuthenticationInput();
                 enablePhoneNumberAutofill();
                 prefillLastPhoneNumber();
@@ -616,7 +663,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 }
                 break;
             case WAITING_EMAIL:
-                showStatus(R.string.telegram_status_login, R.string.telegram_email_message);
+                showStatus(connectionRequired ? R.string.telegram_step_email_title
+                                : R.string.telegram_status_login,
+                        R.string.telegram_email_message);
                 showAuthenticationInput(
                         R.string.telegram_email_hint,
                         InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
@@ -624,7 +673,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 );
                 break;
             case WAITING_EMAIL_CODE:
-                showStatus(R.string.telegram_status_verification, R.string.telegram_email_code_message);
+                showStatus(connectionRequired ? R.string.telegram_step_code_title
+                                : R.string.telegram_status_verification,
+                        R.string.telegram_email_code_message);
                 showAuthenticationInput(
                         R.string.telegram_code_hint,
                         InputType.TYPE_CLASS_NUMBER,
@@ -633,7 +684,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 focusAuthenticationInputAndShowKeyboard();
                 break;
             case WAITING_CODE:
-                showStatus(R.string.telegram_status_verification, R.string.telegram_code_message);
+                showStatus(connectionRequired ? R.string.telegram_step_code_title
+                                : R.string.telegram_status_verification,
+                        R.string.telegram_code_message);
                 showAuthenticationInput(
                         R.string.telegram_code_hint,
                         InputType.TYPE_CLASS_NUMBER,
@@ -647,7 +700,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 renderSmsOption();
                 break;
             case WAITING_PASSWORD:
-                showStatus(R.string.telegram_status_password, R.string.telegram_password_message);
+                showStatus(connectionRequired ? R.string.telegram_step_password_title
+                                : R.string.telegram_status_password,
+                        R.string.telegram_password_message);
                 showAuthenticationInput(
                         R.string.telegram_password_hint,
                         InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD,
@@ -676,12 +731,220 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             return;
         }
         onboardingCompletionHandled = true;
+        if (requiredConnectionDialog != null) {
+            requiredConnectionDialog.dismiss();
+        }
+        if (clientManager.checkInitialBackupRestore()) {
+            waitingForInitialRestoreChoice = true;
+            return;
+        }
+        finishInitialTelegramOnboarding();
+    }
+
+    private void handleInitialBackupRestoreCheck(Intent intent) {
+        if (!waitingForInitialRestoreChoice) return;
+        waitingForInitialRestoreChoice = false;
+        if (!intent.getBooleanExtra(TelegramClientManager.EXTRA_INITIAL_BACKUP_AVAILABLE, false)) {
+            CloudSyncStore.rememberInitialRestoreFinished(this);
+            finishInitialTelegramOnboarding();
+            return;
+        }
+        long backupAt = intent.getLongExtra(TelegramClientManager.EXTRA_INITIAL_BACKUP_AT, 0L);
+        String when = new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
+                .format(new java.util.Date(backupAt));
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.initial_restore_dialog_title)
+                .setMessage(getString(R.string.initial_restore_dialog_message, when))
+                .setPositiveButton(R.string.action_restore_backup, (dialog, which) -> {
+                    CloudSyncStore.rememberInitialRestoreFinished(this);
+                    showInitialRestoreProgress();
+                    clientManager.restoreCloudBackupNow();
+                })
+                .setNegativeButton(R.string.action_start_without_restore, (dialog, which) -> {
+                    CloudSyncStore.rememberInitialRestoreFinished(this);
+                    finishInitialTelegramOnboarding();
+                })
+                .setCancelable(false)
+                .show();
+    }
+
+    private void showInitialRestoreProgress() {
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(24));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        TextView title = new TextView(this);
+        title.setText(R.string.initial_restore_progress_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(20);
+        content.addView(title);
+        TextView message = new TextView(this);
+        message.setText(R.string.initial_restore_progress_message);
+        message.setTextColor(getColor(R.color.text_secondary));
+        message.setTextSize(14);
+        message.setPadding(0, dp(6), 0, dp(18));
+        content.addView(message);
+        initialRestoreProgressBar = new ProgressBar(this, null,
+                android.R.attr.progressBarStyleHorizontal);
+        initialRestoreProgressBar.setIndeterminate(false);
+        initialRestoreProgressBar.setMax(100);
+        initialRestoreProgressBar.setProgress(0);
+        initialRestoreProgressBar.setProgressTintList(android.content.res.ColorStateList.valueOf(
+                AccentColorController.getPrimaryColor(this)));
+        content.addView(initialRestoreProgressBar, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(6)));
+        initialRestoreProgressText = new TextView(this);
+        initialRestoreProgressText.setTextColor(getColor(R.color.text_secondary));
+        initialRestoreProgressText.setTextSize(14);
+        initialRestoreProgressText.setGravity(Gravity.END);
+        initialRestoreProgressText.setPadding(0, dp(10), 0, 0);
+        content.addView(initialRestoreProgressText);
+        initialRestoreProgressDialog = new Dialog(this);
+        initialRestoreProgressDialog.setContentView(content);
+        initialRestoreProgressDialog.setCanceledOnTouchOutside(false);
+        initialRestoreProgressDialog.setCancelable(false);
+        initialRestoreProgressDialog.show();
+        Window window = initialRestoreProgressDialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(getResources().getDisplayMetrics().widthPixels - dp(48),
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        updateInitialRestoreProgress(0);
+    }
+
+    private void updateInitialRestoreProgress(int progress) {
+        initialRestoreProgressValue = Math.max(initialRestoreProgressValue,
+                Math.max(0, Math.min(100, progress)));
+        if (initialRestoreProgressBar != null) {
+            initialRestoreProgressBar.setProgress(initialRestoreProgressValue);
+        }
+        if (initialRestoreProgressText != null) {
+            initialRestoreProgressText.setText(getString(
+                    R.string.initial_restore_progress_format, initialRestoreProgressValue));
+        }
+    }
+
+    private void finishInitialRestore() {
+        if (initialRestoreProgressDialog != null) {
+            updateInitialRestoreProgress(100);
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                if (initialRestoreProgressDialog != null) {
+                    initialRestoreProgressDialog.dismiss();
+                    initialRestoreProgressDialog = null;
+                }
+                finishInitialTelegramOnboarding(true);
+            }, 250L);
+            return;
+        }
+        finishInitialTelegramOnboarding();
+    }
+
+    private void finishInitialTelegramOnboarding() {
+        finishInitialTelegramOnboarding(false);
+    }
+
+    private void finishInitialTelegramOnboarding(boolean restoredConfiguration) {
         TelegramOnboarding.complete(this);
         Intent intent = new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (restoredConfiguration) {
+            intent.putExtra(MainActivity.EXTRA_RESTORED_CONFIGURATION, true);
+        }
         startActivity(intent);
         finish();
         overridePendingTransition(0, 0);
+    }
+
+    /** Keeps Telegram authentication in a focused modal instead of exposing Fontes first. */
+    private void showRequiredConnectionDialog() {
+        ViewParent currentParent = statusSection.getParent();
+        if (!(currentParent instanceof android.view.ViewGroup)) return;
+        android.view.ViewGroup parent = (android.view.ViewGroup) currentParent;
+        parent.removeView(statusSection);
+        for (int index = 0; index < parent.getChildCount(); index++) {
+            parent.getChildAt(index).setVisibility(View.GONE);
+        }
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        LinearLayout header = new LinearLayout(this);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        ImageView icon = new ImageView(this);
+        icon.setImageResource(R.drawable.ic_telegram_source);
+        icon.setBackgroundResource(R.drawable.bg_icon_circle);
+        icon.setPadding(dp(10), dp(10), dp(10), dp(10));
+        header.addView(icon, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        LinearLayout headerText = new LinearLayout(this);
+        headerText.setOrientation(LinearLayout.VERTICAL);
+        headerText.setPadding(dp(12), 0, dp(8), 0);
+        TextView title = new TextView(this);
+        title.setText(R.string.telegram_login_dialog_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(20);
+        headerText.addView(title);
+        TextView summary = new TextView(this);
+        summary.setText(R.string.telegram_login_dialog_message);
+        summary.setTextColor(getColor(R.color.text_secondary));
+        summary.setTextSize(13);
+        summary.setMaxLines(2);
+        headerText.addView(summary);
+        header.addView(headerText, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f));
+
+        content.addView(header);
+
+        statusSection.setBackgroundColor(Color.TRANSPARENT);
+        statusSection.setPadding(0, dp(6), 0, 0);
+        android.view.ViewGroup authenticationContent =
+                (android.view.ViewGroup) continueButton.getParent();
+        authenticationContent.removeView(continueButton);
+        continueButton.setBackgroundResource(R.drawable.bg_button_inline);
+        continueButton.setTextColor(getColor(R.color.action));
+        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusParams.topMargin = dp(14);
+        content.addView(statusSection, statusParams);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        actions.setPadding(0, dp(14), 0, 0);
+        Button exit = new Button(this);
+        exit.setText(R.string.action_exit);
+        exit.setTransformationMethod(null);
+        exit.setTextColor(getColor(R.color.text_secondary));
+        exit.setTextSize(16);
+        exit.setBackgroundResource(R.drawable.bg_button_secondary);
+        exit.setOnClickListener(view -> finishAffinity());
+        actions.addView(exit, new LinearLayout.LayoutParams(0, dp(48), 1f));
+        LinearLayout.LayoutParams continueParams = new LinearLayout.LayoutParams(0, dp(48), 1f);
+        continueParams.leftMargin = dp(10);
+        actions.addView(continueButton, continueParams);
+        content.addView(actions, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        requiredConnectionDialog = new Dialog(this);
+        requiredConnectionDialog.setContentView(content);
+        requiredConnectionDialog.setCancelable(false);
+        requiredConnectionDialog.setCanceledOnTouchOutside(false);
+        Window window = requiredConnectionDialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            window.setLayout(android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+        requiredConnectionDialog.show();
+        Window shownWindow = requiredConnectionDialog.getWindow();
+        if (shownWindow != null) {
+            shownWindow.setLayout(getResources().getDisplayMetrics().widthPixels - dp(32),
+                    android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
     }
 
     private void renderGroups(List<TelegramGroup> groups) {
@@ -4334,7 +4597,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
 
         String getCompactLabel() {
-            return getFlagEmoji() + " " + displayName + "  +" + callingCode + "  ▾";
+            return getFlagEmoji() + "  +" + callingCode + "  ▾";
         }
 
         String getFullLabel() {

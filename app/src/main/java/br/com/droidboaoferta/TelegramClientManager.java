@@ -26,6 +26,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 final class TelegramClientManager {
+    static final String ACTION_INITIAL_BACKUP_RESTORE_CHECKED =
+            "br.com.droidboaoferta.INITIAL_BACKUP_RESTORE_CHECKED";
+    static final String ACTION_INITIAL_BACKUP_RESTORE_FINISHED =
+            "br.com.droidboaoferta.INITIAL_BACKUP_RESTORE_FINISHED";
+    static final String ACTION_INITIAL_BACKUP_RESTORE_PROGRESS =
+            "br.com.droidboaoferta.INITIAL_BACKUP_RESTORE_PROGRESS";
+    static final String EXTRA_INITIAL_BACKUP_AVAILABLE = "initial_backup_available";
+    static final String EXTRA_INITIAL_BACKUP_AT = "initial_backup_at";
+    static final String EXTRA_INITIAL_RESTORE_PROGRESS = "initial_restore_progress";
     private static final String TAG = "BoaOfertaSync";
     enum State {
         STARTING,
@@ -166,6 +175,7 @@ final class TelegramClientManager {
     private volatile boolean pendingCloudBackupMetadataRefresh;
     private volatile boolean selfChatRequested;
     private volatile boolean initialCloudRestorePending;
+    private volatile boolean initialBackupRestoreCheckPending;
     private volatile boolean reconnectRequested;
     private volatile boolean cloudBackupScheduled;
     private Runnable cloudBackupWakeup;
@@ -705,6 +715,22 @@ final class TelegramClientManager {
         requestCloudBackup();
     }
 
+    /** Checks a new installation's saved backup without importing it. */
+    synchronized boolean checkInitialBackupRestore() {
+        if (appContext == null || !CloudSyncStore.shouldOfferInitialRestore(appContext)) {
+            return false;
+        }
+        initialBackupRestoreCheckPending = true;
+        if (state != State.READY) return true;
+        if (selfChatId == 0L) {
+            requestSelfChat();
+            return true;
+        }
+        cloudBackupMetadataOnly = true;
+        requestCloudBackup();
+        return true;
+    }
+
     void backupCloudNow() {
         Log.d(TAG, "backupCloudNow state=" + state + ", selfChatId=" + selfChatId);
         if (appContext == null || state != State.READY) {
@@ -787,11 +813,13 @@ final class TelegramClientManager {
         }
         if (selfChatId == 0L) {
             pendingManualRestore = true;
+            notifyInitialRestoreProgress(10);
             notifyCloudSyncStatus(R.string.profile_manual_restore_preparing);
             requestSelfChat();
             return;
         }
         forceCloudRestore = true;
+        notifyInitialRestoreProgress(15);
         notifyCloudSyncStatus(R.string.profile_manual_restore_searching);
         if (cloudSyncRequested) {
             cloudPullAgainRequested = true;
@@ -1517,7 +1545,8 @@ final class TelegramClientManager {
                 changeState(State.WAITING_PASSWORD);
                 break;
             case "authorizationStateReady":
-                initialCloudRestorePending = CloudSyncStore.shouldRestoreConfigurationOnConnect(appContext);
+                // A new device asks before importing a saved backup; never restore silently.
+                initialCloudRestorePending = false;
                 changeState(State.READY);
                 scheduleRuntimeStabilityReset(runtimeGeneration);
                 loadAccount();
@@ -1956,6 +1985,11 @@ final class TelegramClientManager {
             requestCloudBackup();
             return;
         }
+        if (initialBackupRestoreCheckPending) {
+            cloudBackupMetadataOnly = true;
+            requestCloudBackup();
+            return;
+        }
         if (CloudSyncStore.isAutomaticSyncEnabled(appContext) && pendingGroupsDelta) {
             pendingGroupsDelta = false;
             sendSelectedGroupsDelta();
@@ -2024,6 +2058,7 @@ final class TelegramClientManager {
         }
         boolean automaticSyncEnabled = CloudSyncStore.isAutomaticSyncEnabled(appContext);
         boolean forcedRestore = forceCloudRestore;
+        if (forcedRestore) notifyInitialRestoreProgress(35);
         // A restore tapped while the lightweight Profile check is in flight
         // must apply that same newest snapshot, never downgrade it to a
         // metadata-only result.
@@ -2052,8 +2087,9 @@ final class TelegramClientManager {
                     .setPackage(appContext.getPackageName()));
         }
         boolean automaticConfigurationRestore = initialCloudRestorePending;
+        boolean initialRestoreCheck = initialBackupRestoreCheckPending;
         JSONObject remoteBackup = forcedRestore || automaticConfigurationRestore
-                ? CloudSyncStore.findNewestRestorableBackup(messages)
+                || initialRestoreCheck ? CloudSyncStore.findNewestRestorableBackup(messages)
                 : CloudSyncStore.findNewestBackup(messages);
         CloudSyncStore.BackupFileDescriptor fileBackup = CloudSyncStore.findNewestBackupFile(messages);
         if (pendingCloudFileRestoreBackupMessageId != 0L) {
@@ -2080,9 +2116,19 @@ final class TelegramClientManager {
         if (remoteBackup != null) {
             CloudSyncStore.rememberBackupMessageId(appContext, remoteBackup.optLong("_message_id", 0L));
         }
+        if (initialRestoreCheck) {
+            initialBackupRestoreCheckPending = false;
+            appContext.sendBroadcast(new android.content.Intent(ACTION_INITIAL_BACKUP_RESTORE_CHECKED)
+                    .setPackage(appContext.getPackageName())
+                    .putExtra(EXTRA_INITIAL_BACKUP_AVAILABLE,
+                            remoteBackup != null && CloudSyncStore.backupHasRestorableAlerts(remoteBackup))
+                    .putExtra(EXTRA_INITIAL_BACKUP_AT, remoteBackup == null ? 0L
+                            : remoteBackup.optLong("backup_at", remoteBackup.optLong("updated_at", 0L))));
+        }
         boolean restored = metadataOnly ? false : (forcedRestore || automaticConfigurationRestore
                 ? CloudSyncStore.importBackup(appContext, remoteBackup, true)
                 : CloudSyncStore.importIfNewer(appContext, remoteBackup));
+        if (forcedRestore) notifyInitialRestoreProgress(70);
         // A completed manual restore must contain a complete alert record that
         // the Alerts screen can render, not merely a backup message.
         if (forcedRestore && restored
@@ -2117,6 +2163,14 @@ final class TelegramClientManager {
         }
         if (restored || configurationChanged) {
             revalidateStoredOfferLinks();
+            if (forcedRestore && restored) {
+                notifyInitialRestoreProgress(85);
+                try {
+                    RestoredDashboardSnapshot.capture(remoteBackup);
+                } catch (Exception ignored) {
+                    // The restore itself succeeded; the dashboard can fall back to its empty shell.
+                }
+            }
             loadGroups();
             notifyGroups();
             appContext.sendBroadcast(new android.content.Intent(ACTION_CLOUD_SYNC_CHANGED)
@@ -2138,6 +2192,9 @@ final class TelegramClientManager {
             // to render the restored list.
             forceCloudRestore = false;
             pendingManualRestore = false;
+            notifyInitialRestoreProgress(100);
+            appContext.sendBroadcast(new android.content.Intent(ACTION_INITIAL_BACKUP_RESTORE_FINISHED)
+                    .setPackage(appContext.getPackageName()));
         }
         boolean firstRestoreFinished = initialCloudRestorePending;
         initialCloudRestorePending = false;
@@ -2158,6 +2215,13 @@ final class TelegramClientManager {
                     .setPackage(appContext.getPackageName()));
         }
         finishCloudPull(generation, true);
+    }
+
+    private void notifyInitialRestoreProgress(int progress) {
+        if (appContext == null) return;
+        appContext.sendBroadcast(new android.content.Intent(ACTION_INITIAL_BACKUP_RESTORE_PROGRESS)
+                .setPackage(appContext.getPackageName())
+                .putExtra(EXTRA_INITIAL_RESTORE_PROGRESS, Math.max(0, Math.min(100, progress))));
     }
 
     private synchronized void handleIncomingCloudSyncMessage(JSONObject message) {

@@ -52,6 +52,8 @@ import java.util.List;
 import java.util.Locale;
 
 public class MainActivity extends AlertouActivity {
+    static final String EXTRA_RESTORED_CONFIGURATION =
+            "br.com.droidboaoferta.extra.RESTORED_CONFIGURATION";
     static final String ACTION_PROPERTY_DISPLAY_SETTINGS_CHANGED =
             "br.com.droidboaoferta.PROPERTY_DISPLAY_SETTINGS_CHANGED";
     private final OfferSectionCache offerSectionCache = new OfferSectionCache();
@@ -69,6 +71,7 @@ public class MainActivity extends AlertouActivity {
     private static final String STARTUP_PREFS = "startup_preferences";
     private static final String BATTERY_NOTICE_SHOWN = "battery_notice_shown";
     private static final int REQUEST_NOTIFICATIONS = 1201;
+    private static final long DASHBOARD_STARTUP_TIMEOUT_MS = 6_000L;
     private static final int SORT_RECENT = 0;
     private static final int SORT_NAME = 1;
     private static final int SORT_PRICE_ASCENDING = 2;
@@ -96,6 +99,8 @@ public class MainActivity extends AlertouActivity {
     // Until the first database snapshot arrives, keep a real card on screen instead of an
     // empty dashboard below the title. Subsequent refreshes always preserve the current cards.
     private boolean dashboardInitialContentRendered;
+    private boolean restoredInitialDashboard;
+    private List<Interest> renderingDashboardInterests;
     private boolean dashboardUpdatePending;
     private boolean propertyZipProgressUpdatePending;
     private boolean propertyProgressTickerScheduled;
@@ -167,6 +172,14 @@ public class MainActivity extends AlertouActivity {
             new java.util.ArrayDeque<>();
     private boolean dashboardStartupStatusShowing;
     private Runnable dashboardStartupCompletion;
+    private final Runnable dashboardStartupTimeout = () -> {
+        if (!dashboardInitialContentRendered && dashboardStartupSplash != null) {
+            // Storage can remain locked briefly after restoring a large backup. Let the user
+            // into the dashboard and apply the real snapshot when that read eventually returns.
+            renderDashboardSnapshot(Collections.emptyList(), Collections.emptyList(),
+                    Collections.emptyMap());
+        }
+    };
     private final Runnable dashboardStartupStatusAdvance = () -> {
         dashboardStartupStatusShowing = false;
         showNextDashboardStartupStatus();
@@ -215,6 +228,12 @@ public class MainActivity extends AlertouActivity {
         dashboardStartupProgress = findViewById(R.id.splash_progress);
         dashboardStartupStatus = findViewById(R.id.splash_loading_status);
         startDashboardStartupProgressAnimation();
+        dashboardHandler.postDelayed(dashboardStartupTimeout, DASHBOARD_STARTUP_TIMEOUT_MS);
+        if (getIntent().getBooleanExtra(EXTRA_RESTORED_CONFIGURATION, false)) {
+            // The restore has already written the local state. Do not put a second startup
+            // cover in front of the dashboard while its normal background refresh runs.
+            dashboardStartupSplash.post(this::hideDashboardStartupSplash);
+        }
         floatingSearchController = FloatingSearchController.attach(
                 this,
                 "home",
@@ -233,6 +252,14 @@ public class MainActivity extends AlertouActivity {
             }
         });
         findViewById(android.R.id.content).post(this::showBatteryNoticeIfNeeded);
+        if (getIntent().getBooleanExtra(EXTRA_RESTORED_CONFIGURATION, false)) {
+            restoredInitialDashboard = true;
+            RestoredDashboardSnapshot.Snapshot snapshot = RestoredDashboardSnapshot.take();
+            if (snapshot != null) {
+                dashboardStartupSplash.post(() -> renderDashboardSnapshot(
+                        snapshot.interests, snapshot.offers, snapshot.propertyHistory));
+            }
+        }
     }
 
     @Override
@@ -262,7 +289,7 @@ public class MainActivity extends AlertouActivity {
         BottomNavigationController.resetInitialFocus(this);
         // Rebuilding every card here blocks the first touch after returning to Alertou.
         // Existing data is already kept in memory and normal monitor events refresh it.
-        if (displayedOffers.isEmpty()) {
+        if (displayedOffers.isEmpty() && !restoredInitialDashboard) {
             refreshDashboard();
         }
     }
@@ -344,6 +371,12 @@ public class MainActivity extends AlertouActivity {
                         updateDashboardStartupStatus(R.string.dashboard_loading_screen);
                         applyDashboardSnapshot(generation, snapshotInterests, snapshotOffers,
                                 snapshotPropertyHistory);
+                    } else if (!dashboardInitialContentRendered && dashboardStartupSplash != null) {
+                        // A restore can briefly replace local storage while this first snapshot
+                        // is read. Never leave the startup cover on screen indefinitely.
+                        finishDashboardStartupProgress(() -> renderDashboardSnapshot(
+                                Collections.emptyList(), Collections.emptyList(),
+                                Collections.emptyMap()));
                     }
                     if (dashboardSnapshotRefreshQueued
                             && !isFinishing()
@@ -375,7 +408,12 @@ public class MainActivity extends AlertouActivity {
     private void renderDashboardSnapshot(List<Interest> interests, List<ObservedOffer> offers,
                                          java.util.Map<String, PropertyHistoryEntry> propertyHistory) {
         dashboardInitialContentRendered = true;
-        renderOffers(offers, propertyHistory);
+        renderingDashboardInterests = interests;
+        try {
+            renderOffers(offers, propertyHistory);
+        } finally {
+            renderingDashboardInterests = null;
+        }
         hideDashboardStartupSplash();
         schedulePropertyMarketProgressUpdate();
 
@@ -1550,7 +1588,9 @@ public class MainActivity extends AlertouActivity {
 
     private java.util.Map<Long, Interest> getInterestsById() {
         java.util.Map<Long, Interest> interestsById = new java.util.HashMap<>();
-        for (Interest interest : interestRepository.getAll()) {
+        List<Interest> interests = renderingDashboardInterests != null
+                ? renderingDashboardInterests : interestRepository.getAll();
+        for (Interest interest : interests) {
             interestsById.put(interest.getId(), interest);
         }
         return interestsById;
@@ -3841,6 +3881,7 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void hideDashboardStartupSplash() {
+        dashboardHandler.removeCallbacks(dashboardStartupTimeout);
         dashboardHandler.removeCallbacks(dashboardStartupStatusAdvance);
         dashboardStartupStatusQueue.clear();
         dashboardStartupStatusShowing = false;

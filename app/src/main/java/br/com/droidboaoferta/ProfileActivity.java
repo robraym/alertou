@@ -2759,8 +2759,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 .apply();
         MonitorStatusStore.setServiceRunning(this, false);
         MonitorStatusStore.setTelegramState(this, TelegramClientManager.State.CLOSED);
+        TelegramOnboarding.require(this);
         clientManager.logOut();
-        refreshProfile();
+        Intent intent = new Intent(this, SplashActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
+        finish();
     }
 
     private void showTermsDialog() {

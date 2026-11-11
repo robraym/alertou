@@ -16,12 +16,17 @@ public class SplashActivity extends AlertouActivity {
         setContentView(R.layout.activity_splash);
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Class<?> destination = TelegramOnboarding.isRequired(this)
-                    ? TelegramSetupActivity.class
-                    : MainActivity.class;
-            startActivity(new Intent(this, destination));
+            if (TelegramOnboarding.isRequired(this)) {
+                startActivity(new Intent(this, TelegramSetupActivity.class)
+                        .putExtra(TelegramSetupActivity.EXTRA_CONNECTION_REQUIRED, true));
+                finish();
+                overridePendingTransition(0, 0);
+                return;
+            }
+            startActivity(new Intent(this, MainActivity.class));
             finish();
             overridePendingTransition(0, 0);
         }, SPLASH_DELAY_MS);
     }
+
 }

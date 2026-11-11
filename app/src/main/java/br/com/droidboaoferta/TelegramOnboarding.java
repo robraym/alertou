@@ -28,6 +28,13 @@ final class TelegramOnboarding {
         preferences(context).edit().putBoolean(REQUIRED, false).apply();
     }
 
+    static void require(Context context) {
+        preferences(context).edit()
+                .putBoolean(INITIALIZED, true)
+                .putBoolean(REQUIRED, true)
+                .apply();
+    }
+
     private static boolean isFreshInstall(Context context) {
         try {
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(
