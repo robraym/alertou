@@ -15,43 +15,62 @@ final class TreasuryRateHistoryRepository {
     private static final String PREFS = "treasury_rate_history";
     private static final String KEY_HISTORY = "history";
     private static final int MAX_POINTS_PER_TITLE = 120;
+    private static final Object HISTORY_LOCK = new Object();
     private final SharedPreferences preferences;
 
     TreasuryRateHistoryRepository(Context context) {
         preferences = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    synchronized void record(long interestId, double rate, long observedAt) {
-        List<TreasuryRatePoint> points = new ArrayList<>(get(interestId));
-        if (!points.isEmpty() && Double.compare(points.get(points.size() - 1).getRate(), rate) == 0) {
-            // Same rate is a new successful consultation, not a false rate change.
-            points.set(points.size() - 1, new TreasuryRatePoint(observedAt, rate));
-        } else {
-            points.add(new TreasuryRatePoint(observedAt, rate));
+    void record(long interestId, double rate, long observedAt) {
+        synchronized (HISTORY_LOCK) {
+            List<TreasuryRatePoint> points = new ArrayList<>(get(interestId));
+            if (!points.isEmpty()
+                    && Double.compare(points.get(points.size() - 1).getRate(), rate) == 0) {
+                // Same rate is a new successful consultation, not a false rate change.
+                points.set(points.size() - 1, new TreasuryRatePoint(observedAt, rate));
+            } else {
+                points.add(new TreasuryRatePoint(observedAt, rate));
+            }
+            while (points.size() > MAX_POINTS_PER_TITLE) points.remove(0);
+            save(interestId, points);
         }
-        while (points.size() > MAX_POINTS_PER_TITLE) points.remove(0);
-        save(interestId, points);
     }
 
-    synchronized List<TreasuryRatePoint> get(long interestId) {
-        try {
-            JSONObject root = new JSONObject(preferences.getString(KEY_HISTORY, "{}"));
-            JSONArray values = root.optJSONArray(Long.toString(interestId));
-            if (values == null) return Collections.emptyList();
-            List<TreasuryRatePoint> points = new ArrayList<>();
-            for (int index = 0; index < values.length(); index++) {
-                JSONObject item = values.optJSONObject(index);
-                if (item == null) continue;
-                long observedAt = item.optLong("observed_at", 0L);
-                double rate = item.optDouble("rate", Double.NaN);
-                if (observedAt > 0L && !Double.isNaN(rate)) {
-                    points.add(new TreasuryRatePoint(observedAt, rate));
+    List<TreasuryRatePoint> get(long interestId) {
+        synchronized (HISTORY_LOCK) {
+            try {
+                JSONObject root = new JSONObject(preferences.getString(KEY_HISTORY, "{}"));
+                JSONArray values = root.optJSONArray(Long.toString(interestId));
+                if (values == null) return Collections.emptyList();
+                List<TreasuryRatePoint> points = new ArrayList<>();
+                for (int index = 0; index < values.length(); index++) {
+                    JSONObject item = values.optJSONObject(index);
+                    if (item == null) continue;
+                    long observedAt = item.optLong("observed_at", 0L);
+                    double rate = item.optDouble("rate", Double.NaN);
+                    if (observedAt > 0L && !Double.isNaN(rate)) {
+                        points.add(new TreasuryRatePoint(observedAt, rate));
+                    }
                 }
+                return removeRepeatedRates(points);
+            } catch (Exception ignored) {
+                return Collections.emptyList();
             }
-            return points;
-        } catch (Exception ignored) {
-            return Collections.emptyList();
         }
+    }
+
+    private List<TreasuryRatePoint> removeRepeatedRates(List<TreasuryRatePoint> points) {
+        List<TreasuryRatePoint> uniquePoints = new ArrayList<>();
+        for (TreasuryRatePoint point : points) {
+            if (!uniquePoints.isEmpty() && Double.compare(
+                    uniquePoints.get(uniquePoints.size() - 1).getRate(), point.getRate()) == 0) {
+                uniquePoints.set(uniquePoints.size() - 1, point);
+            } else {
+                uniquePoints.add(point);
+            }
+        }
+        return uniquePoints;
     }
 
     private void save(long interestId, List<TreasuryRatePoint> points) {
