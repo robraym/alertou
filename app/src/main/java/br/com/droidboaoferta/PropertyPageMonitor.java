@@ -660,7 +660,7 @@ final class PropertyPageMonitor {
 
     private void checkInterest(Context context, Interest interest,
                                boolean includeMarketReferences) throws Exception {
-        PropertyPageResult result = PropertyPageClient.fetch(
+        PropertyPageResult result = fetchPropertyPageWithRetry(context, interest,
                 interest.getTerm(),
                 interest.isPropertyZip()
                         // Primeiro carregamos candidatos suficientes para localizar a rua;
@@ -693,6 +693,7 @@ final class PropertyPageMonitor {
         Map<String, Integer> historyChanges = new HashMap<>();
         Map<String, PropertyPageListing> candidates = new java.util.LinkedHashMap<>();
         java.util.Set<String> currentPageListingIds = new java.util.HashSet<>();
+        java.util.Set<String> nearbySearchListingIds = new java.util.HashSet<>();
         boolean marketReferenceEnabled = includeMarketReferences
                 && PropertyMarketReferenceSettings.isEnabled(context);
         PropertyPageListing lowestMarketListing = null;
@@ -701,11 +702,26 @@ final class PropertyPageMonitor {
             candidates.put(listing.getId(), listing);
             currentPageListingIds.add(listing.getId());
         }
-        // A página atual é a fonte de verdade para esta rodada. Reabrir todos os
-        // anúncios que já passaram pelo histórico fazia uma única consulta ficar
-        // presa por minutos e impedia a fila de chegar aos próximos condomínios.
-        // Os registros antigos permanecem guardados para o histórico; eles voltam
-        // a ser verificados quando reaparecem na resposta atual da fonte.
+        if (interest.isPropertyCondominium()) {
+            for (PropertyPageListing listing : fetchNearbyWithRetry(context, interest)) {
+                if (!candidates.containsKey(listing.getId())) {
+                    candidates.put(listing.getId(), listing);
+                    nearbySearchListingIds.add(listing.getId());
+                }
+            }
+        }
+        // A busca do condomínio pode omitir anúncios ainda ativos. Reconfira na
+        // página individual os candidatos elegíveis guardados no histórico antes
+        // de reconstruir a lista visível.
+        if (interest.isPropertyCondominium()) {
+            for (PropertyPageListing tracked : historyRepository.getTrackedListings(interest.getId())) {
+                if (!candidates.containsKey(tracked.getId())
+                        && tracked.matchesArea(interest.getMinimumArea(), interest.getMaximumArea())
+                        && tracked.getSalePrice() <= interest.getMaximumPrice() * PRICE_VERIFICATION_MARGIN) {
+                    candidates.put(tracked.getId(), tracked);
+                }
+            }
+        }
         List<PropertyPageListing> addressCandidates = new ArrayList<>();
         for (PropertyPageListing listing : candidates.values()) {
             if (matchesPropertyZipAddress(interest, listing)) {
@@ -749,6 +765,17 @@ final class PropertyPageMonitor {
             if (requiresIdentity && metadata != null && metadata.isUnavailableFor(listing.getId())) {
                 historyRepository.markUnavailable(interest.getId(), listing, observedAt);
                 forgetUnavailableNotification(context, interest.getId(), listing.getId());
+                continue;
+            }
+            // O preço histórico só serve para localizar a página. Sem confirmação
+            // atual, não podemos restaurar uma oferta antiga na tela.
+            if (!currentPageListingIds.contains(listing.getId())
+                    && requiresIdentity && (metadata == null || !metadata.isVerifiedFor(listing.getId()))) {
+                continue;
+            }
+            if (nearbySearchListingIds.contains(listing.getId()) && (metadata == null
+                    || !interest.getTerm().contains("-" + metadata.getCondominiumHashId())
+                    || metadata.getCondominiumHashId().isEmpty())) {
                 continue;
             }
             PropertyPageListing currentListing = publicZipListing || reusedVerifiedSnapshot
@@ -797,7 +824,9 @@ final class PropertyPageMonitor {
         }
         OfferRepository repository = new OfferRepository(context);
         boolean removedStaleOffer = false;
-        if (interest.isPropertyZip() || interest.isPropertyCondominium()) {
+        // Para condomínio, uma resposta parcial da fonte não confirma que os
+        // anúncios ausentes deixaram de existir. Preserve os já observados.
+        if (interest.isPropertyZip()) {
             java.util.Set<String> currentIds = new java.util.HashSet<>();
             for (PropertyPageListing listing : matches) currentIds.add(listing.getId());
             removedStaleOffer = repository.retainRecentPropertyListings(
@@ -896,6 +925,65 @@ final class PropertyPageMonitor {
                 || !changed.isEmpty()) {
             notifyPropertyOfferChanges(context);
         }
+    }
+
+    private PropertyPageResult fetchPropertyPageWithRetry(Context context, Interest interest,
+                                                           String url, int limit) throws Exception {
+        Exception lastError = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            if (!MonitorRunPolicy.isCurrent(context, interest)) {
+                throw new InterruptedException("Property check cancelled");
+            }
+            try {
+                PropertyPageResult result = PropertyPageClient.fetch(url, limit);
+                if (interest.isPropertyCondominium() && result.getSaleListings().isEmpty()) {
+                    throw new IllegalStateException("Empty condominium listings response");
+                }
+                return result;
+            } catch (Exception error) {
+                lastError = error;
+                if (attempt == 3) break;
+                SourceCheckStatus.retryIn(context, interest.getId(), 5);
+                for (int second = 5; second > 0; second--) {
+                    sendProgressBroadcast(context, interest.isPropertyZip());
+                    Thread.sleep(1000L);
+                    if (!MonitorRunPolicy.isCurrent(context, interest)) {
+                        throw new InterruptedException("Property check cancelled");
+                    }
+                }
+                SourceCheckStatus.retryIn(context, interest.getId(), 0);
+                sendProgressBroadcast(context, interest.isPropertyZip());
+            }
+        }
+        throw lastError;
+    }
+
+    private List<PropertyPageListing> fetchNearbyWithRetry(Context context, Interest interest)
+            throws Exception {
+        Exception lastError = null;
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            if (!MonitorRunPolicy.isCurrent(context, interest)) {
+                throw new InterruptedException("Property check cancelled");
+            }
+            try {
+                return PropertyPageClient.fetchNearbyCondominiumListings(
+                        interest.getTerm(), interest.getMinimumArea(), interest.getMaximumArea(),
+                        interest.getMaximumPrice());
+            } catch (Exception error) {
+                lastError = error;
+                if (attempt == 3) break;
+                SourceCheckStatus.retryIn(context, interest.getId(), 5);
+                for (int second = 5; second > 0; second--) {
+                    sendProgressBroadcast(context, false);
+                    Thread.sleep(1000L);
+                    if (!MonitorRunPolicy.isCurrent(context, interest)) {
+                        throw new InterruptedException("Property check cancelled");
+                    }
+                }
+                SourceCheckStatus.retryIn(context, interest.getId(), 0);
+            }
+        }
+        throw lastError;
     }
 
     private boolean refreshPropertyZipListingCount(Context context, Interest interest,

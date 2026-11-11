@@ -1718,6 +1718,12 @@ public class MainActivity extends AlertouActivity {
         if (isPropertyMarketUpdating()) {
             long checkingInterestId = PropertyPageMonitor.getInstance()
                     .getCheckingMarketReferenceInterestId();
+            int retrySeconds = SourceCheckStatus.getRetrySeconds(this, checkingInterestId);
+            if (retrySeconds > 0) {
+                return appendCheckDuration(getString(R.string.property_section_retry_countdown,
+                        retrySeconds), PropertyPageMonitor.getInstance()
+                        .getCurrentMarketReferencesDurationMillis());
+            }
             String updatingSummary = getPropertyMarketUpdatingSummary(offers, checkingInterestId);
             if (!updatingSummary.isEmpty()) {
                 return updatingSummary;
@@ -1726,6 +1732,9 @@ public class MainActivity extends AlertouActivity {
             if (checkingInterest != null && checkingInterest.isPropertyCondominium()) {
                 return getString(R.string.property_market_reference_section_updating);
             }
+        }
+        if (hasPropertySectionFailure(false)) {
+            return getString(R.string.property_section_check_failed_preserved);
         }
         long lastCheck = 0L;
         java.util.Map<Long, Interest> interestsById = getInterestsById();
@@ -1765,6 +1774,12 @@ public class MainActivity extends AlertouActivity {
             }
         }
         if (running != null) {
+            int retrySeconds = SourceCheckStatus.getRetrySeconds(this, running.getId());
+            if (retrySeconds > 0) {
+                return appendCheckDuration(getString(R.string.property_section_retry_countdown,
+                        retrySeconds), PropertyPageMonitor.getInstance()
+                        .getCurrentMarketReferencesDurationMillis(zipSection));
+            }
             if (zipSection) {
                 String street = running.getPropertyStreet().trim();
                 if (!street.isEmpty()) {
@@ -1774,15 +1789,15 @@ public class MainActivity extends AlertouActivity {
                                     .getCurrentMarketReferencesDurationMillis(true));
                 }
             }
-            return getString(
+            return appendCheckDuration(getString(
                     R.string.property_market_reference_section_updating_property,
                     getPropertyStatusName(running),
                     formatPropertyAreaRange(running)
-            );
+            ), PropertyPageMonitor.getInstance().getCurrentMarketReferencesDurationMillis());
         }
         if (latest != null) {
             if (SourceCheckStatus.hasFailure(this, latest.getId())) {
-                return getString(R.string.property_section_check_failed_retry);
+                return getString(R.string.property_section_check_failed_preserved);
             }
             return appendCheckDuration(formatCompactCheckTime(latestAt),
                     zipSection

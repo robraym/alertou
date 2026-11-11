@@ -104,20 +104,24 @@ final class PropertyPageParser {
             return new PropertyPageResult("", new ArrayList<>());
         }
         List<PropertyPageListing> publicListings = parsePublicSearchListings(html);
-        if (!publicListings.isEmpty()) {
-            // O total genérico da página representa o mapa/área, não só a rua.
-            return new PropertyPageResult("", publicListings, publicListings.size());
-        }
         Matcher matcher = NEXT_DATA.matcher(html);
         if (!matcher.find()) {
-            return new PropertyPageResult("", new ArrayList<>());
+            return new PropertyPageResult("", publicListings);
         }
         try {
             JSONObject root = new JSONObject(matcher.group(1));
-            List<PropertyPageListing> listings = parseSearchListings(root);
-            return new PropertyPageResult("", listings, findSearchListingsCount(root, listings.size()));
+            java.util.Map<String, PropertyPageListing> listings = new java.util.LinkedHashMap<>();
+            for (PropertyPageListing listing : publicListings) listings.put(listing.getId(), listing);
+            for (PropertyPageListing listing : parseSearchListings(root)) {
+                listings.put(listing.getId(), listing);
+            }
+            // Os dados estruturados da página podem omitir anúncios que aparecem
+            // em __NEXT_DATA__; a união preserva ambos sem repetir IDs.
+            int count = publicListings.isEmpty()
+                    ? findSearchListingsCount(root, listings.size()) : listings.size();
+            return new PropertyPageResult("", new ArrayList<>(listings.values()), count);
         } catch (Exception ignored) {
-            return new PropertyPageResult("", new ArrayList<>());
+            return new PropertyPageResult("", publicListings);
         }
     }
 
@@ -165,6 +169,26 @@ final class PropertyPageParser {
             // The public first page remains the fallback when the provider changes its markup.
         }
         return 0L;
+    }
+
+    static String[] parseCondominiumSearchLocation(String html) {
+        Matcher matcher = NEXT_DATA.matcher(html == null ? "" : html);
+        if (!matcher.find()) return new String[0];
+        try {
+            JSONObject condo = new JSONObject(matcher.group(1)).getJSONObject("props")
+                    .getJSONObject("pageProps").getJSONObject("condoInfo");
+            String street = condo.optString("address", "");
+            JSONObject neighborhoodObject = condo.optJSONObject("neighborhood");
+            String neighborhood = neighborhoodObject == null
+                    ? condo.optString("neighborhood", "")
+                    : neighborhoodObject.optString("name", "");
+            JSONObject city = condo.getJSONObject("city");
+            String state = city.optString("slug", "").replaceFirst("^.*-([a-z]{2})-brasil$", "$1");
+            if (street.isEmpty() || neighborhood.isEmpty() || state.length() != 2) return new String[0];
+            return new String[]{street, neighborhood, city.optString("name", ""), state};
+        } catch (Exception ignored) {
+            return new String[0];
+        }
     }
 
     private static List<PropertyPageListing> parsePublicSearchListings(String html) {
@@ -570,7 +594,9 @@ final class PropertyPageParser {
                 break;
             }
             return PropertyListingMetadata.verified(expectedId, price, area,
-                    firstPublished, lastPublished);
+                    firstPublished, lastPublished,
+                    info.optJSONObject("condominium") == null ? ""
+                            : info.optJSONObject("condominium").optString("hashId", ""));
         } catch (Exception ignored) {
             return PropertyListingMetadata.empty();
         }

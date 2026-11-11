@@ -13,6 +13,7 @@ final class SourceCheckStatus {
         prefs(context).edit()
                 .putBoolean(id + ":failed", false)
                 .putBoolean(id + ":running", true)
+                .remove(id + ":retry_until")
                 .putLong(id + ":started_at", SystemClock.elapsedRealtime())
                 .apply();
     }
@@ -21,6 +22,7 @@ final class SourceCheckStatus {
                 : error instanceof java.net.UnknownHostException ? R.string.source_error_connection
                 : R.string.source_error_response;
         prefs(context).edit().putBoolean(id + ":failed", true)
+                .remove(id + ":retry_until")
                 .putLong(id + ":failure", System.currentTimeMillis())
                 .putString(id + ":reason", context.getString(reason)).apply();
     }
@@ -31,6 +33,7 @@ final class SourceCheckStatus {
                 : Math.max(0L, SystemClock.elapsedRealtime() - startedAt);
         SharedPreferences.Editor editor = preferences.edit()
                 .putBoolean(id + ":running", false)
+                .remove(id + ":retry_until")
                 .remove(id + ":started_at")
                 .putLong(id + ":next", System.currentTimeMillis() + intervalMs);
         if (duration > 0L) {
@@ -43,6 +46,15 @@ final class SourceCheckStatus {
     }
     static boolean isRunning(Context context, long id) {
         return prefs(context).getBoolean(id + ":running", false);
+    }
+    static void retryIn(Context context, long id, int seconds) {
+        prefs(context).edit().putLong(id + ":retry_until",
+                SystemClock.elapsedRealtime() + seconds * 1000L).apply();
+    }
+    static int getRetrySeconds(Context context, long id) {
+        long until = prefs(context).getLong(id + ":retry_until", 0L);
+        return until <= 0L ? 0 : (int) Math.max(0L,
+                (until - SystemClock.elapsedRealtime() + 999L) / 1000L);
     }
 
     static long getLastResultAt(Context context, long id) {
@@ -69,6 +81,7 @@ final class SourceCheckStatus {
 
     static void cancel(Context context, long id) {
         prefs(context).edit().putBoolean(id + ":running", false)
+                .remove(id + ":retry_until")
                 .remove(id + ":started_at").apply();
     }
     static String summary(Context context, long id) {

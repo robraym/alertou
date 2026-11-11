@@ -121,6 +121,45 @@ final class PropertyPageClient {
                 initialResult.hasReliableSaleListingsCount());
     }
 
+    static List<PropertyPageListing> fetchNearbyCondominiumListings(String condominiumUrl,
+                                                                    double minimumArea,
+                                                                    double maximumArea,
+                                                                    double maximumPrice) throws Exception {
+        String normalized = normalizeSupportedUrl(condominiumUrl);
+        if (normalized == null || !isQuintoAndarCondominiumUrl(normalized)) {
+            return new ArrayList<>();
+        }
+        String[] location = PropertyPageParser.parseCondominiumSearchLocation(fetchHtml(normalized));
+        if (location.length != 4) {
+            throw new IllegalStateException("Condominium address missing from source");
+        }
+        LinkedHashMap<String, PropertyPageListing> found = new LinkedHashMap<>();
+        String expectedStreet = normalizeSearchStreet(location[0]);
+        double midpoint = Math.floor((minimumArea + maximumArea) / 2d);
+        double[][] ranges = {{minimumArea, maximumArea}, {minimumArea, midpoint + 1d},
+                {midpoint + 2d, maximumArea}};
+        for (double[] range : ranges) {
+            if (range[0] > range[1]) continue;
+            for (String street : new String[]{"", location[0]}) {
+                String searchUrl = buildQuintoAndarSearchUrl(street, location[1], location[2],
+                        location[3], range[0], range[1], maximumPrice);
+                for (PropertyPageListing listing : fetchSearchPages(searchUrl, Integer.MAX_VALUE)
+                        .getSaleListings()) {
+                    if (expectedStreet.equals(normalizeSearchStreet(listing.getAddress()))) {
+                        found.put(listing.getId(), listing);
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(found.values());
+    }
+
+    private static String normalizeSearchStreet(String value) {
+        String normalized = OfferTextParser.normalize(value == null ? "" : value);
+        return normalized.replaceAll("\\b(rua|r|avenida|av|alameda|travessa|estrada)\\b", " ")
+                .replaceAll("\\b\\d+\\b", " ").replaceAll("\\s+", " ").trim();
+    }
+
     private static boolean isQuintoAndarCondominiumUrl(String normalizedUrl) {
         try {
             URI uri = URI.create(normalizedUrl);

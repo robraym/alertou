@@ -5,6 +5,7 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -183,6 +184,17 @@ public class PropertyPageParserTest {
     }
 
     @Test
+    public void readsCondominiumAddressForNearbySearch() {
+        String html = "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"condoInfo\":{"
+                + "\"address\":\"Avenida Santo Amaro\","
+                + "\"neighborhood\":\"Cidade Monções\","
+                + "\"city\":{\"name\":\"São Paulo\",\"slug\":\"sao-paulo-sp-brasil\"}}}}}</script>";
+
+        assertArrayEquals(new String[]{"Avenida Santo Amaro", "Cidade Monções", "São Paulo", "sp"},
+                PropertyPageParser.parseCondominiumSearchLocation(html));
+    }
+
+    @Test
     public void prefersPublicStreetListingsOverTheGenericSearchTotal() {
         String html = "<script type=\"application/ld+json\">{\"@graph\":[{"
                 + "\"@type\":\"RealEstateListing\",\"url\":\"https://www.quintoandar.com.br/imovel/123/comprar\","
@@ -201,6 +213,21 @@ public class PropertyPageParserTest {
         assertEquals("Rua Peixoto Gomide", listing.getAddress());
         assertEquals(58d, listing.getArea(), 0.001d);
         assertEquals(530000d, listing.getSalePrice(), 0.001d);
+    }
+
+    @Test
+    public void includesSearchListingMissingFromStructuredData() {
+        String html = "<script type=\"application/ld+json\">{\"@type\":\"RealEstateListing\","
+                + "\"url\":\"https://www.quintoandar.com.br/imovel/one/comprar\","
+                + "\"about\":{\"floorSize\":{\"value\":26}},\"offers\":{\"price\":351000}}</script>"
+                + "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"results\":["
+                + "{\"id\":\"old\",\"area\":25,\"salePrice\":345000,\"forSale\":true}]}}}</script>";
+
+        PropertyPageResult result = PropertyPageParser.parseSearch(html);
+
+        assertEquals(2, result.getSaleListings().size());
+        assertEquals(2, result.getSaleListingsCount());
+        assertEquals("old", result.getSaleListings().get(1).getId());
     }
 
     @Test
