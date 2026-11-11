@@ -1391,11 +1391,9 @@ public class MainActivity extends AlertouActivity {
         java.util.Map<Long, Integer> propertyInterestOfferCounts = new java.util.HashMap<>();
         if (propertyInterestCards) {
             for (ObservedOffer offer : sectionOffers) {
-                if (!PropertyMarketReferenceSettings.isReference(offer)) {
-                    int offerCountForInterest = propertyInterestOfferCounts.containsKey(offer.getInterestId())
-                            ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0;
-                    propertyInterestOfferCounts.put(offer.getInterestId(), offerCountForInterest + 1);
-                }
+                int offerCountForInterest = propertyInterestOfferCounts.containsKey(offer.getInterestId())
+                        ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0;
+                propertyInterestOfferCounts.put(offer.getInterestId(), offerCountForInterest + 1);
             }
         }
         int sectionOfferCount = offers.size();
