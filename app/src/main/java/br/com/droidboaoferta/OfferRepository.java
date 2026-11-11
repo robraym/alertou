@@ -9,9 +9,11 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 final class OfferRepository {
@@ -22,6 +24,8 @@ final class OfferRepository {
     private static final String KEY_PROCESSED_MESSAGES = "processed_messages";
     private static final int MAX_NON_PROPERTY_OFFERS = 30;
     private static final int MAX_PROCESSED_MESSAGES = 500;
+    private static final long TELEGRAM_PROMOTION_WINDOW_MS = 12L * 60L * 60L * 1000L;
+    private static final int MAX_TELEGRAM_GROUPS_PER_PROMOTION = 3;
 
     private final Context context;
     private final SharedPreferences preferences;
@@ -552,12 +556,43 @@ final class OfferRepository {
     }
 
     List<ObservedOffer> getRecentForValidation() {
-        List<ObservedOffer> recent = keepNewestStoredProducts(
-                new ArrayList<>(readOffers(KEY_OFFERS))
+        List<ObservedOffer> recent = keepFirstTelegramOffersPerPromotion(
+                keepNewestStoredProducts(new ArrayList<>(readOffers(KEY_OFFERS)))
         );
         long now = System.currentTimeMillis();
         recent.removeIf(offer -> !OfferEligibility.canDisplay(offer, now));
         return recent;
+    }
+
+    /** Keeps the first three Telegram groups in a promotion cycle visible. */
+    private List<ObservedOffer> keepFirstTelegramOffersPerPromotion(List<ObservedOffer> offers) {
+        List<ObservedOffer> retained = new ArrayList<>();
+        Map<String, Long> startedAtByProduct = new HashMap<>();
+        Map<String, Set<String>> sourcesByProduct = new HashMap<>();
+        List<ObservedOffer> chronological = new ArrayList<>(offers);
+        chronological.sort(Comparator.comparingLong(ObservedOffer::getObservedAt));
+        for (ObservedOffer offer : chronological) {
+            if (isPropertyOffer(offer) || offer.getTelegramPostLink().isEmpty()) {
+                retained.add(offer);
+                continue;
+            }
+            String product = normalize(offer.getInterest());
+            long startedAt = startedAtByProduct.containsKey(product)
+                    ? startedAtByProduct.get(product) : offer.getObservedAt();
+            if (offer.getObservedAt() - startedAt > TELEGRAM_PROMOTION_WINDOW_MS) {
+                startedAt = offer.getObservedAt();
+                sourcesByProduct.remove(product);
+            }
+            startedAtByProduct.put(product, startedAt);
+            Set<String> sources = sourcesByProduct.computeIfAbsent(product, ignored -> new HashSet<>());
+            if (sources.contains(normalize(offer.getSource()))
+                    || sources.size() >= MAX_TELEGRAM_GROUPS_PER_PROMOTION) {
+                continue;
+            }
+            sources.add(normalize(offer.getSource()));
+            retained.add(offer);
+        }
+        return sortByObservedAt(retained);
     }
 
     List<ObservedOffer> getArchived() {

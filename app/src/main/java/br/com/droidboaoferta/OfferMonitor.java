@@ -266,14 +266,17 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                 // Failed validation or an explicit invalidation must never consume deduplication,
                 // ranking or notification state.
                 if (!offerRepository.markOfferProcessed(chatId, messageId, current.getId())) return;
+                GroupSpeedRepository speedRepository = new GroupSpeedRepository(appContext);
+                if (!speedRepository.record(
+                        chatId, sourceTitle, current, verifiedPrice, offer.getObservedAt(), verifiedLink
+                )) {
+                    return;
+                }
                 if (recordQuality) {
                     new GroupQualityRepository(appContext).recordApprovedOffer(chatId, messageId, verifiedDate);
                 }
                 new OfferLinkValidationStore(appContext).setValidated(offer, true);
                 offerRepository.add(offer);
-                new GroupSpeedRepository(appContext).record(
-                        chatId, sourceTitle, current, verifiedPrice, offer.getObservedAt(), verifiedLink
-                );
                 MonitorStatusStore.markApprovedOffer(appContext);
                 if (notifyUser) {
                     showOfferNotification(offer, chatId, messageId);

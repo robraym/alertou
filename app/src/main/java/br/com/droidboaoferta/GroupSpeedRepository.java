@@ -23,6 +23,7 @@ final class GroupSpeedRepository {
     private static final String KEY_STARTED_AT = "started_at";
     private static final long WINDOW_MS = 7L * 24L * 60L * 60L * 1000L;
     private static final long RACE_WINDOW_MS = 12L * 60L * 60L * 1000L;
+    private static final int MAX_GROUPS_PER_PROMOTION = 3;
     private static final int MAX_EVENTS = 800;
 
     private final SharedPreferences preferences;
@@ -35,9 +36,9 @@ final class GroupSpeedRepository {
         expiryRepository = new GroupPromotionExpiryRepository(appContext);
     }
 
-    synchronized void record(long chatId, String title, Interest interest, double price,
-                             long observedAt, String link) {
-        record(chatId, title, interest.getTerm(), interest.getId(), price, observedAt, link);
+    synchronized boolean record(long chatId, String title, Interest interest, double price,
+                                long observedAt, String link) {
+        return record(chatId, title, interest.getTerm(), interest.getId(), price, observedAt, link);
     }
 
     synchronized void seedFromOffers(List<ObservedOffer> offers, List<TelegramGroup> groups,
@@ -123,23 +124,27 @@ final class GroupSpeedRepository {
         );
     }
 
-    private void record(long chatId, String title, String interest, long interestId, double price,
-                        long observedAt, String link) {
+    private boolean record(long chatId, String title, String interest, long interestId, double price,
+                           long observedAt, String link) {
         long startedAt = preferences.getLong(KEY_STARTED_AT, 0L);
         if (startedAt > 0L && observedAt < startedAt) {
-            return;
+            return false;
         }
         List<Event> events = readEvents();
         String product = signature(interest, price, link);
         if (containsRemoval(preferences.getString(KEY_REMOVALS, "[]"), chatId, product,
                 observedAt)) {
-            return;
+            return false;
         }
         String eventId = chatId + ":" + product + ":" + observedAt;
         for (Event event : events) {
-            if (event.id.equals(eventId)) return;
+            if (event.id.equals(eventId)) return false;
         }
-        events.add(new Event(eventId, chatId, title, product, observedAt));
+        Event candidate = new Event(eventId, chatId, title, product, observedAt);
+        if (!isAmongFirstGroups(events, candidate)) {
+            return false;
+        }
+        events.add(candidate);
         long oldest = System.currentTimeMillis() - WINDOW_MS;
         events.removeIf(event -> event.observedAt < oldest);
         events.sort(Comparator.comparingLong((Event event) -> event.observedAt).reversed());
@@ -148,6 +153,7 @@ final class GroupSpeedRepository {
         }
         saveEvents(events);
         CloudSyncStore.markRankingSpeedChanged(appContext, chatId, product, observedAt);
+        return true;
     }
 
     synchronized List<Ranking> getRanking(List<TelegramGroup> groups, Set<String> selectedIds) {
@@ -272,20 +278,28 @@ final class GroupSpeedRepository {
             }
         }
         Map<Long, Set<String>> uniqueOffers = new HashMap<>();
-        Map<String, Long> raceStarts = new HashMap<>();
-        for (Event event : readEvents()) {
-            Long first = raceStarts.get(event.signature);
-            if (first == null || event.observedAt < first) raceStarts.put(event.signature, event.observedAt);
-        }
+        Map<String, List<Event>> races = new HashMap<>();
         for (Event event : readEvents()) {
             if (event.observedAt >= windowStartedAt && event.observedAt < windowEndedAt
                     && selectedChatIds.contains(event.chatId)) {
-                long roundStartedAt = raceStarts.containsKey(event.signature)
-                        ? raceStarts.get(event.signature) : event.observedAt;
-                if (!expiryRepository.isExpiredAt(event.signature, roundStartedAt, event.observedAt)) {
-                    uniqueOffers.computeIfAbsent(event.chatId, ignored -> new HashSet<>()).add(event.id);
-                }
+                races.computeIfAbsent(event.signature, ignored -> new ArrayList<>()).add(event);
             }
+        }
+        for (List<Event> events : races.values()) {
+            events.sort(Comparator.comparingLong(event -> event.observedAt));
+            List<Event> race = new ArrayList<>();
+            long raceStartedAt = 0L;
+            for (Event event : events) {
+                if (!race.isEmpty() && event.observedAt - raceStartedAt > RACE_WINDOW_MS) {
+                    addApprovedOffersForRace(race, raceStartedAt, uniqueOffers);
+                    race.clear();
+                }
+                if (race.isEmpty()) {
+                    raceStartedAt = event.observedAt;
+                }
+                race.add(event);
+            }
+            addApprovedOffersForRace(race, raceStartedAt, uniqueOffers);
         }
         Map<Long, Integer> counts = new HashMap<>();
         for (Map.Entry<Long, Set<String>> item : uniqueOffers.entrySet()) {
@@ -294,19 +308,19 @@ final class GroupSpeedRepository {
         return counts;
     }
 
+    private void addApprovedOffersForRace(List<Event> race, long roundStartedAt,
+                                          Map<Long, Set<String>> uniqueOffers) {
+        for (Event event : getFirstGroupArrivals(race, roundStartedAt)) {
+            uniqueOffers.computeIfAbsent(event.chatId, ignored -> new HashSet<>()).add(event.id);
+        }
+    }
+
     private void addDetailsForRace(List<Event> race, long targetChatId,
                                    List<RankingDetail> details) {
         if (race.isEmpty()) return;
         race.sort(Comparator.comparingLong(event -> event.observedAt));
         long roundStartedAt = race.get(0).observedAt;
-        Map<Long, Event> firstByGroup = new HashMap<>();
-        for (Event event : race) {
-            if (!expiryRepository.isExpiredAt(event.signature, roundStartedAt, event.observedAt)) {
-                firstByGroup.putIfAbsent(event.chatId, event);
-            }
-        }
-        List<Event> arrivals = new ArrayList<>(firstByGroup.values());
-        arrivals.sort(Comparator.comparingLong(event -> event.observedAt));
+        List<Event> arrivals = getFirstGroupArrivals(race, roundStartedAt);
         Event targetEvent = null;
         for (Event event : race) if (event.chatId == targetChatId) { targetEvent = event; break; }
         if (targetEvent == null) return;
@@ -332,14 +346,7 @@ final class GroupSpeedRepository {
         }
         race.sort(Comparator.comparingLong(event -> event.observedAt));
         long roundStartedAt = race.get(0).observedAt;
-        Set<Long> seenGroups = new HashSet<>();
-        List<Event> arrivals = new ArrayList<>();
-        for (Event event : race) {
-            if (!expiryRepository.isExpiredAt(event.signature, roundStartedAt, event.observedAt)
-                    && seenGroups.add(event.chatId)) {
-                arrivals.add(event);
-            }
-        }
+        List<Event> arrivals = getFirstGroupArrivals(race, roundStartedAt);
         for (int index = 0; index < arrivals.size(); index++) {
             Ranking item = ranking.get(arrivals.get(index).chatId);
             item.participations++;
@@ -354,10 +361,49 @@ final class GroupSpeedRepository {
         if (position == 0) return 10;
         if (position == 1) return 8;
         if (position == 2) return 6;
-        if (position == 3) return 5;
-        if (position == 4) return 4;
-        if (position == 5) return 3;
-        return position < 10 ? 2 : 1;
+        return 0;
+    }
+
+    /** A promotion is useful only while it is among the first three selected groups. */
+    private boolean isAmongFirstGroups(List<Event> events, Event candidate) {
+        List<Event> matching = new ArrayList<>();
+        for (Event event : events) {
+            if (candidate.signature.equals(event.signature)) {
+                matching.add(event);
+            }
+        }
+        matching.add(candidate);
+        matching.sort(Comparator.comparingLong(event -> event.observedAt));
+        List<Event> race = new ArrayList<>();
+        long raceStartedAt = 0L;
+        for (Event event : matching) {
+            if (!race.isEmpty() && event.observedAt - raceStartedAt > RACE_WINDOW_MS) {
+                if (race.contains(candidate)) {
+                    return getFirstGroupArrivals(race, raceStartedAt).contains(candidate);
+                }
+                race.clear();
+            }
+            if (race.isEmpty()) {
+                raceStartedAt = event.observedAt;
+            }
+            race.add(event);
+        }
+        return getFirstGroupArrivals(race, raceStartedAt).contains(candidate);
+    }
+
+    private List<Event> getFirstGroupArrivals(List<Event> race, long roundStartedAt) {
+        Map<Long, Event> firstByGroup = new HashMap<>();
+        for (Event event : race) {
+            if (!expiryRepository.isExpiredAt(event.signature, roundStartedAt, event.observedAt)) {
+                firstByGroup.putIfAbsent(event.chatId, event);
+            }
+        }
+        List<Event> arrivals = new ArrayList<>(firstByGroup.values());
+        arrivals.sort(Comparator.comparingLong(event -> event.observedAt));
+        if (arrivals.size() > MAX_GROUPS_PER_PROMOTION) {
+            return new ArrayList<>(arrivals.subList(0, MAX_GROUPS_PER_PROMOTION));
+        }
+        return arrivals;
     }
 
     private String signature(String interest, double price, String link) {
