@@ -18,6 +18,12 @@ import org.json.JSONObject;
 
 final class PropertyPageClient {
     private static final int MAX_RESPONSE_BYTES = 3 * 1024 * 1024;
+    private static final int PAGE_CONNECT_TIMEOUT_MS = 12_000;
+    private static final int PAGE_READ_TIMEOUT_MS = 18_000;
+    // A página individual só complementa a lista oficial. Não deixe uma página lenta
+    // segurar toda a consulta do condomínio.
+    private static final int LISTING_CONNECT_TIMEOUT_MS = 4_000;
+    private static final int LISTING_READ_TIMEOUT_MS = 6_000;
     private static final int QUINTO_ANDAR_LISTING_PAGE_SIZE = 20;
     private static final String QUINTO_ANDAR_LISTING_SEARCH_URL =
             "https://apigw.prod.quintoandar.com.br/house-listing-search/v3/search/list";
@@ -262,7 +268,8 @@ final class PropertyPageClient {
             return PropertyListingMetadata.empty();
         }
         return PropertyPageParser.parseListingMetadata(
-                fetchHtml(normalizedUrl), getListingId(normalizedUrl));
+                fetchHtml(normalizedUrl, LISTING_CONNECT_TIMEOUT_MS, LISTING_READ_TIMEOUT_MS),
+                getListingId(normalizedUrl));
     }
 
     static boolean isQuintoAndarListingUrl(String url) {
@@ -377,11 +384,16 @@ final class PropertyPageClient {
     }
 
     private static String fetchHtml(String url) throws Exception {
+        return fetchHtml(url, PAGE_CONNECT_TIMEOUT_MS, PAGE_READ_TIMEOUT_MS);
+    }
+
+    private static String fetchHtml(String url, int connectTimeoutMillis,
+                                    int readTimeoutMillis) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(
                 buildFreshRequestUrl(url, System.currentTimeMillis())
         ).openConnection();
-        connection.setConnectTimeout(12_000);
-        connection.setReadTimeout(18_000);
+        connection.setConnectTimeout(connectTimeoutMillis);
+        connection.setReadTimeout(readTimeoutMillis);
         connection.setInstanceFollowRedirects(true);
         connection.setUseCaches(false);
         connection.setRequestProperty("Accept", "text/html,application/xhtml+xml");
@@ -401,8 +413,8 @@ final class PropertyPageClient {
 
     private static String postJson(String url, String body) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setConnectTimeout(12_000);
-        connection.setReadTimeout(18_000);
+        connection.setConnectTimeout(PAGE_CONNECT_TIMEOUT_MS);
+        connection.setReadTimeout(PAGE_READ_TIMEOUT_MS);
         connection.setInstanceFollowRedirects(true);
         connection.setUseCaches(false);
         connection.setRequestMethod("POST");

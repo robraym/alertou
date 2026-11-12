@@ -21,6 +21,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 final class PropertyPageMonitor {
@@ -749,6 +752,9 @@ final class PropertyPageMonitor {
             }
         }
         updatePropertyZipListingProgress(context, interest, 0, addressCandidates.size());
+        Map<String, PropertyListingMetadata> metadataByListing =
+                fetchListingMetadataInParallel(context, interest, addressCandidates,
+                        currentPageListingIds, historyRepository, marketReferenceEnabled);
         int addressCandidatePosition = 0;
         for (PropertyPageListing listing : addressCandidates) {
             if (!MonitorRunPolicy.isCurrent(context, interest)) return;
@@ -769,18 +775,7 @@ final class PropertyPageMonitor {
             boolean reusedVerifiedSnapshot = requiresIdentity
                     && currentPageListingIds.contains(listing.getId())
                     && historyRepository.hasVerifiedUnchangedListing(interest.getId(), listing);
-            if (!reusedVerifiedSnapshot && requiresIdentity && shouldVerifyIndividualPrice(
-                    previouslyObserved,
-                    listing.getSalePrice(),
-                    interest.getMaximumPrice(),
-                    marketReferenceEnabled && matchesArea)) {
-                try {
-                    metadata = PropertyPageClient.fetchListingMetadata(listing.getUrl());
-                } catch (Exception error) {
-                    SourceCheckStatus.failed(context, interest.getId(), error);
-                    metadata = PropertyListingMetadata.empty();
-                }
-            }
+            if (!reusedVerifiedSnapshot) metadata = metadataByListing.get(listing.getId());
             if (!MonitorRunPolicy.isCurrent(context, interest)) return;
             if (requiresIdentity && metadata != null && metadata.isUnavailableFor(listing.getId())) {
                 historyRepository.markUnavailable(interest.getId(), listing, observedAt);
@@ -945,6 +940,53 @@ final class PropertyPageMonitor {
                 || !changed.isEmpty()) {
             notifyPropertyOfferChanges(context);
         }
+    }
+
+    /**
+     * A validação da página individual complementa a listagem oficial do condomínio. Faça no
+     * máximo três por vez: antes, vinte leituras sequenciais podiam acumular vários minutos
+     * quando uma página demorava até o timeout.
+     */
+    private Map<String, PropertyListingMetadata> fetchListingMetadataInParallel(
+            Context context, Interest interest, List<PropertyPageListing> candidates,
+            java.util.Set<String> currentPageListingIds, PropertyHistoryRepository historyRepository,
+            boolean marketReferenceEnabled) {
+        Map<String, PropertyListingMetadata> result = new HashMap<>();
+        if (interest.isPropertyZip()) return result;
+        List<PropertyPageListing> requests = new ArrayList<>();
+        for (PropertyPageListing listing : candidates) {
+            boolean previouslyObserved = historyRepository.contains(interest.getId(), listing);
+            boolean matchesArea = listing.matchesArea(interest.getMinimumArea(), interest.getMaximumArea());
+            boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
+            boolean reusedVerifiedSnapshot = requiresIdentity
+                    && currentPageListingIds.contains(listing.getId())
+                    && historyRepository.hasVerifiedUnchangedListing(interest.getId(), listing);
+            if (requiresIdentity && !reusedVerifiedSnapshot && shouldVerifyIndividualPrice(
+                    previouslyObserved, listing.getSalePrice(), interest.getMaximumPrice(),
+                    marketReferenceEnabled && matchesArea)) {
+                requests.add(listing);
+            }
+        }
+        if (requests.isEmpty()) return result;
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(3, requests.size()));
+        Map<String, Future<PropertyListingMetadata>> futures = new HashMap<>();
+        try {
+            for (PropertyPageListing listing : requests) {
+                futures.put(listing.getId(), executor.submit(
+                        () -> PropertyPageClient.fetchListingMetadata(listing.getUrl())));
+            }
+            for (PropertyPageListing listing : requests) {
+                try {
+                    result.put(listing.getId(), futures.get(listing.getId()).get());
+                } catch (Exception error) {
+                    SourceCheckStatus.failed(context, interest.getId(), error);
+                    result.put(listing.getId(), PropertyListingMetadata.empty());
+                }
+            }
+        } finally {
+            executor.shutdownNow();
+        }
+        return result;
     }
 
     private PropertyPageResult fetchPropertyPageWithRetry(Context context, Interest interest,
