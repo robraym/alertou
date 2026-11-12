@@ -183,10 +183,6 @@ final class StoreSourceCheckStatus {
                 && PromobitSource.isConfigured(context)) titles.add(R.string.promobit_source_title);
         if (StoreSourceControl.isEnabled(context, R.string.kabum_offer_source_title)
                 && KabumOfferSource.isConfigured(context)) titles.add(R.string.kabum_offer_source_title);
-        if (StoreSourceControl.isEnabled(context, R.string.kabum_catalog_source_title)
-                && KabumCatalogSource.isConfigured(context)) titles.add(R.string.kabum_catalog_source_title);
-        if (StoreSourceControl.isEnabled(context, R.string.kabum_catalog_api_source_title)
-                && KabumCatalogApiSource.isConfigured(context)) titles.add(R.string.kabum_catalog_api_source_title);
         if (StoreSourceControl.isEnabled(context, R.string.motorola_offer_source_title)
                 && MotorolaOfferSource.isConfigured(context)) titles.add(R.string.motorola_offer_source_title);
         if (StoreSourceControl.isEnabled(context, R.string.claro_offer_source_title)

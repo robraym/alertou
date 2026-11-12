@@ -166,12 +166,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private TextView kabumOfferSourceRow;
     private TextView kabumOfferSourceState;
     private ImageButton kabumOfferEditButton;
-    private TextView kabumCatalogSourceRow;
-    private TextView kabumCatalogSourceState;
-    private ImageButton kabumCatalogEditButton;
-    private TextView kabumCatalogApiSourceRow;
-    private TextView kabumCatalogApiSourceState;
-    private ImageButton kabumCatalogApiEditButton;
     private TextView motorolaOfferSourceRow;
     private TextView motorolaOfferSourceState;
     private ImageButton motorolaOfferOpenButton;
@@ -263,8 +257,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             renderPelandoSource();
             renderPromobitSource();
             renderKabumOfferSource();
-            renderKabumCatalogSource();
-            renderKabumCatalogApiSource();
             renderMotorolaOfferSource();
             renderClaroOfferSource();
             renderSamsungOfferSource();
@@ -361,12 +353,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         kabumOfferSourceRow = findViewById(R.id.text_kabum_offer_source_row);
         kabumOfferSourceState = findViewById(R.id.text_kabum_offer_source_state);
         kabumOfferEditButton = findViewById(R.id.button_kabum_offer_edit);
-        kabumCatalogSourceRow = findViewById(R.id.text_kabum_catalog_source_row);
-        kabumCatalogSourceState = findViewById(R.id.text_kabum_catalog_source_state);
-        kabumCatalogEditButton = findViewById(R.id.button_kabum_catalog_edit);
-        kabumCatalogApiSourceRow = findViewById(R.id.text_kabum_catalog_api_source_row);
-        kabumCatalogApiSourceState = findViewById(R.id.text_kabum_catalog_api_source_state);
-        kabumCatalogApiEditButton = findViewById(R.id.button_kabum_catalog_api_edit);
         motorolaOfferSourceRow = findViewById(R.id.text_motorola_offer_source_row);
         motorolaOfferSourceState = findViewById(R.id.text_motorola_offer_source_state);
         motorolaOfferOpenButton = findViewById(R.id.button_motorola_offer_open);
@@ -414,8 +400,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         pelandoEditButton.setOnClickListener(view -> showPelandoSourceDialog());
         promobitEditButton.setOnClickListener(view -> showPromobitSourceDialog());
         kabumOfferEditButton.setOnClickListener(view -> showKabumOfferSourceDialog());
-        kabumCatalogEditButton.setOnClickListener(view -> showKabumCatalogSourceDialog());
-        kabumCatalogApiEditButton.setOnClickListener(view -> showKabumCatalogApiSourceDialog());
         motorolaOfferOpenButton.setOnClickListener(view -> showMotorolaOfferSourceDialog());
         claroOfferOpenButton.setOnClickListener(view -> showClaroOfferSourceDialog());
         samsungOfferOpenButton.setOnClickListener(view -> showSamsungOfferSourceDialog());
@@ -426,8 +410,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         renderPelandoSource();
         renderPromobitSource();
         renderKabumOfferSource();
-        renderKabumCatalogSource();
-        renderKabumCatalogApiSource();
         renderMotorolaOfferSource();
         renderClaroOfferSource();
         renderSamsungOfferSource();
@@ -553,8 +535,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             sourceStatusFilter.addAction(PelandoMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(PromobitMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(KabumOfferMonitor.ACTION_STATUS_CHANGED);
-            sourceStatusFilter.addAction(KabumCatalogMonitor.ACTION_STATUS_CHANGED);
-            sourceStatusFilter.addAction(KabumCatalogApiMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(MotorolaOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(ClaroOfferMonitor.ACTION_STATUS_CHANGED);
             sourceStatusFilter.addAction(SamsungOfferMonitor.ACTION_STATUS_CHANGED);
@@ -1455,10 +1435,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 R.string.promobit_source_title);
         addStoreSourceItem(sources, R.id.text_kabum_offer_source_title,
                 R.string.kabum_offer_source_title);
-        addStoreSourceItem(sources, R.id.text_kabum_catalog_source_title,
-                R.string.kabum_catalog_source_title);
-        addStoreSourceItem(sources, R.id.text_kabum_catalog_api_source_title,
-                R.string.kabum_catalog_api_source_title);
         addStoreSourceItem(sources, R.id.text_motorola_offer_source_title,
                 R.string.motorola_offer_source_title);
         addStoreSourceItem(sources, R.id.text_claro_offer_source_title,
@@ -1523,12 +1499,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         if (sourceTitleResource == R.string.kabum_offer_source_title) {
             return KabumOfferSource.getLastSuccessfulCheckAt(this);
-        }
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) {
-            return KabumCatalogSource.getLastSuccessfulCheckAt(this);
-        }
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) {
-            return KabumCatalogApiSource.getLastSuccessfulCheckAt(this);
         }
         if (sourceTitleResource == R.string.motorola_offer_source_title) {
             return MotorolaOfferSource.getLastSuccessfulCheckAt(this);
@@ -2169,8 +2139,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         boolean pelandoConfigured = StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this);
         boolean promobitConfigured = StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this);
         boolean kabumConfigured = StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this);
-        boolean kabumCatalogConfigured = StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this);
-        boolean kabumCatalogApiConfigured = StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title) && KabumCatalogApiSource.isConfigured(this);
         boolean motorolaConfigured = StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this);
         boolean claroConfigured = StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this);
         boolean samsungConfigured = StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this);
@@ -2188,10 +2156,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     PromobitSource.hasSuccessfulCheck(this), PromobitSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(kabumConfigured,
                     KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
-            online += isSourceOnline(kabumCatalogConfigured,
-                    KabumCatalogSource.hasSuccessfulCheck(this), KabumCatalogSource.hasLastCheckFailed(this)) ? 1 : 0;
-            online += isSourceOnline(kabumCatalogApiConfigured,
-                    KabumCatalogApiSource.hasSuccessfulCheck(this), KabumCatalogApiSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(motorolaConfigured,
                     MotorolaOfferSource.hasSuccessfulCheck(this), MotorolaOfferSource.hasLastCheckFailed(this)) ? 1 : 0;
             online += isSourceOnline(claroConfigured,
@@ -2208,8 +2172,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             offline += pelandoConfigured && PelandoSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += promobitConfigured && PromobitSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += kabumConfigured && KabumOfferSource.hasLastCheckFailed(this) ? 1 : 0;
-            offline += kabumCatalogConfigured && KabumCatalogSource.hasLastCheckFailed(this) ? 1 : 0;
-            offline += kabumCatalogApiConfigured && KabumCatalogApiSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += motorolaConfigured && MotorolaOfferSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += claroConfigured && ClaroOfferSource.hasLastCheckFailed(this) ? 1 : 0;
             offline += samsungConfigured && SamsungOfferSource.hasLastCheckFailed(this) ? 1 : 0;
@@ -2352,8 +2314,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         total += StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this) ? 1 : 0;
         total += StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this) ? 1 : 0;
         total += StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this) ? 1 : 0;
-        total += StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this) ? 1 : 0;
-        total += StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title) && KabumCatalogApiSource.isConfigured(this) ? 1 : 0;
         total += StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this) ? 1 : 0;
         total += StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this) ? 1 : 0;
         total += StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this) ? 1 : 0;
@@ -2368,8 +2328,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         total += !StoreSourceControl.isEnabled(this, R.string.pelando_source_title) && PelandoSource.isConfigured(this) ? 1 : 0;
         total += !StoreSourceControl.isEnabled(this, R.string.promobit_source_title) && PromobitSource.isConfigured(this) ? 1 : 0;
         total += !StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this) ? 1 : 0;
-        total += !StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this) ? 1 : 0;
-        total += !StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title) && KabumCatalogApiSource.isConfigured(this) ? 1 : 0;
         total += !StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this) ? 1 : 0;
         total += !StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title) && ClaroOfferSource.isConfigured(this) ? 1 : 0;
         total += !StoreSourceControl.isEnabled(this, R.string.samsung_offer_source_title) && SamsungOfferSource.isConfigured(this) ? 1 : 0;
@@ -2407,12 +2365,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (row.findViewById(R.id.text_kabum_offer_source_title) != null) {
             return R.string.kabum_offer_source_title;
         }
-        if (row.findViewById(R.id.text_kabum_catalog_source_title) != null) {
-            return R.string.kabum_catalog_source_title;
-        }
-        if (row.findViewById(R.id.text_kabum_catalog_api_source_title) != null) {
-            return R.string.kabum_catalog_api_source_title;
-        }
         if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
             return R.string.motorola_offer_source_title;
         }
@@ -2449,14 +2401,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (sourceTitleResource == R.string.kabum_offer_source_title) {
             return isSourceOnline(KabumOfferSource.isConfigured(this),
                     KabumOfferSource.hasSuccessfulCheck(this), KabumOfferSource.hasLastCheckFailed(this));
-        }
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) {
-            return isSourceOnline(KabumCatalogSource.isConfigured(this),
-                    KabumCatalogSource.hasSuccessfulCheck(this), KabumCatalogSource.hasLastCheckFailed(this));
-        }
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) {
-            return isSourceOnline(KabumCatalogApiSource.isConfigured(this),
-                    KabumCatalogApiSource.hasSuccessfulCheck(this), KabumCatalogApiSource.hasLastCheckFailed(this));
         }
         if (sourceTitleResource == R.string.motorola_offer_source_title) {
             return isSourceOnline(MotorolaOfferSource.isConfigured(this),
@@ -2501,14 +2445,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 KabumOfferSource.isConfigured(this) && KabumOfferSource.hasLastCheckFailed(this),
                 KabumOfferSource.getLastFailedCheckAt(this),
                 KabumOfferSource.getLastSuccessfulCheckAt(this));
-        latest = newestStoreSourceFailure(latest, R.string.kabum_catalog_source_title,
-                KabumCatalogSource.isConfigured(this) && KabumCatalogSource.hasLastCheckFailed(this),
-                KabumCatalogSource.getLastFailedCheckAt(this),
-                KabumCatalogSource.getLastSuccessfulCheckAt(this));
-        latest = newestStoreSourceFailure(latest, R.string.kabum_catalog_api_source_title,
-                KabumCatalogApiSource.isConfigured(this) && KabumCatalogApiSource.hasLastCheckFailed(this),
-                KabumCatalogApiSource.getLastFailedCheckAt(this),
-                KabumCatalogApiSource.getLastSuccessfulCheckAt(this));
         latest = newestStoreSourceFailure(latest, R.string.motorola_offer_source_title,
                 MotorolaOfferSource.hasLastCheckFailed(this), MotorolaOfferSource.getLastFailedCheckAt(this),
                 MotorolaOfferSource.getLastSuccessfulCheckAt(this));
@@ -2562,10 +2498,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 PromobitSource.getLastFailedCheckAt(this)));
         latest = Math.max(latest, Math.max(KabumOfferSource.getLastSuccessfulCheckAt(this),
                 KabumOfferSource.getLastFailedCheckAt(this)));
-        latest = Math.max(latest, Math.max(KabumCatalogSource.getLastSuccessfulCheckAt(this),
-                KabumCatalogSource.getLastFailedCheckAt(this)));
-        latest = Math.max(latest, Math.max(KabumCatalogApiSource.getLastSuccessfulCheckAt(this),
-                KabumCatalogApiSource.getLastFailedCheckAt(this)));
         latest = Math.max(latest, Math.max(MotorolaOfferSource.getLastSuccessfulCheckAt(this),
                 MotorolaOfferSource.getLastFailedCheckAt(this)));
         latest = Math.max(latest, Math.max(ClaroOfferSource.getLastSuccessfulCheckAt(this),
@@ -2645,12 +2577,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (row.findViewById(R.id.text_kabum_offer_source_title) != null) {
             return StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title) && KabumOfferSource.isConfigured(this) ? KabumOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
-        if (row.findViewById(R.id.text_kabum_catalog_source_title) != null) {
-            return StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this) ? KabumCatalogMonitor.ACTION_STATUS_CHANGED : null;
-        }
-        if (row.findViewById(R.id.text_kabum_catalog_api_source_title) != null) {
-            return StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title) && KabumCatalogApiSource.isConfigured(this) ? KabumCatalogApiMonitor.ACTION_STATUS_CHANGED : null;
-        }
         if (row.findViewById(R.id.text_motorola_offer_source_title) != null) {
             return StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this) ? MotorolaOfferMonitor.ACTION_STATUS_CHANGED : null;
         }
@@ -2700,10 +2626,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             PromobitMonitor.getInstance().checkNow(this);
         } else if (KabumOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
             KabumOfferMonitor.getInstance().checkNow(this);
-        } else if (KabumCatalogMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
-            KabumCatalogMonitor.getInstance().checkNow(this);
-        } else if (KabumCatalogApiMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
-            KabumCatalogApiMonitor.getInstance().checkNow(this);
         } else if (MotorolaOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
             MotorolaOfferMonitor.getInstance().checkNow(this);
         } else if (ClaroOfferMonitor.ACTION_STATUS_CHANGED.equals(manualStoreRefreshAction)) {
@@ -3309,207 +3231,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         renderStoreSourcesStatus();
     }
 
-    private void renderKabumCatalogSource() {
-        ((TextView)findViewById(R.id.text_kabum_catalog_source_title)).setText(
-                StoreDisplayName.get(this,R.string.kabum_catalog_source_title));
-        boolean configured = KabumCatalogSource.isConfigured(this);
-        long lastSuccess = KabumCatalogSource.getLastSuccessfulCheckAt(this);
-        boolean offline = configured && KabumCatalogSource.hasLastCheckFailed(this);
-        String status = !configured ? getString(R.string.kabum_catalog_source_not_configured)
-                : offline ? getString(R.string.kabum_catalog_source_check_failed, formatSourceCheckTime(lastSuccess))
-                : KabumCatalogSource.hasSuccessfulCheck(this)
-                ? getString(R.string.kabum_catalog_source_check_succeeded, formatSourceCheckTime(lastSuccess))
-                : getString(R.string.kabum_catalog_source_check_pending);
-        kabumCatalogSourceRow.setText(appendStoreCheckDuration(status, R.string.kabum_catalog_source_title));
-        renderSourceState(kabumCatalogSourceState, configured, KabumCatalogSource.hasSuccessfulCheck(this), offline);
-        renderStoreSourceRowState(kabumCatalogSourceRow, R.string.kabum_catalog_source_title, offline);
-        renderStoreSourcesStatus();
-    }
-
-    private void renderKabumCatalogApiSource() {
-        ((TextView) findViewById(R.id.text_kabum_catalog_api_source_title)).setText(
-                StoreDisplayName.get(this, R.string.kabum_catalog_api_source_title));
-        boolean configured = KabumCatalogApiSource.isConfigured(this);
-        long lastSuccess = KabumCatalogApiSource.getLastSuccessfulCheckAt(this);
-        boolean offline = configured && KabumCatalogApiSource.hasLastCheckFailed(this);
-        String status = !configured ? getString(R.string.kabum_catalog_api_source_not_configured)
-                : offline ? getString(R.string.kabum_catalog_api_source_check_failed, formatSourceCheckTime(lastSuccess))
-                : KabumCatalogApiSource.hasSuccessfulCheck(this)
-                ? getString(R.string.kabum_catalog_api_source_check_succeeded, formatSourceCheckTime(lastSuccess))
-                : getString(R.string.kabum_catalog_api_source_check_pending);
-        kabumCatalogApiSourceRow.setText(appendStoreCheckDuration(status,
-                R.string.kabum_catalog_api_source_title));
-        renderSourceState(kabumCatalogApiSourceState, configured,
-                KabumCatalogApiSource.hasSuccessfulCheck(this), offline);
-        renderStoreSourceRowState(kabumCatalogApiSourceRow,
-                R.string.kabum_catalog_api_source_title, offline);
-        renderStoreSourcesStatus();
-    }
-
-    private void showKabumCatalogApiSourceDialog() {
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
-        content.setBackgroundResource(R.drawable.bg_dialog);
-        TextView title = new TextView(this);
-        title.setText(R.string.kabum_catalog_api_dialog_title);
-        title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(22);
-        content.addView(title);
-        TextView message = new TextView(this);
-        message.setText(R.string.kabum_catalog_api_dialog_summary);
-        message.setTextColor(getColor(R.color.text_secondary));
-        message.setTextSize(15);
-        message.setPadding(0, dp(6), 0, dp(16));
-        content.addView(message);
-        EditText titleInput = addStoreTitleInput(content, R.string.kabum_catalog_api_source_title);
-        EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setHint(R.string.kabum_catalog_api_link_hint);
-        input.setText(KabumCatalogApiSource.getUrl(this));
-        input.setTextColor(getColor(R.color.text_primary));
-        input.setHintTextColor(getColor(R.color.text_secondary));
-        input.setTextSize(13);
-        input.setSingleLine(false);
-        input.setMinLines(2);
-        input.setMaxLines(4);
-        input.setHorizontallyScrolling(false);
-        input.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        input.setPadding(dp(12), dp(6), dp(12), dp(6));
-        input.setBackgroundResource(R.drawable.bg_input);
-        content.addView(input, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        actions.setPadding(0, dp(14), 0, 0);
-        TextView cancel = createSourceDialogAction(R.string.action_cancel);
-        cancel.setOnClickListener(view -> dialog.dismiss());
-        actions.addView(cancel);
-        TextView save = createSourcePrimaryDialogAction(R.string.action_save);
-        save.setOnClickListener(view -> {
-            String url = input.getText().toString().trim();
-            if (StoreSourceUrl.normalize(url) == null) {
-                input.setError(getString(R.string.kabum_offer_link_unsupported));
-                return;
-            }
-            StoreDisplayName.save(this, R.string.kabum_catalog_api_source_title,
-                    titleInput.getText().toString());
-            KabumCatalogApiSource.save(this, url);
-            renderKabumCatalogApiSource();
-            MonitorServiceController.update(this);
-            KabumCatalogApiMonitor.getInstance().checkNow(this);
-            dialog.dismiss();
-        });
-        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, dp(42));
-        saveParams.leftMargin = dp(10);
-        actions.addView(save, saveParams);
-        content.addView(actions);
-        dialog.setContentView(content);
-        dialog.show();
-        Window window = dialog.getWindow();
-        if (window != null) {
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
-            params.copyFrom(window.getAttributes());
-            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
-            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-            params.dimAmount = 0.65f;
-            window.setAttributes(params);
-            window.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
-    }
-
-    private void showKabumCatalogSourceDialog() {
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
-        content.setBackgroundResource(R.drawable.bg_dialog);
-
-        TextView title = new TextView(this);
-        title.setText(R.string.kabum_catalog_dialog_title);
-        title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(22);
-        content.addView(title);
-
-        TextView message = new TextView(this);
-        message.setText(R.string.kabum_catalog_dialog_summary);
-        message.setTextColor(getColor(R.color.text_secondary));
-        message.setTextSize(15);
-        message.setPadding(0, dp(6), 0, dp(16));
-        content.addView(message);
-
-        EditText titleInput = addStoreTitleInput(content, R.string.kabum_catalog_source_title);
-
-        EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-        input.setHint(R.string.kabum_catalog_link_hint);
-        input.setText(KabumCatalogSource.getUrl(this));
-        input.setTextColor(getColor(R.color.text_primary));
-        input.setHintTextColor(getColor(R.color.text_secondary));
-        input.setTextSize(13);
-        input.setSingleLine(false);
-        input.setMinLines(2);
-        input.setMaxLines(4);
-        input.setHorizontallyScrolling(false);
-        input.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
-        input.setPadding(dp(12), dp(6), dp(12), dp(6));
-        input.setBackgroundResource(R.drawable.bg_input);
-        content.addView(input, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        actions.setPadding(0, dp(14), 0, 0);
-        TextView cancel = createSourceDialogAction(R.string.action_cancel);
-        cancel.setOnClickListener(view -> dialog.dismiss());
-        actions.addView(cancel);
-        TextView save = createSourcePrimaryDialogAction(R.string.action_save);
-        save.setOnClickListener(view -> {
-            String url = input.getText().toString().trim();
-            if (StoreSourceUrl.normalize(url) == null) {
-                input.setError(getString(R.string.kabum_offer_link_unsupported));
-                return;
-            }
-            StoreDisplayName.save(this, R.string.kabum_catalog_source_title,
-                    titleInput.getText().toString());
-            KabumCatalogSource.save(this, url);
-            renderKabumCatalogSource();
-            MonitorServiceController.update(this);
-            KabumCatalogMonitor.getInstance().checkNow(this);
-            dialog.dismiss();
-        });
-        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                dp(42)
-        );
-        saveParams.leftMargin = dp(10);
-        actions.addView(save, saveParams);
-        content.addView(actions);
-
-        dialog.setContentView(content);
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
-        dialog.show();
-        Window shownWindow = dialog.getWindow();
-        if (shownWindow != null) {
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
-            params.copyFrom(shownWindow.getAttributes());
-            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
-            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-            params.dimAmount = 0.65f;
-            shownWindow.setAttributes(params);
-            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
-    }
-
     private void renderMotorolaOfferSource() {
         motorolaOfferSourceTitle.setText(MotorolaOfferSource.getTitle(this));
         long lastSuccessfulCheck = MotorolaOfferSource.getLastSuccessfulCheckAt(this);
@@ -3830,8 +3551,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (sourceTitleResource == R.string.pelando_source_title) return pelandoSourceRow;
         if (sourceTitleResource == R.string.promobit_source_title) return promobitSourceRow;
         if (sourceTitleResource == R.string.kabum_offer_source_title) return kabumOfferSourceRow;
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) return kabumCatalogSourceRow;
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) return kabumCatalogApiSourceRow;
         if (sourceTitleResource == R.string.motorola_offer_source_title) return motorolaOfferSourceRow;
         if (sourceTitleResource == R.string.claro_offer_source_title) return claroOfferSourceRow;
         if (sourceTitleResource == R.string.samsung_offer_source_title) return samsungOfferSourceRow;
@@ -3853,10 +3572,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             lastSuccessfulCheck = PromobitSource.getLastSuccessfulCheckAt(this);
         } else if (sourceTitleResource == R.string.kabum_offer_source_title) {
             lastSuccessfulCheck = KabumOfferSource.getLastSuccessfulCheckAt(this);
-        } else if (sourceTitleResource == R.string.kabum_catalog_source_title) {
-            lastSuccessfulCheck = KabumCatalogSource.getLastSuccessfulCheckAt(this);
-        } else if (sourceTitleResource == R.string.kabum_catalog_api_source_title) {
-            lastSuccessfulCheck = KabumCatalogApiSource.getLastSuccessfulCheckAt(this);
         } else if (sourceTitleResource == R.string.samsung_offer_source_title) {
             lastSuccessfulCheck = SamsungOfferSource.getLastSuccessfulCheckAt(this);
         } else if (sourceTitleResource == R.string.samsung_discount_offer_source_title) {
@@ -3944,8 +3659,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (sourceTitleResource == R.string.pelando_source_title) return R.id.text_pelando_source_title;
         if (sourceTitleResource == R.string.promobit_source_title) return R.id.text_promobit_source_title;
         if (sourceTitleResource == R.string.kabum_offer_source_title) return R.id.text_kabum_offer_source_title;
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) return R.id.text_kabum_catalog_source_title;
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) return R.id.text_kabum_catalog_api_source_title;
         if (sourceTitleResource == R.string.motorola_offer_source_title) return R.id.text_motorola_offer_source_title;
         if (sourceTitleResource == R.string.claro_offer_source_title) return R.id.text_claro_offer_source_title;
         if (sourceTitleResource == R.string.samsung_offer_source_title) return R.id.text_samsung_offer_source_title;
@@ -3958,8 +3671,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (sourceTitleResource == R.string.pelando_source_title) return R.id.text_pelando_source_state;
         if (sourceTitleResource == R.string.promobit_source_title) return R.id.text_promobit_source_state;
         if (sourceTitleResource == R.string.kabum_offer_source_title) return R.id.text_kabum_offer_source_state;
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) return R.id.text_kabum_catalog_source_state;
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) return R.id.text_kabum_catalog_api_source_state;
         if (sourceTitleResource == R.string.motorola_offer_source_title) return R.id.text_motorola_offer_source_state;
         if (sourceTitleResource == R.string.claro_offer_source_title) return R.id.text_claro_offer_source_state;
         if (sourceTitleResource == R.string.samsung_offer_source_title) return R.id.text_samsung_offer_source_state;
@@ -3972,8 +3683,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         if (sourceTitleResource == R.string.pelando_source_title) return R.id.button_pelando_edit;
         if (sourceTitleResource == R.string.promobit_source_title) return R.id.button_promobit_edit;
         if (sourceTitleResource == R.string.kabum_offer_source_title) return R.id.button_kabum_offer_edit;
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) return R.id.button_kabum_catalog_edit;
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) return R.id.button_kabum_catalog_api_edit;
         if (sourceTitleResource == R.string.motorola_offer_source_title) return R.id.button_motorola_offer_open;
         if (sourceTitleResource == R.string.claro_offer_source_title) return R.id.button_claro_offer_open;
         if (sourceTitleResource == R.string.samsung_offer_source_title) return R.id.button_samsung_offer_open;
@@ -4416,7 +4125,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     titleInput.getText().toString());
             KabumOfferSource.save(this, rawUrl);
             renderKabumOfferSource();
-            renderKabumCatalogSource();
             MonitorServiceController.update(this);
             KabumOfferMonitor.getInstance().checkNow(this);
             dialog.dismiss();

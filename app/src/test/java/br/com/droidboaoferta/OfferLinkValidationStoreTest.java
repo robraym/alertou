@@ -51,7 +51,6 @@ public class OfferLinkValidationStoreTest {
         assertTrue(store.canDisplay(offer("pelando|1|123")));
         assertTrue(store.canDisplay(offer("promobit|1|123")));
         assertTrue(store.canDisplay(offer("kabum|1|123")));
-        assertTrue(store.canDisplay(offer("kabum_catalog|1|123")));
         assertTrue(store.canDisplay(offer("motorola|1|123")));
         assertTrue(store.canDisplay(offer("claro|1|123")));
         assertTrue(store.canDisplay(offer("samsung|1|123")));

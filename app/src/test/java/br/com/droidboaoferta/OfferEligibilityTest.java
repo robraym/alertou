@@ -30,4 +30,12 @@ public class OfferEligibilityTest {
         assertFalse(OfferEligibility.hasUsableLink(""));
         assertFalse(OfferEligibility.hasUsableLink(null));
     }
+
+    @Test
+    public void onlyNotifiesForFreshTelegramMessages() {
+        assertTrue(OfferEligibility.isTimelyForNotification(NOW - 15L * 60L * 1000L, NOW));
+        assertFalse(OfferEligibility.isTimelyForNotification(
+                NOW - 15L * 60L * 1000L - 1L, NOW));
+        assertFalse(OfferEligibility.isTimelyForNotification(NOW + 1L, NOW));
+    }
 }

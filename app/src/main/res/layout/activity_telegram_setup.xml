@@ -473,7 +473,6 @@
             android:layout_marginEnd="8dp"
             android:background="@color/divider" />
 
-        <include layout="@layout/row_source_kabum_catalog" />
 
         <View
             android:layout_width="match_parent"
@@ -482,7 +481,6 @@
             android:layout_marginEnd="8dp"
             android:background="@color/divider" />
 
-        <include layout="@layout/row_source_kabum_catalog_api" />
 
         <View
             android:layout_width="match_parent"

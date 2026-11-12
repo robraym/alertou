@@ -19,5 +19,6 @@ final class TreasuryDirectSettings {
     static void saveCheckIntervalSeconds(Context context, int seconds) {
         context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putInt(KEY_INTERVAL_SECONDS, Math.max(30, Math.min(86400, seconds))).apply();
+        SettingsBackup.changed(context);
     }
 }

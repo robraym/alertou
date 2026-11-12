@@ -214,6 +214,7 @@ public class MainActivity extends AlertouActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        new OfferRepository(this).removeRetiredStoreOffers();
         setContentView(R.layout.activity_main);
         BottomNavigationController.setup(
                 this,
@@ -843,7 +844,8 @@ public class MainActivity extends AlertouActivity {
 
         boolean expanded = isOfferSectionExpanded(SECTION_TREASURY_EXPANDED);
         TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(this);
-        StringBuilder fingerprint = new StringBuilder().append(expanded);
+        StringBuilder fingerprint = new StringBuilder().append(expanded).append('|')
+                .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this));
         for (Interest interest : treasuryInterests) {
             List<TreasuryRatePoint> points = historyRepository.get(interest.getId());
             fingerprint.append('|').append(interest.getId()).append('|')
@@ -902,32 +904,33 @@ public class MainActivity extends AlertouActivity {
         title.setSingleLine(true);
         text.addView(title);
         TextView count = new TextView(this);
-        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size()));
+        String titlesCount = getString(R.string.treasury_direct_alerts_count, treasuryInterests.size());
+        String marketStatus = getTreasuryMarketStatus();
+        android.text.SpannableString countAndStatus = new android.text.SpannableString(
+                titlesCount + " · " + marketStatus);
+        int statusStart = titlesCount.length() + 3;
+        countAndStatus.setSpan(new android.text.style.ForegroundColorSpan(
+                        getTreasuryMarketStatusColor()),
+                statusStart, countAndStatus.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        count.setText(countAndStatus);
         count.setTextColor(getColor(R.color.text_secondary));
         count.setTextSize(13);
         count.setPadding(0, dp(3), 0, 0);
         text.addView(count);
 
-        LinearLayout statusLine = new LinearLayout(this);
-        statusLine.setGravity(Gravity.CENTER_VERTICAL);
         TextView status = new TextView(this);
         status.setTextColor(getColor(R.color.text_secondary));
-        status.setTextSize(11.5f);
+        status.setTextSize(10.5f);
         status.setIncludeFontPadding(false);
-        status.setSingleLine(true);
-        statusLine.addView(status, new LinearLayout.LayoutParams(0,
-                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        TextView duration = new TextView(this);
-        duration.setTextColor(getColor(R.color.text_secondary));
-        duration.setTextSize(11.5f);
-        duration.setIncludeFontPadding(false);
-        duration.setSingleLine(true);
-        statusLine.addView(duration);
-        applyPropertyStatusLine(status, duration, getTreasuryLastCheckSummary());
+        // The official date is important data. Let it use the whole line (and wrap on
+        // exceptionally narrow devices) instead of truncating it beside an empty duration.
+        status.setSingleLine(false);
+        status.setMaxLines(2);
+        status.setText(getTreasuryLastCheckSummary());
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         statusParams.topMargin = dp(3);
-        text.addView(statusLine, statusParams);
+        text.addView(status, statusParams);
 
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
@@ -1890,10 +1893,33 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getTreasuryLastCheckSummary() {
+        long officialUpdatedAt = TreasuryDirectMonitor.getOfficialUpdatedAt(this);
+        if (officialUpdatedAt > 0L) {
+            return getString(R.string.treasury_direct_official_updated,
+                    new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
+                            .format(new java.util.Date(officialUpdatedAt)));
+        }
         long lastCheckAt = TreasuryDirectMonitor.getLastCheckAt(this);
         if (lastCheckAt <= 0L) return getString(R.string.property_alerts_status_empty);
         return appendCheckDuration(formatCompactCheckTime(lastCheckAt),
                 TreasuryDirectMonitor.getLastCheckDurationMillis(this));
+    }
+
+    private String getTreasuryMarketStatus() {
+        if (TreasuryDirectMonitor.isOfficialMarketInMaintenance(this)) {
+            return getString(R.string.treasury_direct_market_maintenance);
+        }
+        return TreasuryDirectMonitor.getLastCheckAt(this) > 0L
+                ? getString(R.string.treasury_direct_market_available)
+                : getString(R.string.treasury_direct_rate_waiting);
+    }
+
+    private int getTreasuryMarketStatusColor() {
+        if (TreasuryDirectMonitor.isOfficialMarketInMaintenance(this)) {
+            return getColor(R.color.action_yellow);
+        }
+        return TreasuryDirectMonitor.getLastCheckAt(this) > 0L
+                ? getColor(R.color.action_green) : getColor(R.color.text_secondary);
     }
 
     private String getPropertyStatusName(Interest interest) {
@@ -2842,8 +2868,6 @@ public class MainActivity extends AlertouActivity {
                 || id.startsWith("pelando|")
                 || id.startsWith("promobit|")
                 || id.startsWith("kabum|")
-                || id.startsWith("kabum_catalog|")
-                || id.startsWith("kabum_catalog_api|")
                 || id.startsWith("motorola|")
                 || id.startsWith("claro|")
                 || id.startsWith("samsung|")
@@ -3156,11 +3180,9 @@ public class MainActivity extends AlertouActivity {
         return entry != null && entry.isUnavailable();
     }
 
-    /** Cards count only active listing offers; a market reference or unavailable row is not an offer. */
+    /** Every visible active listing is an offer; only unavailable rows are separated. */
     private boolean countsAsCurrentPropertyOffer(ObservedOffer offer) {
-        if (!isPropertyOffer(offer) || PropertyMarketReferenceSettings.isReference(offer)) {
-            return false;
-        }
+        if (!isPropertyOffer(offer)) return false;
         PropertyHistoryEntry entry = displayedPropertyHistory.get(offer.getId());
         return entry == null || !entry.isUnavailable();
     }

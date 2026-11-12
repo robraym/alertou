@@ -17,8 +17,11 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.Normalizer;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,6 +38,10 @@ final class TreasuryDirectMonitor {
     private static final String LAST_NOTIFIED_RATE_PREFIX = "last_notified_rate_";
     private static final String KEY_LAST_SUCCESS_AT = "last_success_at";
     private static final String KEY_LAST_DURATION = "last_duration";
+    /** Timestamp published by Tesouro Direto, not the time Alertou downloaded the feed. */
+    private static final String KEY_OFFICIAL_UPDATED_AT = "official_updated_at";
+    /** Next opening timestamp published with the regular Tesouro Direto titles. */
+    private static final String KEY_NEXT_MARKET_AVAILABILITY_AT = "next_market_availability_at";
     private static final Pattern RATE = Pattern.compile("([+-]?\\s*\\d+(?:,\\d+)?)%");
     private static final TreasuryDirectMonitor INSTANCE = new TreasuryDirectMonitor();
 
@@ -80,6 +87,18 @@ final class TreasuryDirectMonitor {
                 .getLong(KEY_LAST_DURATION, 0L);
     }
 
+    static long getOfficialUpdatedAt(Context context) {
+        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getLong(KEY_OFFICIAL_UPDATED_AT, 0L);
+    }
+
+    static boolean isOfficialMarketInMaintenance(Context context) {
+        long nextAvailabilityAt = context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getLong(KEY_NEXT_MARKET_AVAILABILITY_AT, 0L);
+        return nextAvailabilityAt > System.currentTimeMillis();
+    }
+
     private void checkSafely() {
         Context context = appContext;
         if (context == null || !MonitorRunPolicy.canRun(context)) return;
@@ -94,12 +113,16 @@ final class TreasuryDirectMonitor {
             TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             boolean recordedReading = false;
+            boolean treasuryHistoryChanged = false;
+            long officialUpdatedAt = findLatestMarketPricingAt(bonds);
+            long nextMarketAvailabilityAt = findNextMarketAvailabilityAt(bonds, officialUpdatedAt);
             for (Interest interest : interests) {
                 if (!interest.isTreasury()) continue;
                 Double rate = findPurchaseRate(bonds, interest.getTerm());
                 String key = LAST_NOTIFIED_RATE_PREFIX + interest.getId();
                 if (rate == null) continue;
-                historyRepository.record(interest.getId(), rate, System.currentTimeMillis());
+                treasuryHistoryChanged |= historyRepository.record(
+                        interest.getId(), rate, System.currentTimeMillis());
                 recordedReading = true;
                 if (rate < interest.getMinimumTreasuryRate()) {
                     preferences.edit().remove(key).apply();
@@ -111,8 +134,17 @@ final class TreasuryDirectMonitor {
                 preferences.edit().putLong(key, Double.doubleToRawLongBits(rate)).apply();
                 showNotification(context, interest, rate);
             }
+            SharedPreferences.Editor officialState = preferences.edit();
+            if (officialUpdatedAt > 0L) officialState.putLong(KEY_OFFICIAL_UPDATED_AT, officialUpdatedAt);
+            if (nextMarketAvailabilityAt > 0L) {
+                officialState.putLong(KEY_NEXT_MARKET_AVAILABILITY_AT, nextMarketAvailabilityAt);
+            } else {
+                officialState.remove(KEY_NEXT_MARKET_AVAILABILITY_AT);
+            }
+            officialState.apply();
             if (recordedReading) context.sendBroadcast(new Intent(ACTION_RATES_CHANGED)
                     .setPackage(context.getPackageName()));
+            if (treasuryHistoryChanged) CloudSyncStore.markLocalChanged(context);
             completed = true;
         } catch (Exception ignored) {
             // The next scheduled check retries. A failed read must not alter alert state.
@@ -145,6 +177,45 @@ final class TreasuryDirectMonitor {
             return Double.parseDouble(matcher.group(1).replace(" ", "").replace(',', '.'));
         }
         return null;
+    }
+
+    /** The feed repeats this official market-pricing timestamp for its available bonds. */
+    static long findLatestMarketPricingAt(JSONArray bonds) {
+        long latest = 0L;
+        for (int index = 0; bonds != null && index < bonds.length(); index++) {
+            JSONObject bond = bonds.optJSONObject(index);
+            long updatedAt = parseOfficialDate(bond == null ? "" : bond.optString("lastMarketPricingDate"));
+            latest = Math.max(latest, updatedAt);
+        }
+        return latest;
+    }
+
+    /**
+     * The regular-title feed gives the next sale opening in startDate. When it is still in the
+     * future, the official page is in its maintenance/closed state.
+     */
+    static long findNextMarketAvailabilityAt(JSONArray bonds, long officialUpdatedAt) {
+        long next = 0L;
+        for (int index = 0; bonds != null && index < bonds.length(); index++) {
+            JSONObject bond = bonds.optJSONObject(index);
+            long startsAt = parseOfficialDate(bond == null ? "" : bond.optString("startDate"));
+            if (startsAt <= officialUpdatedAt) continue;
+            next = next == 0L ? startsAt : Math.min(next, startsAt);
+        }
+        return next;
+    }
+
+    private static long parseOfficialDate(String value) {
+        if (value == null || value.trim().isEmpty()) return 0L;
+        try {
+            SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.US);
+            parser.setLenient(false);
+            parser.setTimeZone(TimeZone.getTimeZone("America/Sao_Paulo"));
+            Date parsed = parser.parse(value.trim());
+            return parsed == null ? 0L : parsed.getTime();
+        } catch (Exception ignored) {
+            return 0L;
+        }
     }
 
     private String download() throws Exception {

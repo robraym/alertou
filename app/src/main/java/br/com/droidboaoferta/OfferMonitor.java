@@ -99,6 +99,8 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
         MonitorStatusStore.markAnalyzedMessage(appContext);
 
         List<Interest> interests = interestRepository.getAll();
+        boolean notifyUser = OfferEligibility.isTimelyForNotification(
+                messageDate, System.currentTimeMillis());
         for (Interest interest : interests) {
             if (!interest.isPrice()) {
                 continue;
@@ -115,7 +117,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                     sourceTitle,
                     text,
                     price,
-                    true,
+                    notifyUser,
                     true,
                     payload.findBestLink(interest.getTerm())
             );

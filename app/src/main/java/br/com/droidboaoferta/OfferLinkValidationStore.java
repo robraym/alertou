@@ -22,8 +22,6 @@ final class OfferLinkValidationStore {
                 && !offer.getId().startsWith("pelando|")
                 && !offer.getId().startsWith("promobit|")
                 && !offer.getId().startsWith("kabum|")
-                && !offer.getId().startsWith("kabum_catalog|")
-                && !offer.getId().startsWith("kabum_catalog_api|")
                 && !offer.getId().startsWith("motorola|")
                 && !offer.getId().startsWith("claro|")
                 && !offer.getId().startsWith("samsung|")

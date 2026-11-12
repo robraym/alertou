@@ -503,7 +503,6 @@
                 android:layout_marginEnd="8dp"
                 android:background="@color/divider" />
 
-            <include layout="@layout/row_profile_kabum_catalog_interval" />
 
             <View
                 android:layout_width="match_parent"
@@ -512,7 +511,6 @@
                 android:layout_marginEnd="8dp"
                 android:background="@color/divider" />
 
-            <include layout="@layout/row_profile_kabum_catalog_api_interval" />
 
             <View
                 android:layout_width="match_parent"

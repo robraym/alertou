@@ -32,6 +32,7 @@ public class OfferMonitorService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+        new OfferRepository(this).removeRetiredStoreOffers();
         running = true;
         MonitorStatusStore.setServiceRunning(this, true);
         createChannel();
@@ -63,8 +64,6 @@ public class OfferMonitorService extends Service {
         PelandoMonitor.getInstance().stop();
         PromobitMonitor.getInstance().stop();
         KabumOfferMonitor.getInstance().stop();
-        KabumCatalogMonitor.getInstance().stop();
-        KabumCatalogApiMonitor.getInstance().stop();
         MotorolaOfferMonitor.getInstance().stop();
         ClaroOfferMonitor.getInstance().stop();
         SamsungOfferMonitor.getInstance().stop();
@@ -131,12 +130,7 @@ public class OfferMonitorService extends Service {
             KabumOfferMonitor.getInstance().start(this);
         } else {
             KabumOfferMonitor.getInstance().stop();
-            KabumCatalogMonitor.getInstance().stop();
         }
-        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title) && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().start(this);
-        else KabumCatalogMonitor.getInstance().stop();
-        if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title) && KabumCatalogApiSource.isConfigured(this)) KabumCatalogApiMonitor.getInstance().start(this);
-        else KabumCatalogApiMonitor.getInstance().stop();
         if (hasPriceAlert && StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title) && MotorolaOfferSource.isConfigured(this)) {
             MotorolaOfferMonitor.getInstance().start(this);
         } else {
@@ -188,10 +182,6 @@ public class OfferMonitorService extends Service {
                 && PromobitSource.isConfigured(this)) PromobitMonitor.getInstance().checkNow(this);
         if (StoreSourceControl.isEnabled(this, R.string.kabum_offer_source_title)
                 && KabumOfferSource.isConfigured(this)) KabumOfferMonitor.getInstance().checkNow(this);
-        if (StoreSourceControl.isEnabled(this, R.string.kabum_catalog_source_title)
-                && KabumCatalogSource.isConfigured(this)) KabumCatalogMonitor.getInstance().checkNow(this);
-        if (StoreSourceControl.isEnabled(this, R.string.kabum_catalog_api_source_title)
-                && KabumCatalogApiSource.isConfigured(this)) KabumCatalogApiMonitor.getInstance().checkNow(this);
         if (StoreSourceControl.isEnabled(this, R.string.motorola_offer_source_title)
                 && MotorolaOfferSource.isConfigured(this)) MotorolaOfferMonitor.getInstance().checkNow(this);
         if (StoreSourceControl.isEnabled(this, R.string.claro_offer_source_title)

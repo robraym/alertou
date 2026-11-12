@@ -277,6 +277,23 @@ final class OfferRepository {
         }
     }
 
+    /** Removes offers from sources retired in this version, including saved and archived lists. */
+    void removeRetiredStoreOffers() {
+        synchronized (OfferStorage.LOCK) {
+            boolean changed = false;
+            for (String key : new String[]{KEY_OFFERS, KEY_ARCHIVED_OFFERS, KEY_TRASHED_OFFERS}) {
+                List<ObservedOffer> offers = new ArrayList<>(readOffers(key));
+                if (offers.removeIf(offer -> offer.getId().startsWith("kabum_"))) {
+                    saveOffers(key, offers);
+                    changed = true;
+                }
+            }
+            if (changed) {
+                CloudSyncStore.rememberRecentChanged(context, System.currentTimeMillis());
+            }
+        }
+    }
+
     private String getReconciledInterestName(ObservedOffer offer, Interest matchingInterest) {
         if (matchingInterest.isPrice()) {
             return matchingInterest.getTerm();
@@ -699,10 +716,10 @@ final class OfferRepository {
         if (first.getId().equals(second.getId())) {
             return true;
         }
-        if (!normalize(first.getInterest()).equals(normalize(second.getInterest()))
-                || !normalize(first.getSource()).equals(normalize(second.getSource()))) {
+        if (!normalize(first.getInterest()).equals(normalize(second.getInterest()))) {
             return false;
         }
+        if (!normalize(first.getSource()).equals(normalize(second.getSource()))) return false;
         String firstTitle = normalize(first.getProductTitle());
         String secondTitle = normalize(second.getProductTitle());
         String firstLink = normalizeLink(first.getLink());

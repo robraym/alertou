@@ -39,12 +39,10 @@ final class StoreSourceControl {
         if (sourceTitleResource == R.string.pelando_source_title) return 1 << 2;
         if (sourceTitleResource == R.string.promobit_source_title) return 1 << 3;
         if (sourceTitleResource == R.string.kabum_offer_source_title) return 1 << 4;
-        if (sourceTitleResource == R.string.kabum_catalog_source_title) return 1 << 5;
         if (sourceTitleResource == R.string.motorola_offer_source_title) return 1 << 6;
         if (sourceTitleResource == R.string.claro_offer_source_title) return 1 << 7;
         if (sourceTitleResource == R.string.samsung_offer_source_title) return 1 << 8;
         if (sourceTitleResource == R.string.samsung_discount_offer_source_title) return 1 << 9;
-        if (sourceTitleResource == R.string.kabum_catalog_api_source_title) return 1 << 10;
         throw new IllegalArgumentException("Fonte de loja desconhecida");
     }
 }

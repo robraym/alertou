@@ -166,15 +166,28 @@ public class OfferRepositoryTest {
         SharedPreferences preferences = TestPreferences.create();
         OfferRepository repository = new OfferRepository(preferences);
         long now = System.currentTimeMillis();
-        repository.add(new ObservedOffer("kabum_catalog|legacy-hash", 7L, "S25", "KaBuM", 3999,
+        repository.add(new ObservedOffer("kabum|legacy-hash", 7L, "S25", "KaBuM", 3999,
                 9000, now - 60_000, "https://example.com/produto/123", ""));
 
-        repository.refreshStoreProduct(storeOffer("kabum_catalog|7|123",
+        repository.refreshStoreProduct(storeOffer("kabum|7|123",
                 "Galaxy S25 256 GB Preto", 3999, now));
 
         List<ObservedOffer> offers = repository.getRecentForValidation();
         assertEquals(1, offers.size());
-        assertEquals("kabum_catalog|7|123", offers.get(0).getId());
+        assertEquals("kabum|7|123", offers.get(0).getId());
+    }
+
+    @Test public void removesOffersFromRetiredStorePrefixes() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        long now = System.currentTimeMillis();
+        repository.add(storeOffer("kabum_legacy|7|123", "Produto aposentado", 3999, now - 1));
+        repository.add(storeOffer("kabum|7|456", "Oferta relâmpago", 3999, now));
+
+        repository.removeRetiredStoreOffers();
+
+        assertEquals(1, repository.getRecentForValidation().size());
+        assertEquals("kabum|7|456", repository.getRecentForValidation().get(0).getId());
     }
 
     private static ObservedOffer storeOffer(String id, String productTitle, double price, long observedAt) {

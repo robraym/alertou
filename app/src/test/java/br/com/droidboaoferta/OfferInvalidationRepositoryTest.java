@@ -11,11 +11,11 @@ public class OfferInvalidationRepositoryTest {
     @Test
     public void invalidatedStoreProductStaysBlockedAfterAnotherRead() {
         OfferInvalidationRepository repository = new OfferInvalidationRepository(TestPreferences.create());
-        ObservedOffer first = storeOffer("kabum_catalog|7_123", 3999, 1L);
+        ObservedOffer first = storeOffer("kabum|7_123", 3999, 1L);
         repository.markInvalid(first);
 
-        assertTrue(repository.isInvalidated(storeOffer("kabum_catalog|7_123", 3799, 2L)));
-        assertFalse(repository.isInvalidated(storeOffer("kabum_catalog|7_456", 3999, 2L)));
+        assertTrue(repository.isInvalidated(storeOffer("kabum|7_123", 3799, 2L)));
+        assertFalse(repository.isInvalidated(storeOffer("kabum|7_456", 3999, 2L)));
     }
 
     @Test
@@ -31,7 +31,7 @@ public class OfferInvalidationRepositoryTest {
     }
 
     private static ObservedOffer storeOffer(String id, double price, long observedAt) {
-        return new ObservedOffer(id, 7L, "S25", "KaBuM Catálogo", price, 9000,
+        return new ObservedOffer(id, 7L, "S25", "KaBuM", price, 9000,
                 observedAt, "https://www.kabum.com.br/produto/123", "", "Galaxy S25 256 GB");
     }
 }

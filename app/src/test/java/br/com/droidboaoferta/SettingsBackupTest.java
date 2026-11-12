@@ -38,6 +38,15 @@ public class SettingsBackupTest {
         assertFalse(SettingsBackup.restore(files, null, true));
         assertTrue(files.get("property_market_reference").getBoolean("enabled", false));
     }
+
+    @Test public void restoresTreasuryIntervalSeparatelyFromRuntimeData() throws Exception {
+        JSONObject incoming = new JSONObject().put("treasury_direct_settings/interval_seconds",
+                value(900));
+        SettingsBackup.Preferences destination = files();
+        assertTrue(SettingsBackup.restore(destination, incoming, true));
+        assertEquals(900, destination.get("treasury_direct_settings")
+                .getInt("interval_seconds", 0));
+    }
     @Test public void roundTripRestoresStoreOrderingAndSamsungRegistration() {
         SettingsBackup.Preferences source = files();
         source.get("external_offer_sources").edit()

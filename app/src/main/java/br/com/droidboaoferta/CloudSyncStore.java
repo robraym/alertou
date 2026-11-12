@@ -1305,6 +1305,7 @@ final class CloudSyncStore {
     }
 
     private static final String KEY_PROPERTY_HISTORY = "property_history";
+    private static final String KEY_TREASURY_RATE_HISTORY = "treasury_rate_history";
 
     static JSONObject exportBackup(Context context) {
         Context appContext = context.getApplicationContext();
@@ -1334,6 +1335,8 @@ final class CloudSyncStore {
             data.put(KEY_INTERESTS, offers.getString(KEY_INTERESTS, "[]"));
             data.put(KEY_PROPERTY_HISTORY, PropertyHistorySync.pack(
                     new PropertyHistoryRepository(appContext).exportForSync()));
+            data.put(KEY_TREASURY_RATE_HISTORY,
+                    new TreasuryRateHistoryRepository(appContext).exportForSync());
             synchronized (OfferStorage.LOCK) {
             data.put(KEY_ARCHIVED_OFFERS, offers.getString(KEY_ARCHIVED_OFFERS, "[]"));
             data.put(KEY_ARCHIVED_UPDATED_AT, ensureCollectionUpdatedAt(
@@ -1687,6 +1690,9 @@ final class CloudSyncStore {
                     ? PropertyHistorySync.unpack(data.opt(KEY_PROPERTY_HISTORY)) : null;
         } catch (Exception ignored) { remoteHistory = null; }
         boolean historyChanged = propertyHistory.mergeFromSync(remoteHistory);
+        JSONObject remoteTreasuryHistory = data.optJSONObject(KEY_TREASURY_RATE_HISTORY);
+        boolean treasuryHistoryChanged = new TreasuryRateHistoryRepository(appContext)
+                .mergeFromSync(remoteTreasuryHistory);
         boolean historyNeedsPush = false;
         try {
             historyNeedsPush = (remoteHistory != null || historyChanged)
@@ -1694,10 +1700,10 @@ final class CloudSyncStore {
                     PropertyHistorySync.contentKey(PropertyHistorySync.merge(remoteHistory, new JSONArray())))
                     || backup.optBoolean("_property_history_combined"));
         } catch (Exception ignored) { }
-        if (historyNeedsPush) markLocalChanged(appContext);
+        if (historyNeedsPush || treasuryHistoryChanged) markLocalChanged(appContext);
         if (remoteUpdatedAt <= 0L
                 || (!force && remoteUpdatedAt <= lastSeenRemoteAt)) {
-            return historyChanged;
+            return historyChanged || treasuryHistoryChanged;
         }
 
         boolean settingsChanged = SettingsBackup.restore(appContext, data.optJSONObject(SettingsBackup.KEY), force);
@@ -1822,12 +1828,11 @@ final class CloudSyncStore {
             // Apply scheduling changes on the main thread, outside Telegram/data locks.
             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                 PropertyPageMonitor.getInstance().rescheduleIfRunning(appContext);
+                TreasuryDirectMonitor.getInstance().rescheduleIfRunning(appContext);
                 VivoOutletMonitor.getInstance().rescheduleIfRunning(appContext);
                 PelandoMonitor.getInstance().rescheduleIfRunning(appContext);
                 PromobitMonitor.getInstance().rescheduleIfRunning(appContext);
                 KabumOfferMonitor.getInstance().rescheduleIfRunning(appContext);
-                KabumCatalogMonitor.getInstance().rescheduleIfRunning(appContext);
-                KabumCatalogApiMonitor.getInstance().rescheduleIfRunning(appContext);
                 MotorolaOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 ClaroOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 SamsungOfferMonitor.getInstance().rescheduleIfRunning(appContext);
