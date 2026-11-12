@@ -50,6 +50,7 @@ final class PropertyPageMonitor {
     private volatile int checkingMarketReferenceTotal;
     private volatile int checkingPropertyZipPosition;
     private volatile int checkingPropertyZipTotal;
+    private volatile long checkingPropertyZipInterestId;
     private volatile boolean checkingPropertyZip;
     private volatile int checkingPropertyZipListingPosition;
     private volatile int checkingPropertyZipListingTotal;
@@ -57,6 +58,7 @@ final class PropertyPageMonitor {
     private volatile long zipReferencesStartedAt;
     private volatile boolean manualZipCheckRunning;
     private volatile long manualZipCheckStartedAt;
+    private volatile long manualZipInterestId;
     private volatile int manualZipListingPosition;
     private volatile int manualZipListingTotal;
     private volatile boolean manualCondominiumCheckRunning;
@@ -84,6 +86,7 @@ final class PropertyPageMonitor {
         zipScheduler.stop();
         manualZipCheckRunning = false;
         manualZipCheckStartedAt = 0L;
+        manualZipInterestId = 0L;
         manualZipListingPosition = 0;
         manualZipListingTotal = 0;
         manualCondominiumCheckRunning = false;
@@ -123,6 +126,11 @@ final class PropertyPageMonitor {
 
     boolean isCheckingPropertyZip() {
         return manualZipCheckRunning || zipReferencesRunning;
+    }
+
+    long getCheckingPropertyZipInterestId() {
+        return manualZipCheckRunning ? manualZipInterestId
+                : (zipReferencesRunning ? checkingPropertyZipInterestId : 0L);
     }
 
     boolean isCheckingPropertyCondominium() {
@@ -280,6 +288,7 @@ final class PropertyPageMonitor {
         }
         if (zip) {
             checkingPropertyZip = false;
+            checkingPropertyZipInterestId = 0L;
             checkingPropertyZipPosition = 0;
             checkingPropertyZipTotal = 0;
             checkingPropertyZipListingPosition = 0;
@@ -288,6 +297,7 @@ final class PropertyPageMonitor {
             zipReferencesRunning = false;
             manualZipCheckRunning = false;
             manualZipCheckStartedAt = 0L;
+            manualZipInterestId = 0L;
             manualZipListingPosition = 0;
             manualZipListingTotal = 0;
         } else {
@@ -336,6 +346,7 @@ final class PropertyPageMonitor {
             zipReferencesRunning = true;
             zipReferencesStartedAt = startedAt;
             checkingPropertyZip = true;
+            checkingPropertyZipInterestId = 0L;
             checkingPropertyZipPosition = 0;
             checkingPropertyZipTotal = interests.size();
             checkingPropertyZipListingPosition = 0;
@@ -352,6 +363,7 @@ final class PropertyPageMonitor {
                 if (!PropertyMarketReferenceSettings.isVisible(context, zip)
                         || !MonitorRunPolicy.isCurrent(context, interest)) break;
                 if (zip) {
+                    checkingPropertyZipInterestId = interest.getId();
                     checkingPropertyZipPosition++;
                     checkingPropertyZipListingPosition = 0;
                     checkingPropertyZipListingTotal = 0;
@@ -389,6 +401,7 @@ final class PropertyPageMonitor {
                 saveLastMarketCheckDuration(context,
                         Math.max(0L, SystemClock.elapsedRealtime() - startedAt), true);
                 checkingPropertyZip = false;
+                checkingPropertyZipInterestId = 0L;
                 checkingPropertyZipPosition = 0;
                 checkingPropertyZipTotal = 0;
                 checkingPropertyZipListingPosition = 0;
@@ -456,6 +469,7 @@ final class PropertyPageMonitor {
             checkingPropertyZipTotal = countCurrentPropertyInterests(
                     context, orderedInterests, true);
             checkingPropertyZip = false;
+            checkingPropertyZipInterestId = 0L;
             checkingPropertyZipListingPosition = 0;
             checkingPropertyZipListingTotal = 0;
         }
@@ -469,6 +483,7 @@ final class PropertyPageMonitor {
             if (includeMarketReferenceForInterest) {
                 checkingMarketReferenceInterestId = interest.getId();
                 checkingPropertyZip = interest.isPropertyZip();
+                if (interest.isPropertyZip()) checkingPropertyZipInterestId = interest.getId();
                 checkingPropertyZipListingPosition = 0;
                 checkingPropertyZipListingTotal = 0;
                 if (interest.isPropertyZip()) {
@@ -511,6 +526,7 @@ final class PropertyPageMonitor {
                 checkingPropertyZipPosition = 0;
                 checkingPropertyZipTotal = 0;
                 checkingPropertyZip = false;
+                checkingPropertyZipInterestId = 0L;
                 checkingPropertyZipListingPosition = 0;
                 checkingPropertyZipListingTotal = 0;
                 marketReferencesStartedAt = 0L;
@@ -1167,6 +1183,7 @@ final class PropertyPageMonitor {
                             manualZipCheckStartedAt = SystemClock.elapsedRealtime();
                         }
                         manualZipCheckRunning = true;
+                        manualZipInterestId = interest.getId();
                         manualZipListingPosition = 0;
                         manualZipListingTotal = 0;
                     } else if (interest.isPropertyCondominium()) {
@@ -1207,6 +1224,7 @@ final class PropertyPageMonitor {
                         true);
                 manualZipCheckRunning = false;
                 manualZipCheckStartedAt = 0L;
+                manualZipInterestId = 0L;
                 manualZipListingPosition = 0;
                 manualZipListingTotal = 0;
                 sendProgressBroadcast(context, true);

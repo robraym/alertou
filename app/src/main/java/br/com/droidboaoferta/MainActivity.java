@@ -88,6 +88,8 @@ public class MainActivity extends AlertouActivity {
     private static final String PROPERTY_ZIP_ACTION_TAG = "property_zip_action";
     private static final String TREASURY_ACTION_TAG = "treasury_action";
     private static final String PROPERTY_MARKET_ROW_TAG_PREFIX = "property_market_row_";
+    private static final String PROPERTY_MARKET_GROUP_TAG_PREFIX = "property_market_group_";
+    private static final String PROPERTY_ZIP_GROUP_TAG_PREFIX = "property_zip_group_";
     private static final String OFFER_SECTION_CONTENT_TAG_PREFIX = "offer_section_content_";
     private static final String OFFER_SECTION_TOGGLE_TAG_PREFIX = "offer_section_toggle_";
     private final android.os.Handler dashboardHandler = new android.os.Handler(android.os.Looper.getMainLooper());
@@ -195,6 +197,7 @@ public class MainActivity extends AlertouActivity {
     private final java.util.Map<TextView, Integer> propertyMarketRowOriginalTextColors =
             new java.util.WeakHashMap<>();
     private long highlightedPropertyMarketInterestId;
+    private long highlightedPropertyZipInterestId;
     private ImageView propertyMarketSpinningIcon;
     private ObjectAnimator propertyMarketRefreshAnimator;
     private ImageView propertyZipSpinningIcon;
@@ -1685,6 +1688,8 @@ public class MainActivity extends AlertouActivity {
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
+        header.setTag((propertyZip ? PROPERTY_ZIP_GROUP_TAG_PREFIX
+                : PROPERTY_MARKET_GROUP_TAG_PREFIX) + interestId);
 
         ImageView icon = new ImageView(this);
         icon.setImageResource(R.drawable.ic_property_alert);
@@ -1751,6 +1756,16 @@ public class MainActivity extends AlertouActivity {
         toggle.setRotation(expanded ? 90f : 0f);
         header.addView(toggle, new LinearLayout.LayoutParams(dp(32), dp(32)));
         card.addView(header);
+        // A primeira pintura do card pode acontecer depois do último evento de progresso.
+        // Aplique o estado atual aqui também, sem depender de uma nova notificação.
+        boolean groupChecking = propertyZip
+                ? PropertyPageMonitor.getInstance().isCheckingPropertyZip()
+                && PropertyPageMonitor.getInstance().getCheckingPropertyZipInterestId() == interestId
+                : PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
+                && PropertyPageMonitor.getInstance().getCheckingMarketReferenceInterestId() == interestId;
+        if (groupChecking) {
+            updatePropertyMarketRowTextColors(header, true);
+        }
 
         LinearLayout offers = new LinearLayout(this);
         offers.setOrientation(LinearLayout.VERTICAL);
@@ -2033,6 +2048,15 @@ public class MainActivity extends AlertouActivity {
             updatePropertyRefreshIcon(propertyZipActionView, monitor.isCheckingPropertyZip(),
                     R.drawable.ic_property_zip_alert, true);
         }
+        long checkingInterestId = monitor.getCheckingPropertyZipInterestId();
+        if (highlightedPropertyZipInterestId != 0L
+                && highlightedPropertyZipInterestId != checkingInterestId) {
+            updateTaggedPropertyZipGroup(highlightedPropertyZipInterestId, false);
+        }
+        if (checkingInterestId != 0L && checkingInterestId != highlightedPropertyZipInterestId) {
+            updateTaggedPropertyZipGroup(checkingInterestId, true);
+        }
+        highlightedPropertyZipInterestId = checkingInterestId;
     }
 
     /** Several CEP listings can arrive at once; render only the latest progress state. */
@@ -2072,10 +2096,12 @@ public class MainActivity extends AlertouActivity {
         if (highlightedPropertyMarketInterestId != 0L
                 && highlightedPropertyMarketInterestId != checkingInterestId) {
             updateTaggedPropertyMarketRow(highlightedPropertyMarketInterestId, false);
+            updateTaggedPropertyMarketGroup(highlightedPropertyMarketInterestId, false);
         }
         if (checkingInterestId != 0L
                 && checkingInterestId != highlightedPropertyMarketInterestId) {
             updateTaggedPropertyMarketRow(checkingInterestId, true);
+            updateTaggedPropertyMarketGroup(checkingInterestId, true);
         }
         highlightedPropertyMarketInterestId = checkingInterestId;
         updatePropertyMarketActionVisual();
@@ -2087,6 +2113,18 @@ public class MainActivity extends AlertouActivity {
         if (taggedRow instanceof LinearLayout) {
             updatePropertyMarketRowVisual((LinearLayout) taggedRow, checking);
         }
+    }
+
+    private void updateTaggedPropertyMarketGroup(long interestId, boolean checking) {
+        View groupHeader = propertyMarketCardView.findViewWithTag(
+                PROPERTY_MARKET_GROUP_TAG_PREFIX + interestId);
+        if (groupHeader != null) updatePropertyMarketRowTextColors(groupHeader, checking);
+    }
+
+    private void updateTaggedPropertyZipGroup(long interestId, boolean checking) {
+        View groupHeader = propertyZipCardView.findViewWithTag(
+                PROPERTY_ZIP_GROUP_TAG_PREFIX + interestId);
+        if (groupHeader != null) updatePropertyMarketRowTextColors(groupHeader, checking);
     }
 
     private void updatePropertyMarketRowVisual(LinearLayout mainLine, boolean checking) {
