@@ -26,6 +26,10 @@ import java.util.concurrent.TimeUnit;
 final class PropertyPageMonitor {
     static final String ACTION_MARKET_REFERENCE_PROGRESS =
             "br.com.droidboaoferta.PROPERTY_MARKET_REFERENCE_PROGRESS";
+    static final String ACTION_PROPERTY_INTEREST_COMPLETED =
+            "br.com.droidboaoferta.PROPERTY_INTEREST_COMPLETED";
+    static final String ACTION_PROPERTY_LISTING_COMPLETED =
+            "br.com.droidboaoferta.PROPERTY_LISTING_COMPLETED";
     static final String EXTRA_PROGRESS_IS_ZIP = "property_zip_progress";
     private static final String STATUS_PREFS = "property_market_check_status";
     private static final String KEY_LAST_DURATION = "last_duration";
@@ -375,7 +379,7 @@ final class PropertyPageMonitor {
                         SourceCheckStatus.cancel(context, interest.getId());
                     }
                     sendProgressBroadcast(context, zip);
-                    notifyPropertyInterestCompleted(context);
+                    notifyPropertyInterestCompleted(context, interest.isPropertyZip());
                 }
             }
             if (CoalescingCheckScheduler.isCurrentRun()) {
@@ -491,7 +495,7 @@ final class PropertyPageMonitor {
                 } else {
                     SourceCheckStatus.cancel(context, interest.getId());
                 }
-                notifyPropertyInterestCompleted(context);
+                notifyPropertyInterestCompleted(context, interest.isPropertyZip());
             }
         }
         if (CoalescingCheckScheduler.isCurrentRun()) {
@@ -722,11 +726,17 @@ final class PropertyPageMonitor {
             }
         }
         updatePropertyZipListingProgress(context, interest, 0, addressCandidates.size());
+        OfferRepository repository = new OfferRepository(context);
+        NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+        areaFormat.setMaximumFractionDigits(1);
+        String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
+        java.util.Set<String> incrementallyPublishedOfferIds = new java.util.HashSet<>();
         int addressCandidatePosition = 0;
         for (PropertyPageListing listing : addressCandidates) {
             if (!MonitorRunPolicy.isCurrent(context, interest)) return;
             updatePropertyZipListingProgress(context, interest,
                     ++addressCandidatePosition, addressCandidates.size());
+            try {
             boolean previouslyObserved = historyRepository.contains(
                     interest.getId(), listing);
             boolean matchesArea = listing.matchesArea(
@@ -804,6 +814,19 @@ final class PropertyPageMonitor {
             }
             if (eligible) {
                 matches.add(currentListing);
+                // Persista o resultado já confirmado deste anúncio antes de consultar o
+                // próximo. Assim Alertou pode atualizar o card progressivamente.
+                String offerId = "property|" + interest.getId() + "|" + currentListing.getId();
+                if (!repository.containsRecentOffer(offerId)) {
+                    incrementallyPublishedOfferIds.add(offerId);
+                }
+                upsertVisiblePropertyListing(context, repository, interest, currentListing,
+                        propertyName, sourceName, areaFormat, observedAt);
+            }
+            } finally {
+                if (MonitorRunPolicy.isCurrent(context, interest)) {
+                    notifyPropertyListingCompleted(context, interest.isPropertyZip());
+                }
             }
         }
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
@@ -823,7 +846,17 @@ final class PropertyPageMonitor {
         if (interest.isProperty() && matches.size() > interest.getPropertyListingLimit()) {
             matches = new ArrayList<>(matches.subList(0, interest.getPropertyListingLimit()));
         }
-        OfferRepository repository = new OfferRepository(context);
+        // Durante a atualização progressiva, um anúncio pode entrar provisoriamente na lista
+        // antes de aparecer outro mais barato. Remova apenas os que esta própria rodada inseriu
+        // e ficaram fora do limite final; os anúncios históricos não confirmados continuam
+        // protegidos pela regra conservadora do condomínio.
+        java.util.Set<String> selectedOfferIds = new java.util.HashSet<>();
+        for (PropertyPageListing listing : matches) {
+            selectedOfferIds.add("property|" + interest.getId() + "|" + listing.getId());
+        }
+        for (String offerId : incrementallyPublishedOfferIds) {
+            if (!selectedOfferIds.contains(offerId)) repository.clearRecentOffer(offerId);
+        }
         boolean removedStaleOffer = false;
         // Para condomínio, uma resposta parcial da fonte não confirma que os
         // anúncios ausentes deixaram de existir. Preserve os já observados.
@@ -881,9 +914,6 @@ final class PropertyPageMonitor {
         }
         preferences.edit().putString(stateKey, notifiedPrices.toString()).apply();
 
-        NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
-        areaFormat.setMaximumFractionDigits(1);
-        String sourceName = PropertyPageClient.getSourceName(interest.getTerm());
         java.util.Set<String> changedListingIds = new java.util.HashSet<>();
         for (PropertyPageListing listing : changed) {
             changedListingIds.add(listing.getId());
@@ -1050,12 +1080,38 @@ final class PropertyPageMonitor {
     }
 
     /**
-     * Atualiza a tela após cada condomínio concluído. As validações de anúncios internos
-     * continuam sem renderizações intermediárias, evitando engasgos durante a consulta.
+     * A tela recebe um evento explícito assim que uma unidade de trabalho termina: um
+     * condomínio ou uma rua de CEP. Não reutilize ACTION_OFFER_FOUND, que é tratado com
+     * debounce porque também recebe rajadas de notificações de outras fontes.
      */
-    private void notifyPropertyInterestCompleted(Context context) {
-        context.sendBroadcast(new Intent(OfferMonitor.ACTION_OFFER_FOUND)
+    private void notifyPropertyInterestCompleted(Context context, boolean propertyZip) {
+        context.sendBroadcast(new Intent(ACTION_PROPERTY_INTEREST_COMPLETED)
+                .putExtra(EXTRA_PROGRESS_IS_ZIP, propertyZip)
                 .setPackage(context.getPackageName()));
+    }
+
+    /** Signals that one individual ad is persisted and ready to appear on Alertou. */
+    private void notifyPropertyListingCompleted(Context context, boolean propertyZip) {
+        context.sendBroadcast(new Intent(ACTION_PROPERTY_LISTING_COMPLETED)
+                .putExtra(EXTRA_PROGRESS_IS_ZIP, propertyZip)
+                .setPackage(context.getPackageName()));
+    }
+
+    private void upsertVisiblePropertyListing(Context context, OfferRepository repository,
+                                              Interest interest, PropertyPageListing listing,
+                                              String propertyName, String sourceName,
+                                              NumberFormat areaFormat, long observedAt) {
+        boolean zipInterest = interest.isPropertyZip();
+        repository.add(new ObservedOffer(
+                "property|" + interest.getId() + "|" + listing.getId(),
+                interest.getId(),
+                zipInterest && !listing.getDescription().isEmpty()
+                        ? listing.getDescription() : propertyName,
+                context.getString(R.string.property_offer_source, sourceName,
+                        areaFormat.format(listing.getArea())),
+                listing.getSalePrice(), interest.getMaximumPrice(), observedAt, listing.getUrl(),
+                "", zipInterest ? listing.getAddress() : ""
+        ));
     }
 
     static boolean shouldVerifyIndividualPrice(boolean previouslyObserved,
@@ -1188,7 +1244,7 @@ final class PropertyPageMonitor {
                                         PropertyMarketReferenceSettings.getCheckIntervalSeconds(context,
                                                 interest.isPropertyZip())));
                         sendProgressBroadcast(context, interest.isPropertyZip());
-                        notifyPropertyInterestCompleted(context);
+                        notifyPropertyInterestCompleted(context, interest.isPropertyZip());
                     }
                     break;
                 }

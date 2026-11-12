@@ -131,6 +131,21 @@ public class MainActivity extends AlertouActivity {
     private final BroadcastReceiver offerReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            if (PropertyPageMonitor.ACTION_PROPERTY_INTEREST_COMPLETED.equals(intent.getAction())
+                    || PropertyPageMonitor.ACTION_PROPERTY_LISTING_COMPLETED.equals(
+                    intent.getAction())) {
+                // O anúncio, condomínio ou rua de CEP já persistiu seus resultados. Atualize o
+                // card agora, sem esperar o fim da fila nem o debounce de outras fontes.
+                boolean propertyZip = intent.getBooleanExtra(
+                        PropertyPageMonitor.EXTRA_PROGRESS_IS_ZIP, false);
+                if (propertyZip) {
+                    refreshPropertyZipProgressVisuals();
+                } else {
+                    refreshPropertyMarketProgressVisuals();
+                }
+                refreshDashboard(false);
+                return;
+            }
             if (PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS.equals(intent.getAction())) {
                 if (intent.getBooleanExtra(PropertyPageMonitor.EXTRA_PROGRESS_IS_ZIP, false)) {
                     schedulePropertyZipProgressUpdate();
@@ -274,6 +289,8 @@ public class MainActivity extends AlertouActivity {
         filter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
         filter.addAction(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED);
         filter.addAction(PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS);
+        filter.addAction(PropertyPageMonitor.ACTION_PROPERTY_INTEREST_COMPLETED);
+        filter.addAction(PropertyPageMonitor.ACTION_PROPERTY_LISTING_COMPLETED);
         filter.addAction(TreasuryDirectMonitor.ACTION_RATES_CHANGED);
         filter.addAction(TreasuryDirectMonitor.ACTION_CHECK_STATE_CHANGED);
         ContextCompat.registerReceiver(
