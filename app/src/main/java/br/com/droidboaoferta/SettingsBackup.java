@@ -21,6 +21,18 @@ final class SettingsBackup {
             "check_interval_minutes", "check_interval_seconds", "zip_check_interval_seconds"};
     private static final String[] TREASURY_KEYS = {"interval_seconds"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
+    private static final String[] ALERT_KEYS = {"alerts_sort_order", "home_sort_order",
+            "alerts_section_coupons_expanded", "alerts_section_properties_expanded",
+            "alerts_section_property_zip_expanded", "alerts_section_treasury_expanded",
+            "alerts_section_products_expanded", "home_section_coupons_expanded",
+            "home_section_property_market_expanded", "home_section_properties_expanded",
+            "home_section_property_zip_expanded", "home_section_treasury_expanded",
+            "home_section_products_expanded"};
+    private static final String[] APPEARANCE_KEYS = {"theme_mode", "accent_color",
+            "navigation_animation"};
+    private static final String[] PROFILE_KEYS = {"appearance_expanded", "properties_expanded",
+            "treasury_expanded", "external_sources_expanded", "sync_expanded", "info_expanded"};
+    private static final String[] CLOUD_SYNC_KEYS = {"automatic_sync_enabled"};
     private static final String[] STORE_DISPLAY_KEYS = {
             "title_" + R.string.vivo_outlet_source_title,
             "title_" + R.string.vivo_madrugada_source_title,
@@ -53,6 +65,10 @@ final class SettingsBackup {
             capture(files, result, old, "property_market_reference", PROPERTY_KEYS);
             capture(files, result, old, "treasury_direct_settings", TREASURY_KEYS);
             capture(files, result, old, "telegram_preferences", TELEGRAM_KEYS);
+            capture(files, result, old, "offer_preferences", ALERT_KEYS);
+            capture(files, result, old, "app_preferences", APPEARANCE_KEYS);
+            capture(files, result, old, "profile_preferences", PROFILE_KEYS);
+            capture(files, result, old, "cloud_sync_preferences", CLOUD_SYNC_KEYS);
             capture(files, result, old, "store_display_names", STORE_DISPLAY_KEYS);
             metadata.edit().putString("snapshot", result.toString()).apply();
             return result;
@@ -91,6 +107,10 @@ final class SettingsBackup {
         apply(files, merged, "property_market_reference", PROPERTY_KEYS);
         apply(files, merged, "treasury_direct_settings", TREASURY_KEYS);
         apply(files, merged, "telegram_preferences", TELEGRAM_KEYS);
+        apply(files, merged, "offer_preferences", ALERT_KEYS);
+        apply(files, merged, "app_preferences", APPEARANCE_KEYS);
+        apply(files, merged, "profile_preferences", PROFILE_KEYS);
+        apply(files, merged, "cloud_sync_preferences", CLOUD_SYNC_KEYS);
         apply(files, merged, "store_display_names", STORE_DISPLAY_KEYS);
         files.get(META).edit()
                 .putString("snapshot", merged.toString()).apply();
@@ -117,12 +137,20 @@ final class SettingsBackup {
         boolean property = id.startsWith("property_market_reference/");
         boolean treasury = id.startsWith("treasury_direct_settings/");
         boolean telegram = id.startsWith("telegram_preferences/");
+        boolean alerts = id.startsWith("offer_preferences/");
+        boolean appearance = id.startsWith("app_preferences/");
+        boolean profile = id.startsWith("profile_preferences/");
+        boolean cloudSync = id.startsWith("cloud_sync_preferences/");
         boolean display = id.startsWith("store_display_names/");
         String key = id.substring(id.indexOf('/') + 1);
         if (!(external && java.util.Arrays.asList(EXTERNAL_KEYS).contains(key))
                 && !(property && java.util.Arrays.asList(PROPERTY_KEYS).contains(key))
                 && !(treasury && java.util.Arrays.asList(TREASURY_KEYS).contains(key))
                 && !(telegram && java.util.Arrays.asList(TELEGRAM_KEYS).contains(key))
+                && !(alerts && java.util.Arrays.asList(ALERT_KEYS).contains(key))
+                && !(appearance && java.util.Arrays.asList(APPEARANCE_KEYS).contains(key))
+                && !(profile && java.util.Arrays.asList(PROFILE_KEYS).contains(key))
+                && !(cloudSync && java.util.Arrays.asList(CLOUD_SYNC_KEYS).contains(key))
                 && !(display && java.util.Arrays.asList(STORE_DISPLAY_KEYS).contains(key))) return false;
         if (value == JSONObject.NULL) return true;
         if (display) {
@@ -133,6 +161,23 @@ final class SettingsBackup {
             return value instanceof Number && ((Number) value).intValue() >= 0
                     && ((Number) value).intValue() <= 2
                     && ((Number) value).intValue() == ((Number) value).doubleValue();
+        }
+        if (alerts) {
+            if (key.endsWith("_expanded")) return value instanceof Boolean;
+            int maximum = key.equals("alerts_sort_order") ? 3 : 5;
+            return value instanceof Number && ((Number) value).intValue() >= 0
+                    && ((Number) value).intValue() <= maximum
+                    && ((Number) value).intValue() == ((Number) value).doubleValue();
+        }
+        if (profile) return value instanceof Boolean;
+        if (cloudSync) return value instanceof Boolean;
+        if (appearance) {
+            if (!(value instanceof String)) return false;
+            String mode = (String) value;
+            if (key.equals("theme_mode")) {
+                return ThemeController.MODE_LIGHT.equals(mode) || ThemeController.MODE_DARK.equals(mode);
+            }
+            return mode.length() <= 32 && !mode.trim().isEmpty();
         }
         if (key.equals("enabled") || key.equals("show_condominium") || key.equals("show_zip")) {
             return value instanceof Boolean;

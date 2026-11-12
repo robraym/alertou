@@ -874,6 +874,11 @@ final class TelegramClientManager {
     }
 
     void submitPhoneNumber(String phoneNumber) {
+        if (clientId == 0) {
+            notifyError(appContext == null ? "Telegram ainda está iniciando."
+                    : appContext.getString(R.string.telegram_phone_submit_not_ready));
+            return;
+        }
         try {
             JSONObject settings = new JSONObject()
                     .put("@type", "phoneNumberAuthenticationSettings")
@@ -2982,6 +2987,8 @@ final class TelegramClientManager {
 
     private void notifyError(String message) {
         AppErrorStore.recordSerious(appContext, "Telegram", message);
+        Listener currentListener = listener;
+        if (currentListener != null) currentListener.onError(message);
     }
 
     private void notifyCloudSyncStatus(int messageResource) {

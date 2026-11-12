@@ -1338,12 +1338,20 @@ final class CloudSyncStore {
             data.put(KEY_TREASURY_RATE_HISTORY,
                     new TreasuryRateHistoryRepository(appContext).exportForSync());
             synchronized (OfferStorage.LOCK) {
-            data.put(KEY_ARCHIVED_OFFERS, offers.getString(KEY_ARCHIVED_OFFERS, "[]"));
-            data.put(KEY_ARCHIVED_UPDATED_AT, ensureCollectionUpdatedAt(
-                    appContext,
-                    KEY_ARCHIVED_UPDATED_AT,
-                    updatedAt
-            ));
+                // A complete snapshot must reproduce every visible offer collection.
+                data.put(KEY_RECENT_OFFERS, offers.getString(KEY_RECENT_OFFERS, "[]"));
+                data.put(KEY_ARCHIVED_OFFERS, offers.getString(KEY_ARCHIVED_OFFERS, "[]"));
+                data.put(KEY_TRASHED_OFFERS, offers.getString(KEY_TRASHED_OFFERS, "[]"));
+                data.put(KEY_PROCESSED_MESSAGES, offers.getString(KEY_PROCESSED_MESSAGES, "[]"));
+                data.put(KEY_RECENT_UPDATED_AT, ensureCollectionUpdatedAt(
+                        appContext, KEY_RECENT_UPDATED_AT, updatedAt
+                ));
+                data.put(KEY_ARCHIVED_UPDATED_AT, ensureCollectionUpdatedAt(
+                        appContext,
+                        KEY_ARCHIVED_UPDATED_AT,
+                        updatedAt
+                ));
+                data.put(KEY_TRASH_UPDATED_AT, ensureTrashUpdatedAt(appContext, updatedAt));
             }
             data.put(KEY_INTEREST_UPDATED_AT, ensureInterestUpdatedAt(appContext, updatedAt));
             data.put(KEY_DELETED_INTERESTS, syncPrefs(appContext).getString(KEY_DELETED_INTERESTS, "{}"));
@@ -1754,16 +1762,24 @@ final class CloudSyncStore {
                 .getSharedPreferences(OFFER_PREFS, Context.MODE_PRIVATE)
                 .edit();
         offers.putString(KEY_INTERESTS, mergedInterests.toString());
+        long localRecentUpdatedAt = syncPrefs(appContext).getLong(KEY_RECENT_UPDATED_AT, localUpdatedAt);
         long localArchivedUpdatedAt = syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt);
+        long localTrashUpdatedAt = syncPrefs(appContext).getLong(KEY_TRASH_UPDATED_AT, localUpdatedAt);
+        long remoteRecentUpdatedAt = data.optLong(KEY_RECENT_UPDATED_AT, remoteUpdatedAt);
         long remoteArchivedUpdatedAt = data.optLong(KEY_ARCHIVED_UPDATED_AT, remoteUpdatedAt);
+        long remoteTrashUpdatedAt = data.optLong(KEY_TRASH_UPDATED_AT, remoteUpdatedAt);
         synchronized (OfferStorage.LOCK) {
-            // A manual restore explicitly chooses this backup. A timestamp created while
-            // onboarding a clean device must not hide the user's saved offers.
-            if (data.has(KEY_ARCHIVED_OFFERS) && (force || remoteArchivedUpdatedAt >=
-                    syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, localUpdatedAt))) {
-                offersPreferences.edit().putString(KEY_ARCHIVED_OFFERS,
-                        data.optString(KEY_ARCHIVED_OFFERS, "[]")).apply();
-                syncPrefs(appContext).edit().putLong(KEY_ARCHIVED_UPDATED_AT, remoteArchivedUpdatedAt).apply();
+            if (force) {
+                // Manual/initial restore is an explicit request to reproduce this snapshot.
+                offers.putString(KEY_RECENT_OFFERS, data.optString(KEY_RECENT_OFFERS, "[]"));
+                offers.putString(KEY_ARCHIVED_OFFERS, data.optString(KEY_ARCHIVED_OFFERS, "[]"));
+                offers.putString(KEY_TRASHED_OFFERS, data.optString(KEY_TRASHED_OFFERS, "[]"));
+                offers.putString(KEY_PROCESSED_MESSAGES,
+                        data.optString(KEY_PROCESSED_MESSAGES, "[]"));
+            } else {
+                putMergedOffers(offersPreferences, offers, data, localRecentUpdatedAt,
+                        remoteRecentUpdatedAt, localArchivedUpdatedAt, remoteArchivedUpdatedAt,
+                        localTrashUpdatedAt, remoteTrashUpdatedAt);
             }
         }
         long localMonitorUpdatedAt = syncPrefs(appContext).getLong(KEY_MONITOR_UPDATED_AT, localUpdatedAt);
@@ -1820,6 +1836,18 @@ final class CloudSyncStore {
                         localAlertSoundUpdatedAt,
                         remoteAlertSoundUpdatedAt
                 ))
+                .putLong(KEY_RECENT_UPDATED_AT, Math.max(
+                        localRecentUpdatedAt,
+                        remoteRecentUpdatedAt
+                ))
+                .putLong(KEY_ARCHIVED_UPDATED_AT, Math.max(
+                        localArchivedUpdatedAt,
+                        remoteArchivedUpdatedAt
+                ))
+                .putLong(KEY_TRASH_UPDATED_AT, Math.max(
+                        localTrashUpdatedAt,
+                        remoteTrashUpdatedAt
+                ))
                 .putBoolean(KEY_RANKING_SYNC_MIGRATED, true)
                 .putInt(KEY_RANKING_SYNC_FORMAT, RANKING_SYNC_FORMAT)
                 .putLong(KEY_MONITOR_UPDATED_AT, Math.max(localMonitorUpdatedAt, remoteMonitorUpdatedAt))
@@ -1838,6 +1866,9 @@ final class CloudSyncStore {
                 SamsungOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 SamsungDiscountOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 MonitorServiceController.update(appContext);
+                TelegramClientManager.getInstance().onAutomaticSyncChanged(
+                        isAutomaticSyncEnabled(appContext)
+                );
             });
         }
         return true;

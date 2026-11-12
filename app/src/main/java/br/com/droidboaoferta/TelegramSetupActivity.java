@@ -204,11 +204,25 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     private ActivityResultLauncher<IntentSenderRequest> phoneNumberHintLauncher;
     private ActivityResultLauncher<Intent> smsConsentLauncher;
     private boolean automaticPhoneHintRequested;
+    private TelegramClientManager.State authenticationSubmissionState;
     private final PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
     private List<CountryOption> countryOptions = Collections.emptyList();
     private CountryOption selectedCountry;
     private boolean formattingPhoneNumber;
     private final Handler smsHandler = new Handler(Looper.getMainLooper());
+    private final Handler authenticationHandler = new Handler(Looper.getMainLooper());
+    private final Runnable authenticationSubmissionTimeout = () -> {
+        TelegramClientManager.State state = clientManager.getState();
+        if (authenticationSubmissionState == null || state != authenticationSubmissionState
+                || !isAuthenticationState(state)) {
+            return;
+        }
+        authenticationSubmissionState = null;
+        continueButton.setEnabled(true);
+        (state == TelegramClientManager.State.WAITING_PHONE
+                ? phoneNumberInput : authenticationInput).setError(
+                        getString(R.string.telegram_phone_submit_timeout));
+    };
     private final Handler storeProgressHandler = new Handler(Looper.getMainLooper());
     private final Handler telegramRecoveryProgressHandler = new Handler(Looper.getMainLooper());
     private boolean smsReceiverRegistered;
@@ -568,6 +582,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     @Override
     protected void onStop() {
         smsHandler.removeCallbacks(smsCountdownRunnable);
+        clearPendingAuthenticationSubmission();
         storeProgressHandler.removeCallbacks(storeProgressRunnable);
         telegramRecoveryProgressHandler.removeCallbacks(telegramRecoveryProgressRunnable);
         renderTelegramGroupsIcon(false);
@@ -583,7 +598,38 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
     @Override
     public void onStateChanged(TelegramClientManager.State state) {
-        runOnUiThread(() -> renderState(state));
+        runOnUiThread(() -> {
+            if (state != authenticationSubmissionState) {
+                clearPendingAuthenticationSubmission();
+            }
+            renderState(state);
+        });
+    }
+
+    @Override
+    public void onError(String message) {
+        runOnUiThread(() -> {
+            if (isFinishing() || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1
+                    && isDestroyed())) {
+                return;
+            }
+            TelegramClientManager.State state = clientManager.getState();
+            if (isAuthenticationState(state)) {
+                clearPendingAuthenticationSubmission();
+                continueButton.setEnabled(true);
+                (state == TelegramClientManager.State.WAITING_PHONE
+                        ? phoneNumberInput : authenticationInput).setError(
+                                authenticationErrorMessage(message));
+            }
+        });
+    }
+
+    private String authenticationErrorMessage(String message) {
+        String normalized = message == null ? "" : message.trim();
+        if ("API_ID_INVALID".equalsIgnoreCase(normalized)) {
+            return getString(R.string.telegram_api_credentials_invalid);
+        }
+        return normalized.isEmpty() ? getString(R.string.telegram_unknown_error) : normalized;
     }
 
     @Override
@@ -620,6 +666,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         }
         receiveSmsButton.setVisibility(View.GONE);
         smsHandler.removeCallbacks(smsCountdownRunnable);
+        if (state != authenticationSubmissionState) {
+            clearPendingAuthenticationSubmission();
+        }
 
         switch (state) {
             case STARTING:
@@ -2716,6 +2765,11 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     .setError(getString(R.string.telegram_required_field));
             return;
         }
+        // Disable before the request: errors from TDLib can be delivered synchronously.
+        // This lets onError() re-enable the button immediately instead of this method
+        // disabling it again after the callback returns.
+        continueButton.setEnabled(false);
+        beginAuthenticationSubmission(clientManager.getState());
 
         switch (clientManager.getState()) {
             case WAITING_PHONE:
@@ -2744,13 +2798,25 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             default:
                 return;
         }
-        if (waitingForPhone) {
-            phoneNumberInput.setText("");
-        } else {
-            authenticationInput.setText("");
-        }
-        continueButton.setEnabled(false);
-        continueButton.postDelayed(() -> continueButton.setEnabled(true), 1200);
+    }
+
+    private static boolean isAuthenticationState(TelegramClientManager.State state) {
+        return state == TelegramClientManager.State.WAITING_PHONE
+                || state == TelegramClientManager.State.WAITING_EMAIL
+                || state == TelegramClientManager.State.WAITING_EMAIL_CODE
+                || state == TelegramClientManager.State.WAITING_CODE
+                || state == TelegramClientManager.State.WAITING_PASSWORD;
+    }
+
+    private void beginAuthenticationSubmission(TelegramClientManager.State state) {
+        authenticationSubmissionState = state;
+        authenticationHandler.removeCallbacks(authenticationSubmissionTimeout);
+        authenticationHandler.postDelayed(authenticationSubmissionTimeout, 15_000L);
+    }
+
+    private void clearPendingAuthenticationSubmission() {
+        authenticationSubmissionState = null;
+        authenticationHandler.removeCallbacks(authenticationSubmissionTimeout);
     }
 
     private void requestPhoneNumberHint() {

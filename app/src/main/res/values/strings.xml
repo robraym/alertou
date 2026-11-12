@@ -178,6 +178,9 @@
     <string name="telegram_credentials_message">Adicione telegram.api_id e telegram.api_hash ao arquivo local.properties e gere o aplicativo novamente. Essas credenciais são obtidas em my.telegram.org.</string>
     <string name="telegram_status_login">Entrar no Telegram</string>
     <string name="telegram_phone_message">Digite seu número para continuar.</string>
+    <string name="telegram_phone_submit_not_ready">O Telegram ainda está iniciando. Tente novamente em instantes.</string>
+    <string name="telegram_phone_submit_timeout">O Telegram não respondeu ao número. Verifique a internet e tente novamente.</string>
+    <string name="telegram_api_credentials_invalid">As credenciais locais do Telegram são inválidas. Confira o API ID e o API hash em my.telegram.org e gere o aplicativo novamente.</string>
     <string name="telegram_phone_hint">Número de telefone</string>
     <string name="telegram_local_phone_hint">DDD e número</string>
     <string name="telegram_default_country">🇧🇷 +55  ▾</string>
