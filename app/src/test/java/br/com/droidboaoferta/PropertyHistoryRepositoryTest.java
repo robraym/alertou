@@ -39,6 +39,17 @@ public class PropertyHistoryRepositoryTest {
     }
 
     @Test
+    public void hidesTotalProducedByRetiredUnavailableSubtractionRule() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        stored.put("market_listing_counts", "[{\"interest_id\":1,\"source_version\":3,"
+                + "\"points\":[{\"observed_at\":1,\"count\":1}]}]");
+
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+
+        assertTrue(repository.getMarketListingCountHistory(1L).getPoints().isEmpty());
+    }
+
+    @Test
     public void flagsAnEmptyOrLargeUnexpectedDropForConfirmation() {
         assertTrue(PropertyHistoryRepository.isSuspiciousCountDrop(4, 0));
         assertTrue(PropertyHistoryRepository.isSuspiciousCountDrop(10, 4));

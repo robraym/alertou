@@ -9,6 +9,7 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -60,11 +61,11 @@ final class GroupQualityRepository {
         Map<String, Long> selectedGroupsByTitle = new HashMap<>();
         for (TelegramGroup group : groups) {
             if (selectedIds.contains(Long.toString(group.getId()))) {
-                selectedGroupsByTitle.put(group.getTitle().trim().toLowerCase(), group.getId());
+                selectedGroupsByTitle.put(group.getTitle().trim().toLowerCase(Locale.ROOT), group.getId());
             }
         }
         for (ObservedOffer offer : offers) {
-            Long chatId = selectedGroupsByTitle.get(offer.getSource().trim().toLowerCase());
+            Long chatId = selectedGroupsByTitle.get(offer.getSource().trim().toLowerCase(Locale.ROOT));
             if (chatId != null) {
                 record(KEY_APPROVED, new Event("offer:" + offer.getId(), chatId,
                         offer.getObservedAt()));

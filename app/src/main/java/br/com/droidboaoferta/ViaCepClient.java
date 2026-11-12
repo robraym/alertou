@@ -7,6 +7,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 final class ViaCepClient {
     private ViaCepClient() {
@@ -73,7 +74,7 @@ final class ViaCepClient {
             this.street = street == null ? "" : street.trim();
             this.neighborhood = neighborhood == null ? "" : neighborhood.trim();
             this.city = city == null ? "" : city.trim();
-            this.state = state == null ? "" : state.trim().toUpperCase();
+            this.state = state == null ? "" : state.trim().toUpperCase(Locale.ROOT);
         }
 
         String getZipCode() {

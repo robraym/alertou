@@ -265,6 +265,9 @@ final class PropertyHistorySync {
         JSONObject copy = new JSONObject(item.toString());
         copy.remove("last_seen_at");
         copy.remove("metadata_attempted_at");
+        // A data em que a mesma cotação foi relida é local e não muda o histórico
+        // compartilhável. Incluí-la aqui fazia toda leitura idêntica pedir backup.
+        copy.remove("last_known_price_at");
         return canonical(copy);
     }
 

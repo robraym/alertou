@@ -30,6 +30,8 @@ import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+
+import java.util.Locale;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
@@ -2334,7 +2336,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         if (TextUtils.isEmpty(text)) {
             return getString(R.string.icon_telegram_letter);
         }
-        return text.substring(0, 1).toUpperCase();
+        return text.substring(0, 1).toUpperCase(Locale.getDefault());
     }
 
     private String getTelegramStateText(TelegramClientManager.State state) {

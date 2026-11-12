@@ -31,6 +31,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.Locale;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
@@ -1518,7 +1520,7 @@ public class AlertsActivity extends AlertouActivity {
             String street = streetInput.getText().toString().trim();
             String neighborhood = neighborhoodInput.getText().toString().trim();
             String city = cityInput.getText().toString().trim();
-            String state = stateInput.getText().toString().trim().toUpperCase();
+            String state = stateInput.getText().toString().trim().toUpperCase(Locale.ROOT);
             if (street.isEmpty() || neighborhood.isEmpty() || city.isEmpty()
                     || state.length() != 2) {
                 streetInput.setError(getString(R.string.property_address_required));

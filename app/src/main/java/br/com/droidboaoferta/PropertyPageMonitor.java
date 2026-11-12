@@ -809,13 +809,11 @@ final class PropertyPageMonitor {
         if (!MonitorRunPolicy.isCurrent(context, interest)) return;
         if (interest.isPropertyCondominium()
                 && isConfirmedMarketListingCount(context, interest, result, historyRepository)) {
-            // O total parte da lista completa do condomínio, sem filtro de preço ou metragem.
-            // Anúncios que ainda aparecem nessa lista, mas cuja página individual confirmou
-            // indisponibilidade, já venderam ou foram retirados e não contam como ativos.
-            int unavailable = historyRepository.countUnavailableListingsIn(
-                    interest.getId(), result.getSaleListings());
+            // "X disponíveis" é o total oficial atual publicado pelo condomínio. Não subtraia
+            // páginas individuais antes marcadas como indisponíveis: elas podem ser referências
+            // antigas, enquanto a própria página já recalculou os anúncios ativos.
             historyRepository.recordMarketListingCount(interest.getId(),
-                    Math.max(0, result.getSaleListingsCount() - unavailable), observedAt);
+                    result.getSaleListingsCount(), observedAt);
         }
         // O limite não pode escolher os primeiros itens vindos da fonte: essa ordem
         // é de relevância do QuintoAndar e poderia excluir um imóvel mais barato.

@@ -48,7 +48,7 @@
             android:padding="8dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_sort"
-            android:tint="?attr/colorAccent" />
+            app:tint="?attr/colorAccent" />
 
         <ImageButton
             android:id="@+id/button_profile"
@@ -59,7 +59,7 @@
             android:padding="8dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_profile"
-            android:tint="?attr/colorAccent" />
+            app:tint="?attr/colorAccent" />
     </LinearLayout>
 
     <LinearLayout

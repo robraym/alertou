@@ -16,7 +16,9 @@ final class PropertyHistoryRepository {
     private static final String PREFS = "property_history";
     private static final String KEY_ENTRIES = "entries";
     private static final String KEY_MARKET_LISTING_COUNTS = "market_listing_counts";
-    private static final int MARKET_LISTING_COUNT_SOURCE_VERSION = 3;
+    // Version 4 records the official public "X disponíveis" count verbatim. Earlier data
+    // subtracted historical unavailable pages and can therefore understate the total.
+    private static final int MARKET_LISTING_COUNT_SOURCE_VERSION = 4;
     private static final int ZIP_LISTING_COUNT_ADDRESS_VERSION = 7;
     private static final long METADATA_RETRY_MS = 24L * 60L * 60L * 1000L;
     private static final int MAX_POINTS = 60;
@@ -102,9 +104,12 @@ final class PropertyHistoryRepository {
                 || history.optInt("source_version", 0) < ZIP_LISTING_COUNT_ADDRESS_VERSION)) {
             points = null;
         }
-        if (!propertyZip && history != null
-                && history.optInt("source_version", 0) < ZIP_LISTING_COUNT_ADDRESS_VERSION
-                && (removeLegacyPageLimitedCount(points, findHighestCount(points))
+        if (!propertyZip && (history == null
+                || history.optInt("source_version", 0) < MARKET_LISTING_COUNT_SOURCE_VERSION)) {
+            // Never show a total calculated by the retired subtraction rule. The next official
+            // condominium read replaces it with the count published by QuintoAndar.
+            points = null;
+        } else if (!propertyZip && (removeLegacyPageLimitedCount(points, findHighestCount(points))
                 || removeIsolatedUnconfirmedDrop(points))) {
             try {
                 history.put("points", points);
@@ -582,32 +587,6 @@ final class PropertyHistoryRepository {
             } catch (org.json.JSONException ignored) {
             }
         }
-    }
-
-    /**
-     * Counts only listings that are still present in the source result but whose own page
-     * has confirmed that they are unavailable. Those stale entries must not inflate the
-     * active condominium total.
-     */
-    synchronized int countUnavailableListingsIn(long interestId,
-                                                  List<PropertyPageListing> sourceListings) {
-        if (sourceListings == null || sourceListings.isEmpty()) return 0;
-        java.util.Set<String> sourceIds = new java.util.HashSet<>();
-        for (PropertyPageListing listing : sourceListings) {
-            if (listing != null && !listing.getId().trim().isEmpty()) sourceIds.add(listing.getId());
-        }
-        if (sourceIds.isEmpty()) return 0;
-        int unavailable = 0;
-        JSONArray entries = readEntries();
-        for (int index = 0; index < entries.length(); index++) {
-            JSONObject item = entries.optJSONObject(index);
-            if (item != null && item.optLong("interest_id", 0L) == interestId
-                    && "unavailable".equals(item.optString("validation_status"))
-                    && sourceIds.contains(item.optString("listing_id"))) {
-                unavailable++;
-            }
-        }
-        return unavailable;
     }
 
     synchronized List<PropertyPageListing> getTrackedListings(long interestId) {

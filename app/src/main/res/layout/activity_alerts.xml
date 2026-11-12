@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
@@ -47,7 +48,7 @@
             android:padding="8dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_sort"
-            android:tint="?attr/colorAccent" />
+            app:tint="?attr/colorAccent" />
 
         <ImageButton
             android:id="@+id/button_profile"
@@ -58,7 +59,7 @@
             android:padding="8dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_profile"
-            android:tint="?attr/colorAccent" />
+            app:tint="?attr/colorAccent" />
     </LinearLayout>
 
     <FrameLayout
@@ -116,7 +117,7 @@
                     android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_add_coupon_alert"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -154,7 +155,7 @@
                     android:rotation="90"
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -200,7 +201,7 @@
                     android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_add_property_alert"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -238,7 +239,7 @@
                     android:rotation="90"
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -284,7 +285,7 @@
                     android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_property_zip_alert"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -322,7 +323,7 @@
                     android:rotation="90"
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -368,7 +369,7 @@
                     android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_tesouro_direto"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -406,7 +407,7 @@
                     android:rotation="90"
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
             </LinearLayout>
 
@@ -452,7 +453,7 @@
                     android:padding="7dp"
                     android:scaleType="center"
                     android:src="@drawable/ic_add_price_alert"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -490,7 +491,7 @@
                     android:rotation="90"
                     android:scaleType="center"
                     android:src="@drawable/ic_chevron_right"
-                    android:tint="?attr/colorAccent" />
+                    app:tint="?attr/colorAccent" />
 
             </LinearLayout>
 

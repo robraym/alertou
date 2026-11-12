@@ -1,5 +1,7 @@
 package br.com.droidboaoferta;
 
+import java.util.Locale;
+
 final class Interest {
     static final String TYPE_PRICE = "price";
     static final String TYPE_COUPON = "coupon";
@@ -78,7 +80,7 @@ final class Interest {
         this.propertyNeighborhood = propertyNeighborhood == null
                 ? "" : propertyNeighborhood.trim();
         this.propertyCity = propertyCity == null ? "" : propertyCity.trim();
-        this.propertyState = propertyState == null ? "" : propertyState.trim().toUpperCase();
+        this.propertyState = propertyState == null ? "" : propertyState.trim().toUpperCase(Locale.ROOT);
         this.propertyListingLimit = Math.max(1, Math.min(100, propertyListingLimit));
     }
 
