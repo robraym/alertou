@@ -482,16 +482,15 @@ final class TelegramClientManager {
         OfferRepository repository = new OfferRepository(appContext);
         List<ObservedOffer> offers = new ArrayList<>(repository.getRecentForValidation());
         offers.addAll(repository.getArchived());
-        OfferLinkValidationStore validation = new OfferLinkValidationStore(appContext);
-        boolean visibilityChanged = false;
         for (ObservedOffer offer : offers) {
             if (!OfferLinkValidationStore.requiresValidation(offer)
                     || !storedOfferLinkGate.begin(offer.getId(), SystemClock.elapsedRealtime())) continue;
-            visibilityChanged |= validation.setValidated(offer, false);
+            // Keep an offer that was already confirmed on screen while this background
+            // recheck is pending. Previously, every reconnect hid valid cards first, so a
+            // notification could be delivered while its matching card disappeared.
             validateMessageLink(offer.getTelegramPostLink(), 0L, 0L,
                     message -> handleStoredOfferValidation(offer, message));
         }
-        if (visibilityChanged) broadcastOfferValidationChanged();
     }
 
     private synchronized void handleStoredOfferValidation(ObservedOffer offer, JSONObject message) {
