@@ -103,61 +103,6 @@ public class PropertyPageParserTest {
     }
 
     @Test
-    public void buildsQuintoAndarSearchUrlFromAddressFilters() {
-        String url = PropertyPageClient.buildQuintoAndarSearchUrl(
-                "R. Frei Caneca",
-                "Consolação",
-                "São Paulo",
-                "SP",
-                20d,
-                49d,
-                360000d
-        );
-
-        assertEquals(
-                "https://www.quintoandar.com.br/comprar/imovel/"
-                        + "rua-frei-caneca-consolacao-sao-paulo-sp-brasil/"
-                        + "apartamento/casa/kitnet/casacondominio/de-20-a-49-m2/"
-                        + "de-0-a-360000-venda/todos-tipos-entrada",
-                url
-        );
-        assertEquals(url, PropertyPageClient.normalizeSupportedUrl(url + "?pagina=2"));
-        assertEquals(
-                "https://www.quintoandar.com.br/comprar/imovel/"
-                        + "rua-frei-caneca-consolacao-sao-paulo-sp-brasil",
-                PropertyPageClient.withoutPropertyZipAlertFilters(url)
-        );
-    }
-
-    @Test
-    public void parsesAllSaleListingsFromSearchPages() {
-        String nextData = "{\"props\":{\"pageProps\":{\"initialState\":{\"search\":{\"searchTotal\":67}},\"results\":["
-                + "{\"id\":\"good-1\",\"area\":35,\"salePrice\":320000,\"forSale\":true,"
-                + "\"shortSaleDescription\":\"Apartamento perto do metrô\","
-                + "\"listingTags\":[\"SALE_GOOD_PRICE\",\"NEW_AD\"]},"
-                + "{\"id\":\"regular-1\",\"area\":36,\"salePrice\":310000,\"forSale\":true,"
-                + "\"address\":{\"address\":\"Rua Doutor Plínio Barreto\",\"city\":\"São Paulo\"},"
-                + "\"listingTags\":[\"NEW_AD\"]},"
-                + "{\"id\":\"rent-1\",\"area\":37,\"salePrice\":300000,\"forSale\":false,"
-                + "\"listingTags\":[\"SALE_GOOD_PRICE\"]}]}}}";
-        String html = "<script id=\"__NEXT_DATA__\" type=\"application/json\">"
-                + nextData + "</script>";
-
-        PropertyPageResult result = PropertyPageParser.parseSearch(html);
-        List<PropertyPageListing> listings = result.getSaleListings();
-
-        assertEquals(2, listings.size());
-        assertEquals(67, result.getSaleListingsCount());
-        assertEquals("good-1", listings.get(0).getId());
-        assertEquals(35d, listings.get(0).getArea(), 0.001d);
-        assertEquals(320000d, listings.get(0).getSalePrice(), 0.001d);
-        assertEquals("Apartamento perto do metrô", listings.get(0).getDescription());
-        assertTrue(listings.get(0).isNewAd());
-        assertEquals("regular-1", listings.get(1).getId());
-        assertEquals("Rua Doutor Plínio Barreto", listings.get(1).getAddress());
-    }
-
-    @Test
     public void parsesQuintoAndarPaginatedCondominiumResults() {
         String response = "{\"hits\":{\"hits\":[{\"_id\":\"895590942\","
                 + "\"_source\":{\"id\":895590942,\"area\":27,\"salePrice\":378500,"
@@ -181,53 +126,6 @@ public class PropertyPageParserTest {
                 + "\"saleListings\":[{\"_id\":\"one\",\"_source\":{\"condoId\":603199}}]}}}}</script>";
 
         assertEquals(603199L, PropertyPageParser.parseQuintoAndarCondominiumId(html));
-    }
-
-    @Test
-    public void readsCondominiumAddressForNearbySearch() {
-        String html = "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"condoInfo\":{"
-                + "\"address\":\"Avenida Santo Amaro\","
-                + "\"neighborhood\":\"Cidade Monções\","
-                + "\"city\":{\"name\":\"São Paulo\",\"slug\":\"sao-paulo-sp-brasil\"}}}}}</script>";
-
-        assertArrayEquals(new String[]{"Avenida Santo Amaro", "Cidade Monções", "São Paulo", "sp"},
-                PropertyPageParser.parseCondominiumSearchLocation(html));
-    }
-
-    @Test
-    public void prefersPublicStreetListingsOverTheGenericSearchTotal() {
-        String html = "<script type=\"application/ld+json\">{\"@graph\":[{"
-                + "\"@type\":\"RealEstateListing\",\"url\":\"https://www.quintoandar.com.br/imovel/123/comprar\","
-                + "\"description\":\"Apartamento à venda\",\"about\":{\"floorSize\":{\"value\":58},"
-                + "\"address\":{\"streetAddress\":\"Rua Peixoto Gomide\"}},"
-                + "\"offers\":{\"price\":530000}}]}</script>"
-                + "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"initialState\":{"
-                + "\"search\":{\"searchTotal\":9904}}}}}</script>";
-
-        PropertyPageResult result = PropertyPageParser.parseSearch(html);
-
-        assertEquals(1, result.getSaleListings().size());
-        assertEquals(1, result.getSaleListingsCount());
-        PropertyPageListing listing = result.getSaleListings().get(0);
-        assertEquals("123", listing.getId());
-        assertEquals("Rua Peixoto Gomide", listing.getAddress());
-        assertEquals(58d, listing.getArea(), 0.001d);
-        assertEquals(530000d, listing.getSalePrice(), 0.001d);
-    }
-
-    @Test
-    public void includesSearchListingMissingFromStructuredData() {
-        String html = "<script type=\"application/ld+json\">{\"@type\":\"RealEstateListing\","
-                + "\"url\":\"https://www.quintoandar.com.br/imovel/one/comprar\","
-                + "\"about\":{\"floorSize\":{\"value\":26}},\"offers\":{\"price\":351000}}</script>"
-                + "<script id=\"__NEXT_DATA__\">{\"props\":{\"pageProps\":{\"results\":["
-                + "{\"id\":\"old\",\"area\":25,\"salePrice\":345000,\"forSale\":true}]}}}</script>";
-
-        PropertyPageResult result = PropertyPageParser.parseSearch(html);
-
-        assertEquals(2, result.getSaleListings().size());
-        assertEquals(2, result.getSaleListingsCount());
-        assertEquals("old", result.getSaleListings().get(1).getId());
     }
 
     @Test
@@ -331,12 +229,9 @@ public class PropertyPageParserTest {
         assertEquals(
                 "https://informational-pages-api.loft.com.br/condominiums/XN5WUG6T",
                 PropertyPageClient.buildLoftDataUrl(
-                        "https://loft.com.br/condominio/facto-paulista/XN5WUG6T"
-                )
-        );
+                        "https://loft.com.br/condominio/facto-paulista/XN5WUG6T"));
         assertNull(PropertyPageClient.buildLoftDataUrl(
-                "https://www.quintoandar.com.br/condominio/vn-frei-caneca"
-        ));
+                "https://www.quintoandar.com.br/condominio/vn-frei-caneca"));
     }
 
     @Test
@@ -352,13 +247,11 @@ public class PropertyPageParserTest {
         assertEquals(
                 "https://www.quintoandar.com.br/condominio/go-portugal?alertou_request=123",
                 PropertyPageClient.buildFreshRequestUrl(
-                        "https://www.quintoandar.com.br/condominio/go-portugal", 123L)
-        );
+                        "https://www.quintoandar.com.br/condominio/go-portugal", 123L));
         assertEquals(
                 "https://www.quintoandar.com.br/condominio/go-portugal?origem=app&alertou_request=456",
                 PropertyPageClient.buildFreshRequestUrl(
-                        "https://www.quintoandar.com.br/condominio/go-portugal?origem=app", 456L)
-        );
+                        "https://www.quintoandar.com.br/condominio/go-portugal?origem=app", 456L));
     }
 
     @Test
@@ -451,8 +344,7 @@ public class PropertyPageParserTest {
     @Test
     public void matchesAreaAndMaximumPurchasePriceInclusively() {
         PropertyPageListing listing = new PropertyPageListing(
-                "sale-1", 30d, 450000d, "", ""
-        );
+                "sale-1", 30d, 450000d, "", "");
 
         assertTrue(listing.matches(30d, 40d, 450000d));
         assertFalse(listing.matches(31d, 40d, 500000d));

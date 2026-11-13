@@ -297,7 +297,6 @@
     <string name="product_alerts_list_title">Produtos em geral</string>
     <string name="treasury_alerts_list_title">Tesouro Direto</string>
     <string name="property_alerts_list_title">Imóveis por condomínio</string>
-    <string name="property_zip_alerts_list_title">Imóveis por CEP</string>
     <string name="property_market_alerts_list_title">Imóveis</string>
     <string name="coupon_alerts_registered_count_empty">Nenhum cadastrado</string>
     <string name="price_alerts_registered_count_empty">Nenhum cadastrado</string>
@@ -311,15 +310,12 @@
     <string name="treasury_rate_hint">Taxa mínima anual (%)</string>
     <string name="treasury_rate_required">Informe uma taxa mínima válida.</string>
     <string name="property_alerts_registered_count_empty">Nenhum cadastrado</string>
-    <string name="property_zip_alerts_registered_count_empty">Nenhum cadastrado</string>
     <string name="coupon_alerts_registered_count_one">1 cadastrado</string>
     <string name="coupon_alerts_registered_count_many">%1$d cadastrados</string>
     <string name="price_alerts_registered_count_one">1 cadastrado</string>
     <string name="price_alerts_registered_count_many">%1$d cadastrados</string>
     <string name="property_alerts_registered_count_one">1 cadastrado</string>
     <string name="property_alerts_registered_count_many">%1$d cadastrados</string>
-    <string name="property_zip_alerts_registered_count_one">1 cadastrado</string>
-    <string name="property_zip_alerts_registered_count_many">%1$d cadastrados</string>
     <string name="property_alerts_status_empty">Aguardando primeira consulta</string>
     <string name="alerts_search_no_results">Nenhum resultado nesta seção.</string>
     <string name="alerts_section_expand">Expandir seção</string>
@@ -379,15 +375,9 @@
     <string name="property_market_reference_disabled">Não mostrar</string>
     <string name="property_market_reference_enable">Mostrar imóveis por condomínio</string>
     <string name="property_market_reference_disable">Não mostrar imóveis por condomínio</string>
-    <string name="property_zip_display_title">Imóveis por CEP</string>
-    <string name="property_zip_display_dialog_title">Imóveis por CEP</string>
-    <string name="property_zip_display_enable">Mostrar imóveis por CEP</string>
-    <string name="property_zip_display_disable">Não mostrar imóveis por CEP</string>
     <string name="property_interval_title">Consulta por condomínio</string>
     <string name="property_condominium_interval_title">Imóveis por condomínio</string>
-    <string name="property_zip_interval_title">Imóveis por CEP</string>
     <string name="property_interval_dialog_title">Intervalo de consulta por condomínio</string>
-    <string name="property_zip_interval_dialog_title">Intervalo de consulta por CEP</string>
     <string name="property_interval_summary">Consulta a cada %1$d minutos</string>
     <string name="property_interval_default">A cada 15 minutos</string>
     <string name="property_market_reference_source">%1$s • %2$s m²</string>
@@ -399,10 +389,12 @@
     <string name="property_market_reference_section_updating">Imóveis agora…</string>
     <string name="property_section_check_failed_retry">Falha ao consultar. Toque para tentar novamente.</string>
     <string name="property_section_retry_countdown">Falha na consulta. Nova tentativa em %1$d s</string>
-    <string name="property_section_check_failed_preserved">Não foi possível consultar após 3 tentativas. Última busca válida mantida.</string>
+    <string name="property_section_check_failed_preserved">Falha na consulta. Última busca válida mantida.</string>
+    <string name="property_failed_condominiums">Falha ao consultar: %1$s. Dados anteriores mantidos.</string>
+    <string name="property_pending_verifications">%1$d anúncio(s) com verificação complementar pendente</string>
+    <string name="source_attempts">Tentativas da consulta: %1$d</string>
+    <string name="source_listing_failure">Anúncio %1$s — %2$d tentativa(s): %3$s</string>
     <string name="property_market_reference_section_updating_property">%1$s · %2$s</string>
-    <string name="property_zip_section_updating_listings">%1$d de %2$d imóveis</string>
-    <string name="property_zip_section_updating_street">%1$s</string>
     <string name="profile_check_interval_summary">Consulta a cada %1$s</string>
     <string name="profile_check_interval_option">A cada %1$s</string>
     <string name="profile_check_interval_seconds">%1$d segundos</string>
@@ -439,7 +431,7 @@
     <string name="profile_section_appearance">Aparência</string>
     <string name="profile_section_appearance_summary">Tema, cor, som e transições</string>
     <string name="profile_section_properties">Imóveis</string>
-    <string name="profile_section_properties_summary">Condomínio e CEP</string>
+    <string name="profile_section_properties_summary">Imóveis por condomínio</string>
     <string name="profile_section_external_sources">Lojas</string>
     <string name="profile_section_external_sources_summary">Intervalos de consulta das lojas</string>
     <string name="profile_section_sync">Sincronização</string>
@@ -567,21 +559,9 @@
         <item quantity="one">• %1$d de %2$d condomínio cadastrado</item>
         <item quantity="other">• %1$d de %2$d condomínios cadastrados</item>
     </plurals>
-    <plurals name="property_zip_section_progress">
-        <item quantity="one">• %1$d de %2$d imóvel</item>
-        <item quantity="other">• %1$d de %2$d imóveis</item>
-    </plurals>
-    <plurals name="property_zip_offer_section_progress">
-        <item quantity="one">%1$d de %2$d oferta</item>
-        <item quantity="other">%1$d de %2$d ofertas</item>
-    </plurals>
     <plurals name="property_market_listing_count">
         <item quantity="one">%1$d imóvel</item>
         <item quantity="other">%1$d imóveis</item>
-    </plurals>
-    <plurals name="property_zip_card_listing_count">
-        <item quantity="one">%1$s • %2$d imóvel</item>
-        <item quantity="other">%1$s • %2$d imóveis</item>
     </plurals>
     <string name="archived_screen_title">Salvas</string>
     <string name="archived_card_title">Ofertas salvas</string>
@@ -664,18 +644,7 @@
     <string name="property_price_required">Informe um preço máximo válido</string>
     <string name="property_interest_unknown_name">Imóvel monitorado</string>
     <string name="property_interest_subtitle">%1$s • %2$s–%3$s m² • até %4$s</string>
-    <string name="property_zip_dialog_title">Novo alerta por CEP</string>
-    <string name="property_zip_dialog_edit_title">Editar alerta por CEP</string>
-    <string name="property_zip_dialog_summary">CEP, endereço, metragem desejada e preço máximo de compra.</string>
-    <string name="property_zip_hint">CEP</string>
-    <string name="property_street_hint">Rua</string>
-    <string name="property_neighborhood_hint">Bairro</string>
-    <string name="property_city_hint">Cidade</string>
-    <string name="property_state_hint">UF</string>
-    <string name="property_zip_required">Informe um CEP válido</string>
-    <string name="property_zip_listing_limit_hint">Máximo de imóveis da rua</string>
     <string name="property_condominium_listing_limit_hint">Máximo de imóveis do condomínio</string>
-    <string name="property_zip_listing_limit_invalid">Informe de 1 a 100 imóveis</string>
     <string name="treasury_direct_title">Tesouro Direto</string>
     <string name="treasury_direct_profile_summary">Taxas e intervalo de consulta</string>
     <string name="treasury_direct_interval_title">Intervalo de consulta</string>
@@ -695,9 +664,6 @@
     <string name="treasury_direct_rate_change_description">Ver histórico da taxa</string>
     <string name="action_refresh_treasury_rates">Atualizar taxas do Tesouro Direto</string>
     <string name="action_checking_treasury_rates">Consultando taxas do Tesouro Direto</string>
-    <string name="property_zip_not_found">Não foi possível encontrar esse CEP</string>
-    <string name="property_address_required">Confira rua, bairro, cidade e UF</string>
-    <string name="property_zip_interest_subtitle">%1$s/%2$s • %3$s–%4$s m² • até %5$s</string>
     <string name="property_offer_source">%1$s • %2$s m²</string>
     <string name="property_notification_title">Imóvel dentro dos seus critérios</string>
     <string name="property_notification_title_many">%1$d imóveis dentro dos seus critérios</string>
@@ -842,4 +808,5 @@
     <string name="store_source_never_consult">Consultas pausadas</string>
     <string name="store_source_disabled">Consulta pausada</string>
     <string name="store_source_paused_badge">Ⅱ</string>
+    <string name="property_listing_limit_invalid">Informe de 1 a 100 imóveis</string>
 </resources>

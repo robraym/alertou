@@ -77,22 +77,6 @@ public class PropertyHistoryRepositoryTest {
     }
 
     @Test
-    public void trustsThePublicPageForZipListingPrice() {
-        java.util.Map<String, String> stored = new java.util.HashMap<>();
-        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
-        PropertyPageListing listing = new PropertyPageListing("123", 31d, 341000d,
-                "Kitnet", "https://www.quintoandar.com.br/imovel/123/comprar", false, false,
-                "Rua Peixoto Gomide");
-
-        repository.recordObservation(1L, listing, 1L, PropertyListingMetadata.empty(), true);
-        ObservedOffer offer = new ObservedOffer("property|1|123", 1L, "Peixoto Gomide",
-                "QuintoAndar", 341000d, 880000d, 1L, listing.getUrl(), listing.getAddress());
-
-        assertFalse(repository.getForOffer(offer).isPendingValidation());
-        assertEquals(341000d, repository.getForOffer(offer).getLatestPrice(0d), 0.001d);
-    }
-
-    @Test
     public void keepsWorkingLegacyHistoryIncludingGoPortugalDrop() throws Exception {
         java.util.Map<String, String> stored = new java.util.HashMap<>();
         JSONObject original = workingLegacyEntry();
@@ -324,8 +308,7 @@ public class PropertyHistoryRepositoryTest {
                 .put("price", 414000d)
                 .put("area", 27d);
         PropertyPageListing updated = new PropertyPageListing(
-                "895590942", 27d, 399000d, "Studio", ""
-        );
+                "895590942", 27d, 399000d, "Studio", "");
 
         assertTrue(PropertyHistoryRepository.hasObservationChanged(previous, updated));
     }
@@ -336,8 +319,7 @@ public class PropertyHistoryRepositoryTest {
                 .put("price", 399000d)
                 .put("area", 27d);
         PropertyPageListing unchanged = new PropertyPageListing(
-                "895590942", 27d, 399000d, "Studio", ""
-        );
+                "895590942", 27d, 399000d, "Studio", "");
 
         assertFalse(PropertyHistoryRepository.hasObservationChanged(previous, unchanged));
     }
@@ -348,9 +330,7 @@ public class PropertyHistoryRepositoryTest {
                 1L, "895590942", "Studio", "", 1L, 2L, 0L, false,
                 Arrays.asList(
                         new PropertyHistoryPoint(1L, 414000d, 27d),
-                        new PropertyHistoryPoint(2L, 399000d, 27d)
-                )
-        );
+                        new PropertyHistoryPoint(2L, 399000d, 27d)));
 
         assertTrue(entry.hasPriceDrop());
         assertEquals(15000d, entry.getPriceDropAmount(), 0.001d);
@@ -364,9 +344,7 @@ public class PropertyHistoryRepositoryTest {
                 Arrays.asList(
                         new PropertyHistoryPoint(1L, 414000d, 27d),
                         new PropertyHistoryPoint(2L, 399000d, 27d),
-                        new PropertyHistoryPoint(3L, 450000d, 27d)
-                )
-        );
+                        new PropertyHistoryPoint(3L, 450000d, 27d)));
 
         assertFalse(entry.hasPriceDrop());
         assertTrue(entry.hasPriceChange());

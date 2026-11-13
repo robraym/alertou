@@ -50,7 +50,6 @@ public class AlertsActivity extends AlertouActivity {
     private static final String ALERTS_SORT_ORDER = "alerts_sort_order";
     private static final String SECTION_COUPONS_EXPANDED = "alerts_section_coupons_expanded";
     private static final String SECTION_PROPERTIES_EXPANDED = "alerts_section_properties_expanded";
-    private static final String SECTION_PROPERTY_ZIP_EXPANDED = "alerts_section_property_zip_expanded";
     private static final String SECTION_TREASURY_EXPANDED = "alerts_section_treasury_expanded";
     private static final String SECTION_PRODUCTS_EXPANDED = "alerts_section_products_expanded";
     private static final int REQUEST_NOTIFICATIONS = 1202;
@@ -64,18 +63,15 @@ public class AlertsActivity extends AlertouActivity {
     private final ExecutorService alertUpdateExecutor = Executors.newSingleThreadExecutor();
     private LinearLayout couponInterestsContainer;
     private LinearLayout propertyInterestsContainer;
-    private LinearLayout propertyZipInterestsContainer;
     private LinearLayout treasuryInterestsContainer;
     private LinearLayout priceInterestsContainer;
     private ImageButton couponAlertsToggle;
     private ImageButton propertyAlertsToggle;
-    private ImageButton propertyZipAlertsToggle;
     private ImageButton treasuryAlertsToggle;
     private ImageButton priceAlertsToggle;
     private EditText interestsSearchInput;
     private TextView couponAlertsCountText;
     private TextView propertyAlertsCountText;
-    private TextView propertyZipAlertsCountText;
     private TextView treasuryAlertsCountText;
     private TextView priceAlertsCountText;
     private FloatingSearchController floatingSearchController;
@@ -93,75 +89,57 @@ public class AlertsActivity extends AlertouActivity {
         BottomNavigationController.setup(
                 this,
                 BottomNavigationController.ITEM_ALERTS,
-                R.id.navigation_animated_content
-        );
+                R.id.navigation_animated_content);
 
         interestRepository = new InterestRepository(this);
         offerRepository = new OfferRepository(this);
         couponInterestsContainer = findViewById(R.id.container_coupon_interests);
         propertyInterestsContainer = findViewById(R.id.container_property_interests);
-        propertyZipInterestsContainer = findViewById(R.id.container_property_zip_interests);
         treasuryInterestsContainer = findViewById(R.id.container_treasury_interests);
         priceInterestsContainer = findViewById(R.id.container_price_interests);
         couponAlertsToggle = findViewById(R.id.button_toggle_coupon_alerts);
         propertyAlertsToggle = findViewById(R.id.button_toggle_property_alerts);
-        propertyZipAlertsToggle = findViewById(R.id.button_toggle_property_zip_alerts);
         treasuryAlertsToggle = findViewById(R.id.button_toggle_treasury_alerts);
         priceAlertsToggle = findViewById(R.id.button_toggle_price_alerts);
         floatingSearchController = FloatingSearchController.attach(
                 this,
                 "alerts",
-                R.id.navigation_animated_content
-        );
+                R.id.navigation_animated_content);
         interestsSearchInput = floatingSearchController.getInput();
         couponAlertsCountText = findViewById(R.id.text_coupon_alerts_count);
         propertyAlertsCountText = findViewById(R.id.text_property_alerts_count);
-        propertyZipAlertsCountText = findViewById(R.id.text_property_zip_alerts_count);
         treasuryAlertsCountText = findViewById(R.id.text_treasury_alerts_count);
         priceAlertsCountText = findViewById(R.id.text_price_alerts_count);
 
         findViewById(R.id.button_profile).setOnClickListener(view -> startActivity(
-                new Intent(this, ProfileActivity.class)
-        ));
+                new Intent(this, ProfileActivity.class)));
         findViewById(R.id.button_sort_alerts).setOnClickListener(view -> showSortDialog());
         configureCollapsibleSection(
                 R.id.header_coupon_alerts,
                 couponAlertsToggle,
                 couponInterestsContainer,
-                SECTION_COUPONS_EXPANDED
-        );
+                SECTION_COUPONS_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_property_alerts,
                 propertyAlertsToggle,
                 propertyInterestsContainer,
-                SECTION_PROPERTIES_EXPANDED
-        );
-        configureCollapsibleSection(
-                R.id.header_property_zip_alerts,
-                propertyZipAlertsToggle,
-                propertyZipInterestsContainer,
-                SECTION_PROPERTY_ZIP_EXPANDED
-        );
+                SECTION_PROPERTIES_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_treasury_alerts,
                 treasuryAlertsToggle,
                 treasuryInterestsContainer,
-                SECTION_TREASURY_EXPANDED
-        );
+                SECTION_TREASURY_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_price_alerts,
                 priceAlertsToggle,
                 priceInterestsContainer,
-                SECTION_PRODUCTS_EXPANDED
-        );
+                SECTION_PRODUCTS_EXPANDED);
         findViewById(R.id.button_add_price_interest).setOnClickListener(
                 view -> showInterestDialog(null, Interest.TYPE_PRICE));
         findViewById(R.id.button_add_coupon_interest).setOnClickListener(
                 view -> showInterestDialog(null, Interest.TYPE_COUPON));
         findViewById(R.id.button_add_property_interest).setOnClickListener(
                 view -> showPropertyDialog(null));
-        findViewById(R.id.button_add_property_zip_interest).setOnClickListener(
-                view -> showPropertyZipDialog(null));
         findViewById(R.id.button_add_treasury_interest).setOnClickListener(
                 view -> showTreasuryDialog(null));
         interestsSearchInput.addTextChangedListener(new SimpleTextWatcher() {
@@ -188,8 +166,7 @@ public class AlertsActivity extends AlertouActivity {
                 this,
                 syncReceiver,
                 new IntentFilter(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED),
-                ContextCompat.RECEIVER_NOT_EXPORTED
-        );
+                ContextCompat.RECEIVER_NOT_EXPORTED);
         clientManager.refreshCloudConfigurationSoon();
     }
 
@@ -210,14 +187,11 @@ public class AlertsActivity extends AlertouActivity {
         List<Interest> registeredInterests = interestRepository.getAll();
         int couponCount = 0;
         int propertyCount = 0;
-        int propertyZipCount = 0;
         int treasuryCount = 0;
         int priceCount = 0;
         for (Interest interest : registeredInterests) {
             if (interest.isCoupon()) {
                 couponCount++;
-            } else if (interest.isPropertyZip()) {
-                propertyZipCount++;
             } else if (interest.isPropertyCondominium()) {
                 propertyCount++;
             } else if (interest.isTreasury()) {
@@ -241,11 +215,6 @@ public class AlertsActivity extends AlertouActivity {
                 : getString(propertyCount == 1
                         ? R.string.property_alerts_registered_count_one
                         : R.string.property_alerts_registered_count_many, propertyCount));
-        propertyZipAlertsCountText.setText(propertyZipCount == 0
-                ? getString(R.string.property_zip_alerts_registered_count_empty)
-                : getString(propertyZipCount == 1
-                        ? R.string.property_zip_alerts_registered_count_one
-                        : R.string.property_zip_alerts_registered_count_many, propertyZipCount));
         treasuryAlertsCountText.setText(treasuryCount == 0
                 ? getString(R.string.treasury_alerts_registered_count_empty)
                 : getString(treasuryCount == 1
@@ -254,19 +223,15 @@ public class AlertsActivity extends AlertouActivity {
 
         List<Interest> filteredInterests = filterInterests(
                 registeredInterests,
-                interestsSearchInput.getText().toString()
-        );
+                interestsSearchInput.getText().toString());
         sortInterests(filteredInterests);
         List<Interest> coupons = new java.util.ArrayList<>();
         List<Interest> properties = new java.util.ArrayList<>();
-        List<Interest> propertyZips = new java.util.ArrayList<>();
         List<Interest> treasuries = new java.util.ArrayList<>();
         List<Interest> prices = new java.util.ArrayList<>();
         for (Interest interest : filteredInterests) {
             if (interest.isCoupon()) {
                 coupons.add(interest);
-            } else if (interest.isPropertyZip()) {
-                propertyZips.add(interest);
             } else if (interest.isPropertyCondominium()) {
                 properties.add(interest);
             } else if (interest.isTreasury()) {
@@ -281,9 +246,6 @@ public class AlertsActivity extends AlertouActivity {
         renderInterestSection(
                 properties, propertyInterestsContainer, propertyAlertsToggle,
                 SECTION_PROPERTIES_EXPANDED, propertyCount > 0);
-        renderInterestSection(
-                propertyZips, propertyZipInterestsContainer, propertyZipAlertsToggle,
-                SECTION_PROPERTY_ZIP_EXPANDED, propertyZipCount > 0);
         renderInterestSection(
                 treasuries, treasuryInterestsContainer, treasuryAlertsToggle,
                 SECTION_TREASURY_EXPANDED, treasuryCount > 0);
@@ -314,9 +276,7 @@ public class AlertsActivity extends AlertouActivity {
             LinearLayout row = createInterestRow(interest, currencyFormat);
             ImageButton edit = createEditInterestButton();
             edit.setOnClickListener(view -> {
-                if (interest.isPropertyZip()) {
-                    showPropertyZipDialog(interest);
-                } else if (interest.isPropertyCondominium()) {
+                if (interest.isPropertyCondominium()) {
                     showPropertyDialog(interest);
                 } else if (interest.isTreasury()) {
                     showTreasuryDialog(interest);
@@ -404,11 +364,7 @@ public class AlertsActivity extends AlertouActivity {
                     + (interest.isCoupon() ? getCouponDisplayName(interest) : "")
                     + (interest.isProperty() ? " QuintoAndar Imóveis "
                     + interest.getMinimumArea() + " " + interest.getMaximumArea()
-                    + " " + interest.getPropertyZipCode()
-                    + " " + interest.getPropertyStreet()
-                    + " " + interest.getPropertyNeighborhood()
-                    + " " + interest.getPropertyCity()
-                    + " " + interest.getPropertyState() : "")
+                    : "")
                     + " " + currency.format(interest.getMaximumPrice())
                     + " " + interest.getMaximumPrice();
             if (OfferTextParser.normalize(text).contains(normalizedQuery)) {
@@ -465,8 +421,7 @@ public class AlertsActivity extends AlertouActivity {
                     CloudSyncStore.syncAlertsSortChanged(
                             this,
                             which,
-                            System.currentTimeMillis()
-                    );
+                            System.currentTimeMillis());
                     dialog.dismiss();
                     renderInterests();
                 })
@@ -503,23 +458,13 @@ public class AlertsActivity extends AlertouActivity {
 
             TextView subtitle = createInterestText();
             String amount = currencyFormat.format(interest.getMaximumPrice());
-            if (interest.isPropertyZip()) {
-                subtitle.setText(withValuePrimary(getString(
-                        R.string.property_zip_interest_subtitle,
-                        interest.getPropertyCity(),
-                        interest.getPropertyState(),
-                        formatArea(interest.getMinimumArea()),
-                        formatArea(interest.getMaximumArea()),
-                        amount
-                ), amount));
-            } else {
+            {
                 subtitle.setText(withValuePrimary(getString(
                         R.string.property_interest_subtitle,
                         PropertyPageClient.getSourceName(interest.getTerm()),
                         formatArea(interest.getMinimumArea()),
                         formatArea(interest.getMaximumArea()),
-                        amount
-                ), amount));
+                        amount), amount));
             }
             subtitle.setTextColor(getColor(R.color.text_secondary));
             subtitle.setTextSize(12);
@@ -620,8 +565,7 @@ public class AlertsActivity extends AlertouActivity {
         divider.setBackgroundColor(getColor(R.color.divider));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1)
-        );
+                dp(1));
         params.leftMargin = dp(4);
         params.rightMargin = dp(4);
         divider.setLayoutParams(params);
@@ -832,8 +776,7 @@ public class AlertsActivity extends AlertouActivity {
                 couponAlert ? R.string.coupon_url_hint : R.string.interest_term_hint,
                 couponAlert
                         ? InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI
-                        : InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-        );
+                        : InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         if (editing) {
             termInput.setText(interestToEdit.getTerm());
             termInput.setSelection(couponAlert ? 0 : termInput.length());
@@ -851,15 +794,13 @@ public class AlertsActivity extends AlertouActivity {
         }
         content.addView(termInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                couponAlert ? LinearLayout.LayoutParams.WRAP_CONTENT : dp(52)
-        ));
+                couponAlert ? LinearLayout.LayoutParams.WRAP_CONTENT : dp(52)));
 
         EditText priceInput = createDialogInput(
                 couponAlert
                         ? R.string.coupon_minimum_value_hint
                         : R.string.interest_price_hint,
-                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
-        );
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         if (editing) {
             priceInput.setText(formatEditablePrice(interestToEdit.getMaximumPrice()));
         }
@@ -875,8 +816,7 @@ public class AlertsActivity extends AlertouActivity {
         }
         LinearLayout.LayoutParams priceParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-        );
+                dp(52));
         priceParams.topMargin = dp(12);
         content.addView(priceInput, priceParams);
 
@@ -893,8 +833,7 @@ public class AlertsActivity extends AlertouActivity {
         }
         LinearLayout.LayoutParams suggestionParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         suggestionParams.topMargin = dp(10);
         content.addView(suggestionView, suggestionParams);
 
@@ -917,8 +856,7 @@ public class AlertsActivity extends AlertouActivity {
                 });
                 LinearLayout.LayoutParams revalidateParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                );
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
                 revalidateParams.leftMargin = dp(12);
                 secondaryActions.addView(revalidate, revalidateParams);
             }
@@ -976,8 +914,7 @@ public class AlertsActivity extends AlertouActivity {
         });
         LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                dp(42)
-        );
+                dp(42));
         saveParams.leftMargin = dp(10);
         actions.addView(save, saveParams);
         content.addView(actions);
@@ -1142,8 +1079,7 @@ public class AlertsActivity extends AlertouActivity {
 
         EditText propertyNameInput = createDialogInput(
                 R.string.property_name_hint,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        );
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS);
         propertyNameInput.setSingleLine(true);
         if (editing) {
             propertyNameInput.setText(interestToEdit.getPropertyName());
@@ -1151,13 +1087,11 @@ public class AlertsActivity extends AlertouActivity {
         }
         content.addView(propertyNameInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-        ));
+                dp(52)));
 
         EditText urlInput = createDialogInput(
                 R.string.property_url_hint,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI
-        );
+                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         urlInput.setSingleLine(false);
         urlInput.setMinLines(2);
         urlInput.setMaxLines(4);
@@ -1171,55 +1105,46 @@ public class AlertsActivity extends AlertouActivity {
         }
         LinearLayout.LayoutParams urlParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         urlParams.topMargin = dp(12);
         content.addView(urlInput, urlParams);
 
         EditText minimumAreaInput = createPropertyNumberInput(
                 R.string.property_minimum_area_hint,
-                editing ? interestToEdit.getMinimumArea() : 0d
-        );
+                editing ? interestToEdit.getMinimumArea() : 0d);
         EditText maximumAreaInput = createPropertyNumberInput(
                 R.string.property_maximum_area_hint,
-                editing ? interestToEdit.getMaximumArea() : 0d
-        );
+                editing ? interestToEdit.getMaximumArea() : 0d);
         EditText maximumPriceInput = createDialogInput(
                 R.string.property_maximum_price_hint,
-                InputType.TYPE_CLASS_NUMBER
-        );
+                InputType.TYPE_CLASS_NUMBER);
         configureWholeCurrencyInput(
                 maximumPriceInput,
-                editing ? interestToEdit.getMaximumPrice() : 0d
-        );
+                editing ? interestToEdit.getMaximumPrice() : 0d);
 
         LinearLayout areaInputs = new LinearLayout(this);
         areaInputs.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams minimumAreaParams = new LinearLayout.LayoutParams(
                 0,
                 dp(52),
-                1
-        );
+                1);
         areaInputs.addView(minimumAreaInput, minimumAreaParams);
         LinearLayout.LayoutParams maximumAreaParams = new LinearLayout.LayoutParams(
                 0,
                 dp(52),
-                1
-        );
+                1);
         maximumAreaParams.leftMargin = dp(10);
         areaInputs.addView(maximumAreaInput, maximumAreaParams);
         LinearLayout.LayoutParams areaRowParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         areaRowParams.topMargin = dp(12);
         content.addView(areaInputs, areaRowParams);
         addDialogInputWithMargin(content, maximumPriceInput);
 
         EditText listingLimitInput = createDialogInput(
                 R.string.property_condominium_listing_limit_hint,
-                InputType.TYPE_CLASS_NUMBER
-        );
+                InputType.TYPE_CLASS_NUMBER);
         listingLimitInput.setText(String.valueOf(editing
                 ? interestToEdit.getPropertyListingLimit()
                 : Interest.DEFAULT_PROPERTY_LISTING_LIMIT));
@@ -1231,12 +1156,10 @@ public class AlertsActivity extends AlertouActivity {
                 urlInput,
                 minimumAreaInput,
                 maximumAreaInput,
-                maximumPriceInput
-        );
+                maximumPriceInput);
         LinearLayout.LayoutParams suggestionParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         suggestionParams.topMargin = dp(10);
         content.addView(propertySuggestion, suggestionParams);
 
@@ -1287,8 +1210,7 @@ public class AlertsActivity extends AlertouActivity {
                 return;
             }
             Double maximumPrice = CurrencyTextFormatter.parseWholeReais(
-                    maximumPriceInput.getText()
-            );
+                    maximumPriceInput.getText());
             if (maximumPrice == null) {
                 maximumPriceInput.setError(getString(R.string.property_price_required));
                 return;
@@ -1297,11 +1219,11 @@ public class AlertsActivity extends AlertouActivity {
             try {
                 listingLimit = Integer.parseInt(listingLimitInput.getText().toString().trim());
             } catch (NumberFormatException ignored) {
-                listingLimitInput.setError(getString(R.string.property_zip_listing_limit_invalid));
+                listingLimitInput.setError(getString(R.string.property_listing_limit_invalid));
                 return;
             }
             if (listingLimit < 1 || listingLimit > 100) {
-                listingLimitInput.setError(getString(R.string.property_zip_listing_limit_invalid));
+                listingLimitInput.setError(getString(R.string.property_listing_limit_invalid));
                 return;
             }
             dialog.dismiss();
@@ -1312,273 +1234,11 @@ public class AlertsActivity extends AlertouActivity {
                     minimumArea,
                     maximumArea,
                     maximumPrice,
-                    listingLimit
-            );
+                    listingLimit);
         });
         LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                dp(42)
-        );
-        saveParams.leftMargin = dp(10);
-        actions.addView(save, saveParams);
-        content.addView(actions);
-
-        dialog.setContentView(content);
-        Window window = dialog.getWindow();
-        if (window != null) {
-            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
-        dialog.show();
-        Window shownWindow = dialog.getWindow();
-        if (shownWindow != null) {
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams();
-            params.copyFrom(shownWindow.getAttributes());
-            params.width = getResources().getDisplayMetrics().widthPixels - dp(44);
-            params.height = WindowManager.LayoutParams.WRAP_CONTENT;
-            params.dimAmount = 0.65f;
-            shownWindow.setAttributes(params);
-            shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-            shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
-    }
-
-    private void showPropertyZipDialog(Interest interestToEdit) {
-        boolean editing = interestToEdit != null;
-        Dialog dialog = new Dialog(this);
-        LinearLayout content = new LinearLayout(this);
-        content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
-        content.setBackgroundResource(R.drawable.bg_dialog);
-
-        TextView title = new TextView(this);
-        title.setText(editing
-                ? R.string.property_zip_dialog_edit_title
-                : R.string.property_zip_dialog_title);
-        title.setTextColor(getColor(R.color.text_primary));
-        title.setTextSize(22);
-        content.addView(title);
-
-        TextView message = new TextView(this);
-        message.setText(R.string.property_zip_dialog_summary);
-        message.setTextColor(getColor(R.color.text_secondary));
-        message.setTextSize(15);
-        message.setPadding(0, dp(6), 0, dp(16));
-        content.addView(message);
-
-        EditText zipInput = createDialogInput(
-                R.string.property_zip_hint,
-                InputType.TYPE_CLASS_NUMBER
-        );
-        if (editing) {
-            zipInput.setText(interestToEdit.getPropertyZipCode());
-            zipInput.setSelection(zipInput.length());
-        }
-        content.addView(zipInput, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-        ));
-
-        EditText streetInput = createDialogInput(
-                R.string.property_street_hint,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        );
-        EditText neighborhoodInput = createDialogInput(
-                R.string.property_neighborhood_hint,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        );
-        EditText cityInput = createDialogInput(
-                R.string.property_city_hint,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS
-        );
-        EditText stateInput = createDialogInput(
-                R.string.property_state_hint,
-                InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS
-        );
-        if (editing) {
-            streetInput.setText(interestToEdit.getPropertyStreet());
-            neighborhoodInput.setText(interestToEdit.getPropertyNeighborhood());
-            cityInput.setText(interestToEdit.getPropertyCity());
-            stateInput.setText(interestToEdit.getPropertyState());
-        }
-        addDialogInputWithMargin(content, streetInput);
-        addDialogInputWithMargin(content, neighborhoodInput);
-
-        LinearLayout cityStateInputs = new LinearLayout(this);
-        cityStateInputs.setOrientation(LinearLayout.HORIZONTAL);
-        cityStateInputs.addView(cityInput, new LinearLayout.LayoutParams(0, dp(52), 1));
-        LinearLayout.LayoutParams stateParams = new LinearLayout.LayoutParams(dp(86), dp(52));
-        stateParams.leftMargin = dp(10);
-        cityStateInputs.addView(stateInput, stateParams);
-        LinearLayout.LayoutParams cityStateRowParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        cityStateRowParams.topMargin = dp(12);
-        content.addView(cityStateInputs, cityStateRowParams);
-
-        EditText minimumAreaInput = createPropertyNumberInput(
-                R.string.property_minimum_area_hint,
-                editing ? interestToEdit.getMinimumArea() : 0d
-        );
-        EditText maximumAreaInput = createPropertyNumberInput(
-                R.string.property_maximum_area_hint,
-                editing ? interestToEdit.getMaximumArea() : 0d
-        );
-        EditText maximumPriceInput = createDialogInput(
-                R.string.property_maximum_price_hint,
-                InputType.TYPE_CLASS_NUMBER
-        );
-        configureWholeCurrencyInput(
-                maximumPriceInput,
-                editing ? interestToEdit.getMaximumPrice() : 0d
-        );
-
-        LinearLayout areaInputs = new LinearLayout(this);
-        areaInputs.setOrientation(LinearLayout.HORIZONTAL);
-        areaInputs.addView(minimumAreaInput, new LinearLayout.LayoutParams(0, dp(52), 1));
-        LinearLayout.LayoutParams maximumAreaParams = new LinearLayout.LayoutParams(0, dp(52), 1);
-        maximumAreaParams.leftMargin = dp(10);
-        areaInputs.addView(maximumAreaInput, maximumAreaParams);
-        LinearLayout.LayoutParams areaRowParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        areaRowParams.topMargin = dp(12);
-        content.addView(areaInputs, areaRowParams);
-        addDialogInputWithMargin(content, maximumPriceInput);
-
-        EditText listingLimitInput = createDialogInput(
-                R.string.property_zip_listing_limit_hint,
-                InputType.TYPE_CLASS_NUMBER
-        );
-        listingLimitInput.setText(String.valueOf(editing
-                ? interestToEdit.getPropertyListingLimit()
-                : Interest.DEFAULT_PROPERTY_LISTING_LIMIT));
-        addDialogInputWithMargin(content, listingLimitInput);
-
-        final String[] lastRequestedZip = {editing ? interestToEdit.getPropertyZipCode() : ""};
-        zipInput.addTextChangedListener(new SimpleTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable editable) {
-                String zipCode = ViaCepClient.onlyDigits(editable.toString());
-                if (zipCode.length() != 8 || zipCode.equals(lastRequestedZip[0])) {
-                    return;
-                }
-                lastRequestedZip[0] = zipCode;
-                alertUpdateExecutor.execute(() -> {
-                    try {
-                        ViaCepClient.Address address = ViaCepClient.fetch(zipCode);
-                        runOnUiThread(() -> {
-                            if (!zipCode.equals(ViaCepClient.onlyDigits(
-                                    zipInput.getText().toString()))) {
-                                return;
-                            }
-                            streetInput.setText(address.getStreet());
-                            neighborhoodInput.setText(address.getNeighborhood());
-                            cityInput.setText(address.getCity());
-                            stateInput.setText(address.getState());
-                        });
-                    } catch (Exception ignored) {
-                        runOnUiThread(() -> {
-                            if (zipCode.equals(ViaCepClient.onlyDigits(
-                                    zipInput.getText().toString()))) {
-                                zipInput.setError(getString(R.string.property_zip_not_found));
-                            }
-                        });
-                    }
-                });
-            }
-        });
-
-        if (editing) {
-            LinearLayout secondaryActions = new LinearLayout(this);
-            secondaryActions.setGravity(Gravity.CENTER_VERTICAL);
-            secondaryActions.setPadding(0, dp(12), 0, 0);
-            TextView remove = createDialogAction(R.string.action_remove_interest);
-            remove.setTextColor(getColor(R.color.danger));
-            remove.setOnClickListener(view -> {
-                dialog.dismiss();
-                showRemoveInterestConfirmation(interestToEdit);
-            });
-            secondaryActions.addView(remove);
-            content.addView(secondaryActions);
-        }
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        actions.setPadding(0, dp(14), 0, 0);
-        TextView cancel = createDialogAction(R.string.action_cancel);
-        cancel.setOnClickListener(view -> dialog.dismiss());
-        actions.addView(cancel);
-        TextView save = createPrimaryDialogAction(R.string.action_save);
-        save.setOnClickListener(view -> {
-            String zipCode = ViaCepClient.onlyDigits(zipInput.getText().toString());
-            if (zipCode.length() != 8) {
-                zipInput.setError(getString(R.string.property_zip_required));
-                return;
-            }
-            String street = streetInput.getText().toString().trim();
-            String neighborhood = neighborhoodInput.getText().toString().trim();
-            String city = cityInput.getText().toString().trim();
-            String state = stateInput.getText().toString().trim().toUpperCase(Locale.ROOT);
-            if (street.isEmpty() || neighborhood.isEmpty() || city.isEmpty()
-                    || state.length() != 2) {
-                streetInput.setError(getString(R.string.property_address_required));
-                return;
-            }
-            Double minimumArea = parsePositiveNumber(minimumAreaInput);
-            Double maximumArea = parsePositiveNumber(maximumAreaInput);
-            if (minimumArea == null) {
-                minimumAreaInput.setError(getString(R.string.property_area_required));
-                return;
-            }
-            if (maximumArea == null) {
-                maximumAreaInput.setError(getString(R.string.property_area_required));
-                return;
-            }
-            if (maximumArea < minimumArea) {
-                maximumAreaInput.setError(getString(R.string.property_area_range_invalid));
-                return;
-            }
-            Double maximumPrice = CurrencyTextFormatter.parseWholeReais(
-                    maximumPriceInput.getText()
-            );
-            if (maximumPrice == null) {
-                maximumPriceInput.setError(getString(R.string.property_price_required));
-                return;
-            }
-            int listingLimit;
-            try {
-                listingLimit = Integer.parseInt(listingLimitInput.getText().toString().trim());
-            } catch (NumberFormatException ignored) {
-                listingLimitInput.setError(getString(R.string.property_zip_listing_limit_invalid));
-                return;
-            }
-            if (listingLimit < 1 || listingLimit > 100) {
-                listingLimitInput.setError(getString(R.string.property_zip_listing_limit_invalid));
-                return;
-            }
-            String searchUrl = PropertyPageClient.buildQuintoAndarSearchUrl(
-                    street, neighborhood, city, state, minimumArea, maximumArea, maximumPrice);
-            dialog.dismiss();
-            updatePropertyZipInBackground(
-                    interestToEdit,
-                    searchUrl,
-                    zipCode,
-                    street,
-                    neighborhood,
-                    city,
-                    state,
-                    minimumArea,
-                    maximumArea,
-                    maximumPrice,
-                    listingLimit
-            );
-        });
-        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                dp(42)
-        );
+                dp(42));
         saveParams.leftMargin = dp(10);
         actions.addView(save, saveParams);
         content.addView(actions);
@@ -1605,8 +1265,7 @@ public class AlertsActivity extends AlertouActivity {
     private EditText createPropertyNumberInput(int hintResource, double initialValue) {
         EditText input = createDialogInput(
                 hintResource,
-                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
-        );
+                InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         input.setOnFocusChangeListener((view, hasFocus) -> {
             Double value = parsePositiveNumber(input);
             if (value == null) {
@@ -1623,8 +1282,7 @@ public class AlertsActivity extends AlertouActivity {
         if (initialValue > 0d) {
             input.setText(getString(
                     R.string.property_area_value,
-                    formatArea(initialValue)
-            ));
+                    formatArea(initialValue)));
         }
         return input;
     }
@@ -1657,8 +1315,7 @@ public class AlertsActivity extends AlertouActivity {
     private void addDialogInputWithMargin(LinearLayout content, EditText input) {
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(52)
-        );
+                dp(52));
         params.topMargin = dp(12);
         content.addView(input, params);
     }
@@ -1669,8 +1326,7 @@ public class AlertsActivity extends AlertouActivity {
                     .replaceAll("[^0-9,.]", "")
                     .trim();
             double value = Double.parseDouble(
-                    numericText.replace(',', '.')
-            );
+                    numericText.replace(',', '.'));
             return value > 0d ? value : null;
         } catch (NumberFormatException ignored) {
             return null;
@@ -1752,23 +1408,20 @@ public class AlertsActivity extends AlertouActivity {
                     if (couponAlert) {
                         CouponPageMonitor.getInstance().checkInterestNow(
                                 this,
-                                interestIdForHistory
-                        );
+                                interestIdForHistory);
                     } else {
                         OfferMonitor.getInstance().refreshInterestHistory(
                                 this,
                                 interestIdForHistory,
                                 term,
-                                maximumPrice
-                        );
+                                maximumPrice);
                         refreshProductSources(interestIdForHistory);
                     }
                     MonitorServiceController.update(this);
                 }
                 long remaining = Math.max(
                         0L,
-                        650L - (SystemClock.elapsedRealtime() - shownAt)
-                );
+                        650L - (SystemClock.elapsedRealtime() - shownAt));
                 priceInterestsContainer.postDelayed(() -> {
                     if (updatingDialog.isShowing()) {
                         updatingDialog.dismiss();
@@ -1779,8 +1432,7 @@ public class AlertsActivity extends AlertouActivity {
                         AppErrorStore.recordSerious(
                                 this,
                                 "Alertas",
-                                getString(R.string.alert_update_failed)
-                        );
+                                getString(R.string.alert_update_failed));
                     }
                 }, remaining);
             });
@@ -1824,8 +1476,7 @@ public class AlertsActivity extends AlertouActivity {
                             maximumArea,
                             maximumPrice,
                             propertyName,
-                            listingLimit
-                    );
+                            listingLimit);
                     PropertyPageMonitor.getInstance().clearState(this, interestToEdit.getId());
                     offerRepository.clearProcessedForInterest(interestToEdit.getId());
                     if (!samePropertySearch) {
@@ -1838,8 +1489,7 @@ public class AlertsActivity extends AlertouActivity {
                             maximumArea,
                             maximumPrice,
                             propertyName,
-                            listingLimit
-                    );
+                            listingLimit);
                 }
                 offerRepository.reconcileRecentWithInterests(interestRepository.getAll());
                 boolean monitorWasEnabled = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
@@ -1868,8 +1518,7 @@ public class AlertsActivity extends AlertouActivity {
                 }
                 long remaining = Math.max(
                         0L,
-                        650L - (SystemClock.elapsedRealtime() - shownAt)
-                );
+                        650L - (SystemClock.elapsedRealtime() - shownAt));
                 propertyInterestsContainer.postDelayed(() -> {
                     if (updatingDialog.isShowing()) {
                         updatingDialog.dismiss();
@@ -1880,105 +1529,7 @@ public class AlertsActivity extends AlertouActivity {
                         AppErrorStore.recordSerious(
                                 this,
                                 "Alertas",
-                                getString(R.string.alert_update_failed)
-                        );
-                    }
-                }, remaining);
-            });
-        });
-    }
-
-    private void updatePropertyZipInBackground(Interest interestToEdit, String searchUrl,
-                                               String zipCode, String street, String neighborhood,
-                                               String city, String state, double minimumArea,
-                                               double maximumArea, double maximumPrice,
-                                               int listingLimit) {
-        boolean editing = interestToEdit != null;
-        Dialog updatingDialog = showUpdatingDialog();
-        long shownAt = SystemClock.elapsedRealtime();
-        alertUpdateExecutor.execute(() -> {
-            boolean succeeded = true;
-            long savedInterestId = editing ? interestToEdit.getId() : 0L;
-            try {
-                if (editing) {
-                    boolean samePropertySearch = interestToEdit.getTerm().trim()
-                            .equals(searchUrl.trim())
-                            && Double.compare(interestToEdit.getMinimumArea(), minimumArea) == 0
-                            && Double.compare(interestToEdit.getMaximumArea(), maximumArea) == 0
-                            && interestToEdit.getPropertyListingLimit() == listingLimit;
-                    interestRepository.updatePropertyZip(
-                            interestToEdit.getId(),
-                            searchUrl,
-                            zipCode,
-                            street,
-                            neighborhood,
-                            city,
-                            state,
-                            minimumArea,
-                            maximumArea,
-                            maximumPrice,
-                            listingLimit
-                    );
-                    PropertyPageMonitor.getInstance().clearState(this, interestToEdit.getId());
-                    offerRepository.clearProcessedForInterest(interestToEdit.getId());
-                    if (!samePropertySearch) {
-                        offerRepository.clearRecentForPropertyAlert(interestToEdit.getId());
-                    }
-                } else {
-                    savedInterestId = interestRepository.addPropertyZip(
-                            searchUrl,
-                            zipCode,
-                            street,
-                            neighborhood,
-                            city,
-                            state,
-                            minimumArea,
-                            maximumArea,
-                            maximumPrice,
-                            listingLimit
-                    );
-                }
-                offerRepository.reconcileRecentWithInterests(interestRepository.getAll());
-                boolean monitorWasEnabled = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
-                        .getBoolean(MONITOR_ENABLED, true);
-                if (!monitorWasEnabled) {
-                    getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)
-                            .edit()
-                            .putBoolean(MONITOR_ENABLED, true)
-                            .apply();
-                    CloudSyncStore.rememberMonitorChanged(this, System.currentTimeMillis());
-                }
-            } catch (RuntimeException exception) {
-                succeeded = false;
-            }
-            boolean updateSucceeded = succeeded;
-            long interestIdForCheck = savedInterestId;
-            runOnUiThread(() -> {
-                if (isFinishing() || isDestroyed()) {
-                    updatingDialog.dismiss();
-                    return;
-                }
-                if (updateSucceeded) {
-                    requestNotificationPermissionIfNeeded();
-                    PropertyPageMonitor.getInstance().checkAlertNow(this, interestIdForCheck);
-                    MonitorServiceController.update(this);
-                }
-                long remaining = Math.max(
-                        0L,
-                        650L - (SystemClock.elapsedRealtime() - shownAt)
-                );
-                propertyZipInterestsContainer.postDelayed(() -> {
-                    if (updatingDialog.isShowing()) {
-                        updatingDialog.dismiss();
-                    }
-                    if (updateSucceeded) {
-                        renderInterests();
-                    } else {
-                        AppErrorStore.recordSerious(
-                                this,
-                                "Alertas",
-                                getString(R.string.alert_update_failed)
-                        );
+                                getString(R.string.alert_update_failed));
                     }
                 }, remaining);
             });
@@ -2017,8 +1568,7 @@ public class AlertsActivity extends AlertouActivity {
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                1
-        );
+                1);
         textParams.leftMargin = dp(16);
         content.addView(texts, textParams);
 
@@ -2065,8 +1615,7 @@ public class AlertsActivity extends AlertouActivity {
             ActivityCompat.requestPermissions(
                     this,
                     new String[]{Manifest.permission.POST_NOTIFICATIONS},
-                    REQUEST_NOTIFICATIONS
-            );
+                    REQUEST_NOTIFICATIONS);
         }
     }
 

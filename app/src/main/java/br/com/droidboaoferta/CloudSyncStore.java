@@ -137,8 +137,7 @@ final class CloudSyncStore {
         boolean wasPending = preferences.getBoolean(PENDING_PUSH, false);
         long changedAt = Math.max(
                 System.currentTimeMillis(),
-                preferences.getLong(LAST_LOCAL_CHANGE, 0L) + 1L
-        );
+                preferences.getLong(LAST_LOCAL_CHANGE, 0L) + 1L);
         preferences.edit()
                 .putLong(LAST_LOCAL_CHANGE, changedAt)
                 .putBoolean(PENDING_PUSH, true)
@@ -702,26 +701,6 @@ final class CloudSyncStore {
                     || !current.getCouponName().equals(previous.getCouponName())) {
                 fields.put("coupon_name", current.getCouponName());
             }
-            if (previous == null
-                    || !current.getPropertyZipCode().equals(previous.getPropertyZipCode())) {
-                fields.put("property_zip_code", current.getPropertyZipCode());
-            }
-            if (previous == null
-                    || !current.getPropertyStreet().equals(previous.getPropertyStreet())) {
-                fields.put("property_street", current.getPropertyStreet());
-            }
-            if (previous == null
-                    || !current.getPropertyNeighborhood().equals(previous.getPropertyNeighborhood())) {
-                fields.put("property_neighborhood", current.getPropertyNeighborhood());
-            }
-            if (previous == null
-                    || !current.getPropertyCity().equals(previous.getPropertyCity())) {
-                fields.put("property_city", current.getPropertyCity());
-            }
-            if (previous == null
-                    || !current.getPropertyState().equals(previous.getPropertyState())) {
-                fields.put("property_state", current.getPropertyState());
-            }
             if (previous == null || current.getPropertyListingLimit()
                     != previous.getPropertyListingLimit()) {
                 fields.put("property_listing_limit", current.getPropertyListingLimit());
@@ -839,7 +818,7 @@ final class CloudSyncStore {
                         && readArray(offers.getString(KEY_INTERESTS, "[]")).length() > 0) {
                     return false;
                 }
-                offers.edit().putString(KEY_INTERESTS, incoming).apply();
+                offers.edit().putString(KEY_INTERESTS, completeInterests(readArray(incoming)).toString()).apply();
             } else if ("interest".equals(type)) {
                 long interestId = payload.optLong("interest_id", 0L);
                 if (interestId <= 0L) return false;
@@ -873,7 +852,8 @@ final class CloudSyncStore {
                 if (changedAt <= 0 || changedAt < syncPrefs(appContext).getLong(KEY_ARCHIVED_UPDATED_AT, 0)) return false;
                 appContext.getSharedPreferences(OFFER_PREFS, Context.MODE_PRIVATE).edit()
                         .putString(KEY_ARCHIVED_OFFERS,
-                                payload.optString(KEY_ARCHIVED_OFFERS, "[]")).apply();
+                                RetiredAlertCleanup.filterOffers(appContext,
+                                        readArray(payload.optString(KEY_ARCHIVED_OFFERS, "[]"))).toString()).apply();
                 syncPrefs(appContext).edit().putLong(KEY_ARCHIVED_UPDATED_AT, changedAt).apply();
                 }
             } else if ("expiry".equals(type)) {
@@ -936,8 +916,7 @@ final class CloudSyncStore {
                 if (jsonStart >= 0) {
                     newestImportedAt = Math.max(
                             newestImportedAt,
-                            new JSONObject(text.substring(jsonStart)).optLong("updated_at", 0L)
-                    );
+                            new JSONObject(text.substring(jsonStart)).optLong("updated_at", 0L));
                 }
             } catch (Exception ignored) {
             }
@@ -986,7 +965,9 @@ final class CloudSyncStore {
                     } catch (Exception ignored) {
                         updated = item;
                     }
-                    result.put(updated);
+                    if (Interest.isSupportedType(updated.optString("type", Interest.TYPE_PRICE))) {
+                        result.put(updated);
+                    }
                     replaced = true;
                 }
                 continue;
@@ -1025,7 +1006,7 @@ final class CloudSyncStore {
         return fields != null
                 && !fields.optString("term", "").trim().isEmpty()
                 && fields.has("maximum_price")
-                && !fields.optString("type", "").trim().isEmpty();
+                && Interest.isSupportedType(fields.optString("type", ""));
     }
 
     private static void rememberCollectionChanged(Context context, String key, long changedAt) {
@@ -1142,8 +1123,7 @@ final class CloudSyncStore {
         long lastLocalChange = preferences.getLong(LAST_LOCAL_CHANGE, 0L);
         long lastBackedUpChange = preferences.getLong(
                 LAST_BACKED_UP_CHANGE,
-                preferences.getLong(LAST_BACKUP_AT, 0L)
-        );
+                preferences.getLong(LAST_BACKUP_AT, 0L));
         boolean compactBackupReady = preferences.getBoolean(COMPACT_BACKUP_MIGRATED, false);
         if (compactBackupReady
                 && lastLocalChange > 0L
@@ -1187,8 +1167,7 @@ final class CloudSyncStore {
         long accountBackupAt = preferences.getLong(LAST_ACCOUNT_BACKUP_AT, 0L);
         return accountBackupAt > 0L ? accountBackupAt : Math.max(
                 preferences.getLong(LAST_BACKUP_AT, 0L),
-                preferences.getLong(LAST_REMOTE_BACKUP_AT, 0L)
-        );
+                preferences.getLong(LAST_REMOTE_BACKUP_AT, 0L));
     }
 
     static long getPendingStartedAt(Context context) {
@@ -1329,8 +1308,7 @@ final class CloudSyncStore {
         try {
             data.put(SELECTED_GROUPS, stringSetToArray(telegram.getStringSet(
                     SELECTED_GROUPS,
-                    Collections.emptySet()
-            )));
+                    Collections.emptySet())));
             data.put(SettingsBackup.KEY, SettingsBackup.export(appContext));
             data.put(KEY_INTERESTS, offers.getString(KEY_INTERESTS, "[]"));
             data.put(KEY_PROPERTY_HISTORY, PropertyHistorySync.pack(
@@ -1344,13 +1322,11 @@ final class CloudSyncStore {
                 data.put(KEY_TRASHED_OFFERS, offers.getString(KEY_TRASHED_OFFERS, "[]"));
                 data.put(KEY_PROCESSED_MESSAGES, offers.getString(KEY_PROCESSED_MESSAGES, "[]"));
                 data.put(KEY_RECENT_UPDATED_AT, ensureCollectionUpdatedAt(
-                        appContext, KEY_RECENT_UPDATED_AT, updatedAt
-                ));
+                        appContext, KEY_RECENT_UPDATED_AT, updatedAt));
                 data.put(KEY_ARCHIVED_UPDATED_AT, ensureCollectionUpdatedAt(
                         appContext,
                         KEY_ARCHIVED_UPDATED_AT,
-                        updatedAt
-                ));
+                        updatedAt));
                 data.put(KEY_TRASH_UPDATED_AT, ensureTrashUpdatedAt(appContext, updatedAt));
             }
             data.put(KEY_INTEREST_UPDATED_AT, ensureInterestUpdatedAt(appContext, updatedAt));
@@ -1361,8 +1337,7 @@ final class CloudSyncStore {
             data.put(KEY_MONITOR_UPDATED_AT, ensureCollectionUpdatedAt(
                     appContext,
                     KEY_MONITOR_UPDATED_AT,
-                    updatedAt
-            ));
+                    updatedAt));
             data.put(THEME_MODE, app.getString(THEME_MODE, ThemeController.MODE_DARK));
             data.put(ACCENT_COLOR, AccentColorController.getSavedMode(appContext));
             data.put(KEY_THEME_UPDATED_AT, ensureThemeUpdatedAt(appContext, updatedAt));
@@ -1685,6 +1660,7 @@ final class CloudSyncStore {
         if (backup == null) {
             return false;
         }
+        backup = RetiredAlertCleanup.sanitizeBackup(context, backup);
         Context appContext = context.getApplicationContext();
         long remoteUpdatedAt = backup.optLong("updated_at", 0L);
         long localUpdatedAt = getLastLocalChange(appContext);
@@ -1749,15 +1725,13 @@ final class CloudSyncStore {
                         remoteInterestUpdatedAt,
                         mergedDeletedInterests,
                         localUpdatedAt,
-                        remoteUpdatedAt
-                );
+                        remoteUpdatedAt);
         JSONObject mergedInterestUpdatedAt = buildInterestUpdatedAt(
                 mergedInterests,
                 localInterestUpdatedAt,
                 remoteInterestUpdatedAt,
                 localUpdatedAt,
-                remoteUpdatedAt
-        );
+                remoteUpdatedAt);
         SharedPreferences.Editor offers = appContext
                 .getSharedPreferences(OFFER_PREFS, Context.MODE_PRIVATE)
                 .edit();
@@ -1801,8 +1775,7 @@ final class CloudSyncStore {
         String accentColor = useRemoteTheme
                 ? AccentColorController.normalize(data.optString(
                         ACCENT_COLOR,
-                        AccentColorController.MODE_GREEN
-                ))
+                        AccentColorController.MODE_GREEN))
                 : localAccentColor;
         if (!themeMode.equals(localThemeMode) || !accentColor.equals(localAccentColor)) {
             appPreferences.edit()
@@ -1834,20 +1807,16 @@ final class CloudSyncStore {
                 .putLong(KEY_THEME_UPDATED_AT, Math.max(localThemeUpdatedAt, remoteThemeUpdatedAt))
                 .putLong(KEY_ALERT_SOUND_UPDATED_AT, Math.max(
                         localAlertSoundUpdatedAt,
-                        remoteAlertSoundUpdatedAt
-                ))
+                        remoteAlertSoundUpdatedAt))
                 .putLong(KEY_RECENT_UPDATED_AT, Math.max(
                         localRecentUpdatedAt,
-                        remoteRecentUpdatedAt
-                ))
+                        remoteRecentUpdatedAt))
                 .putLong(KEY_ARCHIVED_UPDATED_AT, Math.max(
                         localArchivedUpdatedAt,
-                        remoteArchivedUpdatedAt
-                ))
+                        remoteArchivedUpdatedAt))
                 .putLong(KEY_TRASH_UPDATED_AT, Math.max(
                         localTrashUpdatedAt,
-                        remoteTrashUpdatedAt
-                ))
+                        remoteTrashUpdatedAt))
                 .putBoolean(KEY_RANKING_SYNC_MIGRATED, true)
                 .putInt(KEY_RANKING_SYNC_FORMAT, RANKING_SYNC_FORMAT)
                 .putLong(KEY_MONITOR_UPDATED_AT, Math.max(localMonitorUpdatedAt, remoteMonitorUpdatedAt))
@@ -1867,8 +1836,7 @@ final class CloudSyncStore {
                 SamsungDiscountOfferMonitor.getInstance().rescheduleIfRunning(appContext);
                 MonitorServiceController.update(appContext);
                 TelegramClientManager.getInstance().onAutomaticSyncChanged(
-                        isAutomaticSyncEnabled(appContext)
-                );
+                        isAutomaticSyncEnabled(appContext));
             });
         }
         return true;
@@ -2107,8 +2075,7 @@ final class CloudSyncStore {
         for (String groupId : allGroups) {
             long selectedAt = Math.max(
                     timestampFor(localSelectedAt, groupId, localGroups.contains(groupId) ? localUpdatedAt : 0L),
-                    timestampFor(remoteSelectedAt, groupId, remoteGroups.contains(groupId) ? remoteUpdatedAt : 0L)
-            );
+                    timestampFor(remoteSelectedAt, groupId, remoteGroups.contains(groupId) ? remoteUpdatedAt : 0L));
             long removedAt = mergedRemoved.optLong(groupId, 0L);
             if (selectedAt > removedAt) {
                 mergedGroups.add(groupId);
@@ -2173,7 +2140,7 @@ final class CloudSyncStore {
                 merged.put(chosen);
             }
         }
-        return merged;
+        return completeInterests(merged);
     }
 
     private static JSONArray completeInterests(JSONArray source) {
@@ -2184,7 +2151,7 @@ final class CloudSyncStore {
                     && interest.optLong("id", 0L) > 0L
                     && !interest.optString("term", "").trim().isEmpty()
                     && interest.has("maximum_price")
-                    && !interest.optString("type", "").trim().isEmpty()) {
+                    && Interest.isSupportedType(interest.optString("type", ""))) {
                 complete.put(interest);
             }
         }
@@ -2218,8 +2185,7 @@ final class CloudSyncStore {
             String id = Long.toString(interest.optLong("id", 0L));
             long updatedAt = Math.max(
                     timestampFor(localUpdatedAt, id, localBackupAt),
-                    timestampFor(remoteUpdatedAt, id, remoteBackupAt)
-            );
+                    timestampFor(remoteUpdatedAt, id, remoteBackupAt));
             putLong(merged, id, updatedAt);
         }
         return merged;
@@ -2238,14 +2204,11 @@ final class CloudSyncStore {
         JSONArray remoteTrashed = readArray(remoteData.optString(KEY_TRASHED_OFFERS, "[]"));
 
         Map<String, JSONObject> recent = mapByOfferId(
-                remoteRecentUpdatedAt >= localRecentUpdatedAt ? remoteRecent : localRecent
-        );
+                remoteRecentUpdatedAt >= localRecentUpdatedAt ? remoteRecent : localRecent);
         Map<String, JSONObject> archived = mapByOfferId(
-                remoteArchivedUpdatedAt >= localArchivedUpdatedAt ? remoteArchived : localArchived
-        );
+                remoteArchivedUpdatedAt >= localArchivedUpdatedAt ? remoteArchived : localArchived);
         Map<String, JSONObject> trashed = mapByOfferId(
-                remoteTrashUpdatedAt >= localTrashUpdatedAt ? remoteTrashed : localTrashed
-        );
+                remoteTrashUpdatedAt >= localTrashUpdatedAt ? remoteTrashed : localTrashed);
         for (String id : trashed.keySet()) {
             recent.remove(id);
             archived.remove(id);
@@ -2552,8 +2515,7 @@ final class CloudSyncStore {
         return !offers.getBoolean(MONITOR_ENABLED, true)
                 || ThemeController.MODE_LIGHT.equals(app.getString(THEME_MODE, ThemeController.MODE_DARK))
                 || !AccentColorController.MODE_GREEN.equals(
-                        AccentColorController.getSavedMode(appContext)
-                );
+                        AccentColorController.getSavedMode(appContext));
     }
 
     private static int localDataScore(Context context) {
@@ -2639,8 +2601,7 @@ final class CloudSyncStore {
         List<JSONObject> offers = new ArrayList<>(values.values());
         offers.sort((first, second) -> Long.compare(
                 second.optLong("observed_at", 0L),
-                first.optLong("observed_at", 0L)
-        ));
+                first.optLong("observed_at", 0L)));
         JSONArray array = new JSONArray();
         int limit = Math.min(offers.size(), 60);
         for (int index = 0; index < limit; index++) {

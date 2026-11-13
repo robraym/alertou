@@ -19,7 +19,6 @@ final class PropertyHistoryRepository {
     // Version 4 records the official public "X disponíveis" count verbatim. Earlier data
     // subtracted historical unavailable pages and can therefore understate the total.
     private static final int MARKET_LISTING_COUNT_SOURCE_VERSION = 4;
-    private static final int ZIP_LISTING_COUNT_ADDRESS_VERSION = 7;
     private static final long METADATA_RETRY_MS = 24L * 60L * 60L * 1000L;
     private static final int MAX_POINTS = 60;
 
@@ -37,10 +36,6 @@ final class PropertyHistoryRepository {
     synchronized void recordMarketListingCount(long interestId, int count, long observedAt) {
         recordMarketListingCount(interestId, count, observedAt,
                 MARKET_LISTING_COUNT_SOURCE_VERSION);
-    }
-
-    synchronized boolean recordPropertyZipListingCount(long interestId, int count, long observedAt) {
-        return recordMarketListingCount(interestId, count, observedAt, ZIP_LISTING_COUNT_ADDRESS_VERSION);
     }
 
     private boolean recordMarketListingCount(long interestId, int count, long observedAt,
@@ -91,25 +86,16 @@ final class PropertyHistoryRepository {
     }
 
     synchronized PropertyMarketListingCountHistory getMarketListingCountHistory(long interestId) {
-        return getMarketListingCountHistory(interestId, false);
-    }
-
-    synchronized PropertyMarketListingCountHistory getMarketListingCountHistory(long interestId,
-                                                                                 boolean propertyZip) {
         JSONArray histories = readMarketListingCounts();
         JSONObject history = findMarketListingCountHistory(histories, interestId);
         List<PropertyMarketListingCountPoint> result = new ArrayList<>();
         JSONArray points = history == null ? null : history.optJSONArray("points");
-        if (propertyZip && (history == null
-                || history.optInt("source_version", 0) < ZIP_LISTING_COUNT_ADDRESS_VERSION)) {
-            points = null;
-        }
-        if (!propertyZip && (history == null
+        if ((history == null
                 || history.optInt("source_version", 0) < MARKET_LISTING_COUNT_SOURCE_VERSION)) {
             // Never show a total calculated by the retired subtraction rule. The next official
             // condominium read replaces it with the count published by QuintoAndar.
             points = null;
-        } else if (!propertyZip && (removeLegacyPageLimitedCount(points, findHighestCount(points))
+        } else if ((removeLegacyPageLimitedCount(points, findHighestCount(points))
                 || removeIsolatedUnconfirmedDrop(points))) {
             try {
                 history.put("points", points);
@@ -255,17 +241,9 @@ final class PropertyHistoryRepository {
     synchronized int recordObservation(long interestId, PropertyPageListing listing,
                                        long observedAt,
                                        PropertyListingMetadata metadata) {
-        return recordObservation(interestId, listing, observedAt, metadata, false);
-    }
-
-    synchronized int recordObservation(long interestId, PropertyPageListing listing,
-                                       long observedAt,
-                                       PropertyListingMetadata metadata,
-                                       boolean publicZipPage) {
         synchronized (preferences) {
             if (PropertyPageClient.normalizeListingUrl(listing.getUrl()) == null) return UNCHANGED;
-            boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl())
-                    && !publicZipPage;
+            boolean requiresIdentity = PropertyPageClient.isQuintoAndarListingUrl(listing.getUrl());
             if (requiresIdentity && (metadata == null || !metadata.isVerifiedFor(listing.getId())
                     || Double.compare(metadata.getSalePrice(), listing.getSalePrice()) != 0
                     || Double.compare(metadata.getArea(), listing.getArea()) != 0)) {
@@ -289,12 +267,7 @@ final class PropertyHistoryRepository {
             String before;
             try {
                 before = PropertyHistorySync.changeKey(item);
-                // A busca por CEP usa a própria página pública como leitura autoritativa.
-                // Não deixe um histórico pendente do fluxo antigo bloquear a migração
-                // do restante dos anúncios da rua.
-                if (!publicZipPage) {
-                    restoreCompatibleLegacyHistory(item, metadata);
-                }
+                restoreCompatibleLegacyHistory(item, metadata);
             } catch (org.json.JSONException ignored) {
                 return UNCHANGED;
             }
@@ -316,7 +289,7 @@ final class PropertyHistoryRepository {
                         // "Novo" indica que o Alertou encontrou o anúncio agora, não uma
                         // etiqueta permanente que a página de origem possa reutilizar.
                         .put("new_ad", created || item.optBoolean("new_ad", false));
-                if (requiresIdentity || publicZipPage) {
+                if (requiresIdentity) {
                     item.put("identity_validation_version", 1)
                             .put("validation_status", "available");
                 }
@@ -334,7 +307,7 @@ final class PropertyHistoryRepository {
                             .put("observed_at", observedAt)
                             .put("price", listing.getSalePrice())
                             .put("area", listing.getArea())
-                            .put("identity_verified", requiresIdentity || publicZipPage));
+                            .put("identity_verified", requiresIdentity));
                     while (points.length() > MAX_POINTS) {
                         points.remove(0);
                     }

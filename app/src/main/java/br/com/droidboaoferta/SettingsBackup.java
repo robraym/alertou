@@ -17,16 +17,15 @@ final class SettingsBackup {
             "motorola_offer_check_interval_seconds", "claro_offer_check_interval_seconds", "samsung_offer_check_interval_seconds", "pelando_check_interval_seconds",
             "promobit_check_interval_seconds", "kabum_offer_check_interval_seconds",
             "samsung_discount_offer_check_interval_seconds", StoreSourceControl.KEY_DISABLED_SOURCES_MASK};
-    private static final String[] PROPERTY_KEYS = {"enabled", "show_condominium", "show_zip",
-            "check_interval_minutes", "check_interval_seconds", "zip_check_interval_seconds"};
+    private static final String[] PROPERTY_KEYS = {"enabled", "show_condominium", "check_interval_minutes", "check_interval_seconds"};
     private static final String[] TREASURY_KEYS = {"interval_seconds"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
     private static final String[] ALERT_KEYS = {"alerts_sort_order", "home_sort_order",
             "alerts_section_coupons_expanded", "alerts_section_properties_expanded",
-            "alerts_section_property_zip_expanded", "alerts_section_treasury_expanded",
+            "alerts_section_treasury_expanded",
             "alerts_section_products_expanded", "home_section_coupons_expanded",
             "home_section_property_market_expanded", "home_section_properties_expanded",
-            "home_section_property_zip_expanded", "home_section_treasury_expanded",
+            "home_section_treasury_expanded",
             "home_section_products_expanded"};
     private static final String[] APPEARANCE_KEYS = {"theme_mode", "accent_color",
             "navigation_animation"};
@@ -179,7 +178,7 @@ final class SettingsBackup {
             }
             return mode.length() <= 32 && !mode.trim().isEmpty();
         }
-        if (key.equals("enabled") || key.equals("show_condominium") || key.equals("show_zip")) {
+        if (key.equals("enabled") || key.equals("show_condominium")) {
             return value instanceof Boolean;
         }
         if (key.equals(StoreSourceControl.KEY_DISABLED_SOURCES_MASK)) {
@@ -215,7 +214,6 @@ final class SettingsBackup {
         switch (key) {
             case "check_interval_minutes": return PropertyMarketReferenceSettings.isSupportedCheckInterval(interval);
             case "check_interval_seconds": return PropertyMarketReferenceSettings.isSupportedCheckIntervalSeconds(interval);
-            case "zip_check_interval_seconds": return PropertyMarketReferenceSettings.isSupportedCheckIntervalSeconds(interval);
             case "interval_seconds": return interval >= 30 && interval <= 86400;
             case "vivo_outlet_check_interval_minutes": return VivoOutletSource.isSupportedCheckInterval(interval);
             case "vivo_madrugada_check_interval_minutes": return VivoMadrugadaSource.isSupportedCheckInterval(interval);

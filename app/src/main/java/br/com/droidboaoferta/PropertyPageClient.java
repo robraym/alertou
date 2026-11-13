@@ -48,7 +48,7 @@ final class PropertyPageClient {
                 path = path.substring(0, path.length() - 1);
             }
             if (!"https".equals(scheme)
-                    || !(isCondominiumPath(path) || isSearchPath(path))) {
+                    || !(isCondominiumPath(path))) {
                 return null;
             }
             if ("quintoandar.com.br".equals(host) || "www.quintoandar.com.br".equals(host)) {
@@ -64,41 +64,7 @@ final class PropertyPageClient {
         }
     }
 
-    static String buildQuintoAndarSearchUrl(String street, String neighborhood, String city,
-                                            String state, double minimumArea, double maximumArea,
-                                            double maximumPrice) {
-        String location = slugify(street) + "-" + slugify(neighborhood) + "-"
-                + slugify(city) + "-" + slugify(state) + "-brasil";
-        location = location.replaceAll("-+", "-").replaceAll("^-|-$", "");
-        long minArea = Math.round(minimumArea);
-        long maxArea = Math.round(maximumArea);
-        long maxPrice = Math.round(maximumPrice);
-        return "https://www.quintoandar.com.br/comprar/imovel/"
-                + location
-                + "/apartamento/casa/kitnet/casacondominio/de-"
-                + minArea
-                + "-a-"
-                + maxArea
-                + "-m2/de-0-a-"
-                + maxPrice
-                + "-venda/todos-tipos-entrada";
-    }
-
     static PropertyPageResult fetch(String rawUrl) throws Exception {
-        return fetch(rawUrl, Integer.MAX_VALUE);
-    }
-
-    static String withoutPropertyZipAlertFilters(String searchUrl) {
-        String normalizedUrl = normalizeSupportedUrl(searchUrl);
-        if (normalizedUrl == null || !isSearchPath(URI.create(normalizedUrl).getPath())) {
-            return searchUrl;
-        }
-        int addressEnd = normalizedUrl.indexOf('/', normalizedUrl.indexOf("/comprar/imovel/")
-                + "/comprar/imovel/".length());
-        return addressEnd < 0 ? normalizedUrl : normalizedUrl.substring(0, addressEnd);
-    }
-
-    static PropertyPageResult fetch(String rawUrl, int maximumSearchListings) throws Exception {
         String normalizedUrl = normalizeSupportedUrl(rawUrl);
         if (normalizedUrl == null) {
             throw new IllegalArgumentException("Unsupported property page");
@@ -106,9 +72,6 @@ final class PropertyPageClient {
         String loftDataUrl = buildLoftDataUrl(normalizedUrl);
         if (loftDataUrl != null) {
             return PropertyPageParser.parseLoftApiResponse(fetchHtml(loftDataUrl));
-        }
-        if (isSearchPath(URI.create(normalizedUrl).getPath())) {
-            return fetchSearchPages(normalizedUrl, maximumSearchListings);
         }
         String page = fetchHtml(normalizedUrl);
         PropertyPageResult initialResult = PropertyPageParser.parse(page);
@@ -125,45 +88,6 @@ final class PropertyPageClient {
         return new PropertyPageResult(initialResult.getCondominiumName(), allListings,
                 initialResult.getSaleListingsCount(),
                 initialResult.hasReliableSaleListingsCount());
-    }
-
-    static List<PropertyPageListing> fetchNearbyCondominiumListings(String condominiumUrl,
-                                                                    double minimumArea,
-                                                                    double maximumArea,
-                                                                    double maximumPrice) throws Exception {
-        String normalized = normalizeSupportedUrl(condominiumUrl);
-        if (normalized == null || !isQuintoAndarCondominiumUrl(normalized)) {
-            return new ArrayList<>();
-        }
-        String[] location = PropertyPageParser.parseCondominiumSearchLocation(fetchHtml(normalized));
-        if (location.length != 4) {
-            throw new IllegalStateException("Condominium address missing from source");
-        }
-        LinkedHashMap<String, PropertyPageListing> found = new LinkedHashMap<>();
-        String expectedStreet = normalizeSearchStreet(location[0]);
-        double midpoint = Math.floor((minimumArea + maximumArea) / 2d);
-        double[][] ranges = {{minimumArea, maximumArea}, {minimumArea, midpoint + 1d},
-                {midpoint + 2d, maximumArea}};
-        for (double[] range : ranges) {
-            if (range[0] > range[1]) continue;
-            for (String street : new String[]{"", location[0]}) {
-                String searchUrl = buildQuintoAndarSearchUrl(street, location[1], location[2],
-                        location[3], range[0], range[1], maximumPrice);
-                for (PropertyPageListing listing : fetchSearchPages(searchUrl, Integer.MAX_VALUE)
-                        .getSaleListings()) {
-                    if (expectedStreet.equals(normalizeSearchStreet(listing.getAddress()))) {
-                        found.put(listing.getId(), listing);
-                    }
-                }
-            }
-        }
-        return new ArrayList<>(found.values());
-    }
-
-    private static String normalizeSearchStreet(String value) {
-        String normalized = OfferTextParser.normalize(value == null ? "" : value);
-        return normalized.replaceAll("\\b(rua|r|avenida|av|alameda|travessa|estrada)\\b", " ")
-                .replaceAll("\\b\\d+\\b", " ").replaceAll("\\s+", " ").trim();
     }
 
     private static boolean isQuintoAndarCondominiumUrl(String normalizedUrl) {
@@ -225,14 +149,6 @@ final class PropertyPageClient {
                         .put("pageSize", QUINTO_ANDAR_LISTING_PAGE_SIZE).put("offset", offset))
                 .put("fields", fields)
                 .toString();
-    }
-
-    private static PropertyPageResult fetchSearchPages(String normalizedUrl,
-                                                        int maximumListings) throws Exception {
-        String searchPage = fetchHtml(normalizedUrl);
-        // A página pública contém os resultados da rua pesquisada. A API interna
-        // retornava uma área ampla e podia omitir a rua do alerta por CEP.
-        return PropertyPageParser.parseSearch(searchPage);
     }
 
     static String buildLoftDataUrl(String normalizedUrl) {
@@ -317,24 +233,6 @@ final class PropertyPageClient {
                 && path.length() > "/condominio/".length();
     }
 
-    private static boolean isSearchPath(String path) {
-        return path != null
-                && path.startsWith("/comprar/imovel/")
-                && path.length() > "/comprar/imovel/".length();
-    }
-
-    private static String slugify(String value) {
-        String normalized = Normalizer.normalize(value == null ? "" : value.trim(),
-                Normalizer.Form.NFD)
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase(Locale.ROOT);
-        normalized = normalized.replaceAll("\\br\\.", "rua")
-                .replaceAll("\\bav\\.", "avenida");
-        return normalized.replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
-    }
-
     static String getSourceName(String rawUrl) {
         if (rawUrl == null) {
             return "QuintoAndar";
@@ -390,8 +288,7 @@ final class PropertyPageClient {
     private static String fetchHtml(String url, int connectTimeoutMillis,
                                     int readTimeoutMillis) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(
-                buildFreshRequestUrl(url, System.currentTimeMillis())
-        ).openConnection();
+                buildFreshRequestUrl(url, System.currentTimeMillis())).openConnection();
         connection.setConnectTimeout(connectTimeoutMillis);
         connection.setReadTimeout(readTimeoutMillis);
         connection.setInstanceFollowRedirects(true);

@@ -13,14 +13,11 @@ import java.util.regex.Pattern;
 
 final class PropertyPageParser {
     private static final Pattern NEXT_DATA = Pattern.compile(
-            "(?is)<script[^>]*id=[\\\"']__NEXT_DATA__[\\\"'][^>]*>(.*?)</script>"
-    );
+            "(?is)<script[^>]*id=[\\\"']__NEXT_DATA__[\\\"'][^>]*>(.*?)</script>");
     private static final Pattern JSON_LD = Pattern.compile(
-            "(?is)<script[^>]*type=[\\\"']application/ld\\+json[\\\"'][^>]*>(.*?)</script>"
-    );
+            "(?is)<script[^>]*type=[\\\"']application/ld\\+json[\\\"'][^>]*>(.*?)</script>");
     private static final Pattern QUINTO_ANDAR_LISTING_ID = Pattern.compile(
-            "/(?:imovel|classificado)/([^/?#]+)"
-    );
+            "/(?:imovel|classificado)/([^/?#]+)");
 
     private PropertyPageParser() {
     }
@@ -79,10 +76,8 @@ final class PropertyPageParser {
                         source.optString("shortSaleDescription", ""),
                         PropertyPageClient.buildListingUrl(
                                 id,
-                                isQuintoAndarClassified(wrapper, source)
-                        ),
-                        containsTag(source.optJSONArray("listingTags"), "NEW_AD")
-                ));
+                                isQuintoAndarClassified(wrapper, source)),
+                        containsTag(source.optJSONArray("listingTags"), "NEW_AD")));
             }
             Object rawSaleListingsCount = listings.opt("saleListingsCount");
             boolean hasOfficialSaleListingsCount = rawSaleListingsCount instanceof Number
@@ -92,36 +87,9 @@ final class PropertyPageParser {
                     condominiumName,
                     parsed,
                     listings.optInt("saleListingsCount", parsed.size()),
-                    hasOfficialSaleListingsCount
-            );
+                    hasOfficialSaleListingsCount);
         } catch (Exception ignored) {
             return new PropertyPageResult("", new ArrayList<>());
-        }
-    }
-
-    static PropertyPageResult parseSearch(String html) {
-        if (html == null || html.trim().isEmpty()) {
-            return new PropertyPageResult("", new ArrayList<>());
-        }
-        List<PropertyPageListing> publicListings = parsePublicSearchListings(html);
-        Matcher matcher = NEXT_DATA.matcher(html);
-        if (!matcher.find()) {
-            return new PropertyPageResult("", publicListings);
-        }
-        try {
-            JSONObject root = new JSONObject(matcher.group(1));
-            java.util.Map<String, PropertyPageListing> listings = new java.util.LinkedHashMap<>();
-            for (PropertyPageListing listing : publicListings) listings.put(listing.getId(), listing);
-            for (PropertyPageListing listing : parseSearchListings(root)) {
-                listings.put(listing.getId(), listing);
-            }
-            // Os dados estruturados da página podem omitir anúncios que aparecem
-            // em __NEXT_DATA__; a união preserva ambos sem repetir IDs.
-            int count = publicListings.isEmpty()
-                    ? findSearchListingsCount(root, listings.size()) : listings.size();
-            return new PropertyPageResult("", new ArrayList<>(listings.values()), count);
-        } catch (Exception ignored) {
-            return new PropertyPageResult("", publicListings);
         }
     }
 
@@ -171,86 +139,6 @@ final class PropertyPageParser {
         return 0L;
     }
 
-    static String[] parseCondominiumSearchLocation(String html) {
-        Matcher matcher = NEXT_DATA.matcher(html == null ? "" : html);
-        if (!matcher.find()) return new String[0];
-        try {
-            JSONObject condo = new JSONObject(matcher.group(1)).getJSONObject("props")
-                    .getJSONObject("pageProps").getJSONObject("condoInfo");
-            String street = condo.optString("address", "");
-            JSONObject neighborhoodObject = condo.optJSONObject("neighborhood");
-            String neighborhood = neighborhoodObject == null
-                    ? condo.optString("neighborhood", "")
-                    : neighborhoodObject.optString("name", "");
-            JSONObject city = condo.getJSONObject("city");
-            String state = city.optString("slug", "").replaceFirst("^.*-([a-z]{2})-brasil$", "$1");
-            if (street.isEmpty() || neighborhood.isEmpty() || state.length() != 2) return new String[0];
-            return new String[]{street, neighborhood, city.optString("name", ""), state};
-        } catch (Exception ignored) {
-            return new String[0];
-        }
-    }
-
-    private static List<PropertyPageListing> parsePublicSearchListings(String html) {
-        List<PropertyPageListing> listings = new ArrayList<>();
-        Set<String> seenIds = new HashSet<>();
-        Matcher scripts = JSON_LD.matcher(html);
-        while (scripts.find()) {
-            try {
-                collectPublicSearchListings(new JSONObject(scripts.group(1)), listings, seenIds);
-            } catch (Exception ignored) {
-                // Um bloco estruturado inválido não invalida os demais resultados públicos.
-            }
-        }
-        return listings;
-    }
-
-    private static void collectPublicSearchListings(Object value,
-                                                    List<PropertyPageListing> listings,
-                                                    Set<String> seenIds) {
-        if (value instanceof JSONObject) {
-            JSONObject object = (JSONObject) value;
-            if ("RealEstateListing".equals(object.optString("@type", ""))) {
-                String url = object.optString("url", object.optString("@id", ""));
-                Matcher idMatcher = QUINTO_ANDAR_LISTING_ID.matcher(url);
-                JSONObject about = object.optJSONObject("about");
-                JSONObject floorSize = about == null ? null : about.optJSONObject("floorSize");
-                JSONObject offer = object.optJSONObject("offers");
-                JSONObject address = about == null ? null : about.optJSONObject("address");
-                String id = idMatcher.find() ? idMatcher.group(1) : "";
-                double area = floorSize == null ? Double.NaN
-                        : floorSize.optDouble("value", Double.NaN);
-                double salePrice = offer == null ? Double.NaN
-                        : offer.optDouble("price", Double.NaN);
-                if (!id.isEmpty() && area > 0d && salePrice > 0d && seenIds.add(id)) {
-                    listings.add(new PropertyPageListing(
-                            id, area, salePrice, object.optString("description", ""), url,
-                            false, false,
-                            address == null ? "" : address.optString("streetAddress", "")
-                    ));
-                }
-            }
-            Iterator<String> keys = object.keys();
-            while (keys.hasNext()) {
-                collectPublicSearchListings(object.opt(keys.next()), listings, seenIds);
-            }
-        } else if (value instanceof JSONArray) {
-            JSONArray array = (JSONArray) value;
-            for (int index = 0; index < array.length(); index++) {
-                collectPublicSearchListings(array.opt(index), listings, seenIds);
-            }
-        }
-    }
-
-    /** Total oficial da busca por CEP/endereço, que pode ser maior que a primeira página. */
-    private static int findSearchListingsCount(JSONObject root, int fallback) {
-        JSONObject props = root.optJSONObject("props");
-        JSONObject pageProps = props == null ? null : props.optJSONObject("pageProps");
-        JSONObject initialState = pageProps == null ? null : pageProps.optJSONObject("initialState");
-        JSONObject search = initialState == null ? null : initialState.optJSONObject("search");
-        int total = search == null ? -1 : search.optInt("searchTotal", -1);
-        return total >= 0 ? total : fallback;
-    }
 
     static PropertyPageResult parseLoftApiResponse(String json) {
         if (json == null || json.trim().isEmpty()) {
@@ -299,8 +187,7 @@ final class PropertyPageParser {
                         findString(listing, "condominium_name"),
                         findString(listing, "buildingName"),
                         listing.optString("shortSaleDescription", ""),
-                        listing.optString("description", "")
-                );
+                        listing.optString("description", ""));
                 parsed.add(new PropertyPageListing(
                         id,
                         area,
@@ -308,12 +195,10 @@ final class PropertyPageParser {
                         title,
                         PropertyPageClient.buildListingUrl(
                                 id,
-                                isQuintoAndarClassified(object, listing)
-                        ),
+                                isQuintoAndarClassified(object, listing)),
                         containsTag(listingTags(object, listing), "NEW_AD"),
                         containsTag(listingTags(object, listing), "SALE_GOOD_PRICE"),
-                        buildListingAddress(listing)
-                ));
+                        buildListingAddress(listing)));
             }
             Iterator<String> keys = object.keys();
             while (keys.hasNext()) {
@@ -342,8 +227,7 @@ final class PropertyPageParser {
                     String name = firstNonBlank(
                             childObject.optString("nameFormatted", ""),
                             childObject.optString("name", ""),
-                            childObject.optString("title", "")
-                    );
+                            childObject.optString("title", ""));
                     if (!name.isEmpty()) {
                         return name;
                     }
@@ -373,8 +257,7 @@ final class PropertyPageParser {
                 findString(listing, "logradouro"),
                 findNestedAddressValue(listing, "street"),
                 findNestedAddressValue(listing, "streetName"),
-                findNestedAddressValue(listing, "logradouro")
-        );
+                findNestedAddressValue(listing, "logradouro"));
         String number = firstNonBlank(
                 findString(listing, "number"),
                 findString(listing, "streetNumber"),
@@ -382,14 +265,12 @@ final class PropertyPageParser {
                 findString(listing, "numero"),
                 findNestedAddressValue(listing, "number"),
                 findNestedAddressValue(listing, "streetNumber"),
-                findNestedAddressValue(listing, "numero")
-        );
+                findNestedAddressValue(listing, "numero"));
         String fullAddress = firstNonBlank(
                 findString(listing, "address"),
                 findString(listing, "fullAddress"),
                 findNestedAddressValue(listing, "fullAddress"),
-                findNestedAddressValue(listing, "label")
-        );
+                findNestedAddressValue(listing, "label"));
         if (street.isEmpty()) {
             return fullAddress;
         }
@@ -480,8 +361,7 @@ final class PropertyPageParser {
                     price,
                     buildLoftDescription(listing),
                     findLoftListingUrl(html, id),
-                    false
-            ));
+                    false));
         }
         return new PropertyPageResult(condominiumName, parsed);
     }
@@ -516,8 +396,7 @@ final class PropertyPageParser {
     private static String buildLoftDescription(JSONObject listing) {
         String type = listing.optString(
                 "propertyType",
-                listing.optString("type", "Apartamento")
-        );
+                listing.optString("type", "Apartamento"));
         if ("studio".equalsIgnoreCase(type)) {
             type = "Studio";
         } else if ("rooftop".equalsIgnoreCase(type)) {
@@ -534,8 +413,7 @@ final class PropertyPageParser {
             return "";
         }
         Pattern pattern = Pattern.compile(
-                "https://loft\\.com\\.br/imovel/[^\\\"#]*?/" + Pattern.quote(id.trim())
-        );
+                "https://loft\\.com\\.br/imovel/[^\\\"#]*?/" + Pattern.quote(id.trim()));
         Matcher matcher = pattern.matcher(html);
         return matcher.find() ? matcher.group() : PropertyPageClient.buildLoftListingUrl(id);
     }

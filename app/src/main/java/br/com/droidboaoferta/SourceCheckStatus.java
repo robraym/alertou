@@ -13,18 +13,44 @@ final class SourceCheckStatus {
         prefs(context).edit()
                 .putBoolean(id + ":failed", false)
                 .putBoolean(id + ":running", true)
+                .putInt(id + ":attempts", 0)
+                .remove(id + ":listing_failures")
                 .remove(id + ":retry_until")
                 .putLong(id + ":started_at", SystemClock.elapsedRealtime())
                 .apply();
     }
     static void failed(Context context, long id, Exception error) {
-        int reason = error instanceof java.net.SocketTimeoutException ? R.string.source_error_timeout
-                : error instanceof java.net.UnknownHostException ? R.string.source_error_connection
+        Throwable root = PropertyQueryFailure.cause(error);
+        int reason = root instanceof java.net.SocketTimeoutException ? R.string.source_error_timeout
+                : root instanceof java.net.UnknownHostException ? R.string.source_error_connection
                 : R.string.source_error_response;
         prefs(context).edit().putBoolean(id + ":failed", true)
                 .remove(id + ":retry_until")
                 .putLong(id + ":failure", System.currentTimeMillis())
-                .putString(id + ":reason", context.getString(reason)).apply();
+                .putString(id + ":reason", context.getString(reason))
+                .putString(id + ":failure_detail", PropertyQueryFailure.detail(error)).apply();
+    }
+
+    static void attempt(Context context, long id, int attempt) {
+        prefs(context).edit().putInt(id + ":attempts", attempt).apply();
+    }
+
+    static void listingFailed(Context context, long id, String listingId, Exception error, int attempts) {
+        SharedPreferences preferences = prefs(context);
+        try {
+            org.json.JSONObject failures = new org.json.JSONObject(
+                    preferences.getString(id + ":listing_failures", "{}"));
+            failures.put(listingId, new org.json.JSONObject()
+                    .put("reason", PropertyQueryFailure.detail(error)).put("attempts", attempts)
+                    .put("at", System.currentTimeMillis()));
+            preferences.edit().putString(id + ":listing_failures", failures.toString()).apply();
+        } catch (org.json.JSONException ignored) { }
+    }
+
+    static int pendingListingCount(Context context, long id) {
+        try {
+            return new org.json.JSONObject(prefs(context).getString(id + ":listing_failures", "{}")).length();
+        } catch (org.json.JSONException ignored) { return 0; }
     }
     static void finish(Context context, long id, long intervalMs) {
         SharedPreferences preferences = prefs(context);
@@ -93,7 +119,22 @@ final class SourceCheckStatus {
         if (failure > 0) {
             result += "\n" + context.getString(R.string.source_last_failure, date(context, failure),
                     preferences.getString(id + ":reason", ""));
+            String detail = preferences.getString(id + ":failure_detail", "");
+            if (!detail.isEmpty()) result += "\n" + detail;
         }
+        int attempts = preferences.getInt(id + ":attempts", 0);
+        if (attempts > 0) result += "\n" + context.getString(R.string.source_attempts, attempts);
+        try {
+            org.json.JSONObject failures = new org.json.JSONObject(
+                    preferences.getString(id + ":listing_failures", "{}"));
+            java.util.Iterator<String> ids = failures.keys();
+            while (ids.hasNext()) {
+                String listingId = ids.next();
+                org.json.JSONObject item = failures.optJSONObject(listingId);
+                if (item != null) result += "\n" + context.getString(R.string.source_listing_failure,
+                        listingId, item.optInt("attempts"), item.optString("reason"));
+            }
+        } catch (org.json.JSONException ignored) { }
         return result + "\n" + (MonitorServiceController.isEnabled(context)
                 ? context.getString(R.string.source_next_check, date(context, next))
                 : context.getString(R.string.source_checks_paused));

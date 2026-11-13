@@ -6,7 +6,6 @@ final class Interest {
     static final String TYPE_PRICE = "price";
     static final String TYPE_COUPON = "coupon";
     static final String TYPE_PROPERTY = "property";
-    static final String TYPE_PROPERTY_ZIP = "property_zip";
     static final String TYPE_TREASURY = "treasury";
     static final int DEFAULT_PROPERTY_LISTING_LIMIT = 20;
 
@@ -18,11 +17,6 @@ final class Interest {
     private final double maximumArea;
     private final String propertyName;
     private final String couponName;
-    private final String propertyZipCode;
-    private final String propertyStreet;
-    private final String propertyNeighborhood;
-    private final String propertyCity;
-    private final String propertyState;
     private final int propertyListingLimit;
 
     Interest(long id, String term, double maximumPrice) {
@@ -46,42 +40,27 @@ final class Interest {
     Interest(long id, String term, double maximumPrice, String type,
              double minimumArea, double maximumArea, String propertyName, String couponName) {
         this(id, term, maximumPrice, type, minimumArea, maximumArea, propertyName, couponName,
-                "", "", "", "", "");
+                DEFAULT_PROPERTY_LISTING_LIMIT);
     }
 
     Interest(long id, String term, double maximumPrice, String type,
              double minimumArea, double maximumArea, String propertyName, String couponName,
-             String propertyZipCode, String propertyStreet, String propertyNeighborhood,
-             String propertyCity, String propertyState) {
-        this(id, term, maximumPrice, type, minimumArea, maximumArea, propertyName, couponName,
-                propertyZipCode, propertyStreet, propertyNeighborhood, propertyCity,
-                propertyState, DEFAULT_PROPERTY_LISTING_LIMIT);
-    }
-
-    Interest(long id, String term, double maximumPrice, String type,
-             double minimumArea, double maximumArea, String propertyName, String couponName,
-             String propertyZipCode, String propertyStreet, String propertyNeighborhood,
-             String propertyCity, String propertyState, int propertyListingLimit) {
+             int propertyListingLimit) {
         this.id = id;
         this.term = term;
         this.maximumPrice = maximumPrice;
-        this.type = TYPE_COUPON.equals(type)
-                ? TYPE_COUPON
-                : (TYPE_PROPERTY.equals(type)
-                ? TYPE_PROPERTY
-                : (TYPE_PROPERTY_ZIP.equals(type) ? TYPE_PROPERTY_ZIP
-                : (TYPE_TREASURY.equals(type) ? TYPE_TREASURY : TYPE_PRICE)));
+        if (!isSupportedType(type)) throw new IllegalArgumentException("Unsupported alert type");
+        this.type = type;
         this.minimumArea = minimumArea;
         this.maximumArea = maximumArea;
         this.propertyName = propertyName == null ? "" : propertyName.trim();
         this.couponName = couponName == null ? "" : couponName.trim();
-        this.propertyZipCode = propertyZipCode == null ? "" : propertyZipCode.trim();
-        this.propertyStreet = propertyStreet == null ? "" : propertyStreet.trim();
-        this.propertyNeighborhood = propertyNeighborhood == null
-                ? "" : propertyNeighborhood.trim();
-        this.propertyCity = propertyCity == null ? "" : propertyCity.trim();
-        this.propertyState = propertyState == null ? "" : propertyState.trim().toUpperCase(Locale.ROOT);
         this.propertyListingLimit = Math.max(1, Math.min(100, propertyListingLimit));
+    }
+
+    static boolean isSupportedType(String type) {
+        return TYPE_PRICE.equals(type) || TYPE_COUPON.equals(type)
+                || TYPE_PROPERTY.equals(type) || TYPE_TREASURY.equals(type);
     }
 
     long getId() {
@@ -105,15 +84,11 @@ final class Interest {
     }
 
     boolean isProperty() {
-        return isPropertyCondominium() || isPropertyZip();
+        return isPropertyCondominium();
     }
 
     boolean isPropertyCondominium() {
         return TYPE_PROPERTY.equals(type);
-    }
-
-    boolean isPropertyZip() {
-        return TYPE_PROPERTY_ZIP.equals(type);
     }
 
     boolean isPrice() {
@@ -143,26 +118,6 @@ final class Interest {
 
     String getCouponName() {
         return couponName;
-    }
-
-    String getPropertyZipCode() {
-        return propertyZipCode;
-    }
-
-    String getPropertyStreet() {
-        return propertyStreet;
-    }
-
-    String getPropertyNeighborhood() {
-        return propertyNeighborhood;
-    }
-
-    String getPropertyCity() {
-        return propertyCity;
-    }
-
-    String getPropertyState() {
-        return propertyState;
     }
 
     /** Maximum listings processed and shown for this property alert. */

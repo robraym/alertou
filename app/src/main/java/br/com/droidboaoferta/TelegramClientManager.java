@@ -281,8 +281,7 @@ final class TelegramClientManager {
 
         Thread receiverThread = new Thread(
                 () -> runReceiver(generation),
-                "boa-oferta-tdlib"
-        );
+                "boa-oferta-tdlib");
         receiverThread.setDaemon(true);
         receiverThread.start();
     }
@@ -343,8 +342,7 @@ final class TelegramClientManager {
                         interestId,
                         chatId,
                         term.trim(),
-                        extra
-                );
+                        extra);
                 interestHistorySearches.put(extra, search);
                 requestInterestHistoryPage(search, 0L);
             } catch (NumberFormatException exception) {
@@ -394,8 +392,7 @@ final class TelegramClientManager {
                 generation,
                 cleanTerm,
                 callback,
-                selectedGroups.size()
-        );
+                selectedGroups.size());
         lowestPriceBatches.put(generation, batch);
         for (String selectedGroup : selectedGroups) {
             try {
@@ -542,8 +539,7 @@ final class TelegramClientManager {
                                                           double maximumPrice) {
         MessageListener currentListener = messageListener;
         CachedLowestPriceResult cached = cachedLowestPriceResults.get(
-                OfferTextParser.normalize(term)
-        );
+                OfferTextParser.normalize(term));
         if (currentListener == null || cached == null
                 || System.currentTimeMillis() - cached.createdAt > 10L * 60L * 1000L) {
             return false;
@@ -560,8 +556,7 @@ final class TelegramClientManager {
             if (!OfferTextParser.isWithinValidatedRange(
                     candidate.price,
                     cached.lowestPlausiblePrice,
-                    maximumPrice
-            ) || !OfferEligibility.isRecent(candidate.messageDate, now)
+                    maximumPrice) || !OfferEligibility.isRecent(candidate.messageDate, now)
                     || speedRepository.isOfferInvalidated(
                     candidate.chatId,
                     term,
@@ -581,8 +576,7 @@ final class TelegramClientManager {
                     candidate.messageId,
                     candidate.messageDate,
                     sourceTitle,
-                    candidate.payload
-            );
+                    candidate.payload);
             publishedCount++;
         }
         Log.d(TAG, "validated price batch candidates=" + cached.candidates.size()
@@ -1209,8 +1203,7 @@ final class TelegramClientManager {
                 messageId,
                 message.optLong("date") * 1000L,
                 sourceTitle,
-                payload
-        );
+                payload);
     }
 
     private synchronized void startMissedMessageRecoveryIfReady() {
@@ -1359,8 +1352,7 @@ final class TelegramClientManager {
                             search.batch.term,
                             sourceTitle,
                             price,
-                            messageDate
-                    )) {
+                            messageDate)) {
                         continue;
                     }
                     search.batch.observedPrices.add(price);
@@ -1369,8 +1361,7 @@ final class TelegramClientManager {
                             message.optLong("id", 0L),
                             messageDate,
                             payload,
-                            price
-                    ));
+                            price));
                 }
             }
         }
@@ -1406,9 +1397,7 @@ final class TelegramClientManager {
                     new CachedLowestPriceResult(
                             System.currentTimeMillis(),
                             batch.lowestPrice,
-                            new ArrayList<>(batch.candidates)
-                    )
-            );
+                            new ArrayList<>(batch.candidates)));
         }
         int status = Double.isInfinite(batch.lowestPrice)
                 ? R.string.lowest_price_not_found
@@ -1439,8 +1428,7 @@ final class TelegramClientManager {
                 message.optLong("id"),
                 message.optLong("date") * 1000L,
                 sourceTitle,
-                payload
-        );
+                payload);
     }
 
     private synchronized void handleQualityHistoryPage(JSONObject result) {
@@ -1917,8 +1905,7 @@ final class TelegramClientManager {
         }
         availableGroups.sort(Comparator.comparing(
                 TelegramGroup::getTitle,
-                String.CASE_INSENSITIVE_ORDER
-        ));
+                String.CASE_INSENSITIVE_ORDER));
         groups = Collections.unmodifiableList(availableGroups);
         notifyGroups();
         startMissedMessageRecoveryIfReady();
@@ -2115,6 +2102,7 @@ final class TelegramClientManager {
             JSONObject downloaded = CloudSyncStore.readBackupFile(fileBackup);
             if (downloaded != null) remoteBackup = downloaded;
         }
+        remoteBackup = RetiredAlertCleanup.sanitizeBackup(appContext, remoteBackup);
         Log.d(TAG, "remoteBackup found=" + (remoteBackup != null)
                 + ", updatedAt=" + (remoteBackup == null ? 0L : remoteBackup.optLong("updated_at", 0L)));
         if (remoteBackup != null) {
@@ -2147,8 +2135,7 @@ final class TelegramClientManager {
                 : CloudSyncStore.importConfigurationDeltas(
                         appContext,
                         messages,
-                        remoteBackup == null ? 0L : remoteBackup.optLong("updated_at", 0L)
-                );
+                        remoteBackup == null ? 0L : remoteBackup.optLong("updated_at", 0L));
         if (configurationChanged) {
             MonitorServiceController.update(appContext);
         }
@@ -2343,8 +2330,7 @@ final class TelegramClientManager {
         cloudPullScheduled = true;
         long retryDelay = Math.max(
                 0L,
-                cloudPullRetryNotBeforeElapsed - SystemClock.elapsedRealtime()
-        );
+                cloudPullRetryNotBeforeElapsed - SystemClock.elapsedRealtime());
         cloudSyncHandler.postDelayed(() -> {
             cloudPullScheduled = false;
             if (appContext == null || !CloudSyncStore.isAutomaticSyncEnabled(appContext)
@@ -2372,8 +2358,7 @@ final class TelegramClientManager {
         long token = ++cloudPullTimeoutToken;
         cloudSyncHandler.postDelayed(
                 () -> handleCloudPullTimeout(generation, token),
-                CLOUD_PULL_TIMEOUT_MS
-        );
+                CLOUD_PULL_TIMEOUT_MS);
     }
 
     private synchronized void handleCloudPullTimeout(long generation, long token) {
@@ -2550,8 +2535,7 @@ final class TelegramClientManager {
                     .put("@extra", CloudBackupRetryGate.requestTag(generation, chunkToken)));
             cloudSyncHandler.postDelayed(
                     () -> handleCloudBackupChunkTimeout(generation, chunkToken),
-                    CLOUD_BACKUP_PART_TIMEOUT_MS
-            );
+                    CLOUD_BACKUP_PART_TIMEOUT_MS);
         } catch (JSONException exception) {
             failPendingCloudBackup(0L);
             notifyError(exception.getMessage());
@@ -2713,8 +2697,7 @@ final class TelegramClientManager {
                             if (generation == cloudBackupGeneration) sendNextCloudBackupChunk();
                         }
                     },
-                    CLOUD_BACKUP_PART_DELAY_MS
-            );
+                    CLOUD_BACKUP_PART_DELAY_MS);
         }
     }
 
@@ -2925,8 +2908,7 @@ final class TelegramClientManager {
         };
         cloudSyncHandler.postDelayed(cloudBackupWakeup, Math.max(
                 CLOUD_BACKUP_DEBOUNCE_MS + deviceBackupJitterMs(),
-                retryDelay
-        ));
+                retryDelay));
     }
 
     private void cancelCloudBackupWakeup() {

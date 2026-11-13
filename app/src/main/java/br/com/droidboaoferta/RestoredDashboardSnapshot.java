@@ -51,11 +51,7 @@ final class RestoredDashboardSnapshot {
                         item.optString("type", Interest.TYPE_PRICE),
                         item.optDouble("minimum_area", 0d), item.optDouble("maximum_area", 0d),
                         item.optString("property_name", ""), item.optString("coupon_name", ""),
-                        item.optString("property_zip_code", ""),
-                        item.optString("property_street", ""),
-                        item.optString("property_neighborhood", ""),
-                        item.optString("property_city", ""), item.optString("property_state", ""),
-                        item.optInt("property_listing_limit",
+                       item.optInt("property_listing_limit",
                                 Interest.DEFAULT_PROPERTY_LISTING_LIMIT)));
             }
         }

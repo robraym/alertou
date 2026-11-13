@@ -100,7 +100,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView alertSoundSummary;
     private TextView navigationAnimationSummary;
     private TextView propertyIntervalSummary;
-    private TextView propertyZipIntervalSummary;
     private TextView treasuryIntervalSummary;
     private TextView vivoOutletIntervalSummary;
     private TextView vivoMadrugadaIntervalSummary;
@@ -145,7 +144,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         alertSoundSummary = findViewById(R.id.text_alert_sound_summary);
         navigationAnimationSummary = findViewById(R.id.text_navigation_animation_summary);
         propertyIntervalSummary = findViewById(R.id.text_property_interval_summary);
-        propertyZipIntervalSummary = findViewById(R.id.text_property_zip_interval_summary);
         treasuryIntervalSummary = findViewById(R.id.text_treasury_interval_summary);
         vivoOutletIntervalSummary = findViewById(R.id.text_vivo_outlet_interval_summary);
         vivoMadrugadaIntervalSummary = findViewById(R.id.text_vivo_madrugada_interval_summary);
@@ -186,11 +184,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                         AppErrorStore.recordSerious(
                                 this,
                                 getString(R.string.alert_sound_title),
-                                getString(R.string.alert_sound_custom_error)
-                        );
+                                getString(R.string.alert_sound_custom_error));
                     }
-                }
-        );
+                });
 
         findViewById(R.id.button_back).setOnClickListener(view -> finish());
         accountCard.setOnClickListener(view -> {
@@ -202,52 +198,35 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         });
         findViewById(R.id.row_theme).setOnClickListener(view -> showThemeDialog());
         findViewById(R.id.row_accent_color).setOnClickListener(
-                view -> showAccentColorDialog()
-        );
+                view -> showAccentColorDialog());
         findViewById(R.id.row_alert_sound).setOnClickListener(view -> showAlertSoundDialog());
         findViewById(R.id.row_navigation_animation).setOnClickListener(
-                view -> showNavigationAnimationDialog()
-        );
+                view -> showNavigationAnimationDialog());
         findViewById(R.id.row_property_interval).setOnClickListener(
-                view -> showPropertyIntervalDialog(false)
-        );
-        findViewById(R.id.row_property_zip_interval).setOnClickListener(
-                view -> showPropertyIntervalDialog(true)
-        );
+                view -> showPropertyIntervalDialog());
         findViewById(R.id.row_treasury_interval).setOnClickListener(
-                view -> showTreasuryIntervalDialog()
-        );
+                view -> showTreasuryIntervalDialog());
         findViewById(R.id.row_vivo_outlet_interval).setOnClickListener(
-                view -> showVivoOutletIntervalDialog()
-        );
+                view -> showVivoOutletIntervalDialog());
         findViewById(R.id.row_vivo_madrugada_interval).setOnClickListener(
-                view -> showVivoMadrugadaIntervalDialog()
-        );
+                view -> showVivoMadrugadaIntervalDialog());
         findViewById(R.id.row_pelando_interval).setOnClickListener(
-                view -> showPelandoIntervalDialog()
-        );
+                view -> showPelandoIntervalDialog());
         findViewById(R.id.row_promobit_interval).setOnClickListener(
-                view -> showPromobitIntervalDialog()
-        );
+                view -> showPromobitIntervalDialog());
         findViewById(R.id.row_kabum_offer_interval).setOnClickListener(
-                view -> showKabumOfferIntervalDialog()
-        );
+                view -> showKabumOfferIntervalDialog());
         findViewById(R.id.row_motorola_offer_interval).setOnClickListener(
-                view -> showMotorolaOfferIntervalDialog()
-        );
+                view -> showMotorolaOfferIntervalDialog());
         findViewById(R.id.row_claro_offer_interval).setOnClickListener(
-                view -> showClaroOfferIntervalDialog()
-        );
+                view -> showClaroOfferIntervalDialog());
         findViewById(R.id.row_samsung_offer_interval).setOnClickListener(
-                view -> showSamsungOfferIntervalDialog()
-        );
+                view -> showSamsungOfferIntervalDialog());
         findViewById(R.id.row_samsung_discount_offer_interval).setOnClickListener(
-                view -> showSamsungDiscountOfferIntervalDialog()
-        );
+                view -> showSamsungDiscountOfferIntervalDialog());
         findViewById(R.id.row_backup).setOnClickListener(view -> clientManager.backupCloudNow());
         findViewById(R.id.row_automatic_sync).setOnClickListener(
-                view -> showAutomaticSyncDialog()
-        );
+                view -> showAutomaticSyncDialog());
         findViewById(R.id.row_restore_backup).setOnClickListener(view -> {
             restoreSummary.setText(R.string.profile_manual_restore_pending);
             restoreSizeSummary.setText(formatCalculatingSizeSummary(
@@ -267,38 +246,32 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.id.header_profile_appearance,
                 R.id.button_toggle_profile_appearance,
                 R.id.container_profile_appearance,
-                PREF_APPEARANCE_EXPANDED
-        );
+                PREF_APPEARANCE_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_profile_properties,
                 R.id.button_toggle_profile_properties,
                 R.id.container_profile_properties,
-                PREF_PROPERTIES_EXPANDED
-        );
+                PREF_PROPERTIES_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_profile_treasury,
                 R.id.button_toggle_profile_treasury,
                 R.id.container_profile_treasury,
-                PREF_TREASURY_EXPANDED
-        );
+                PREF_TREASURY_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_profile_external_sources,
                 R.id.button_toggle_profile_external_sources,
                 R.id.container_profile_external_sources,
-                PREF_EXTERNAL_SOURCES_EXPANDED
-        );
+                PREF_EXTERNAL_SOURCES_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_profile_sync,
                 R.id.button_toggle_profile_sync,
                 R.id.container_profile_sync,
-                PREF_SYNC_EXPANDED
-        );
+                PREF_SYNC_EXPANDED);
         configureCollapsibleSection(
                 R.id.header_profile_info,
                 R.id.button_toggle_profile_info,
                 R.id.container_profile_info,
-                PREF_INFO_EXPANDED
-        );
+                PREF_INFO_EXPANDED);
     }
 
     private void configureCollapsibleSection(int headerId, int toggleId, int containerId,
@@ -336,8 +309,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 container.animate().alpha(1f).setDuration(140L).start();
             } else {
                 container.animate().alpha(0f).setDuration(100L).withEndAction(
-                        () -> container.setVisibility(View.GONE)
-                ).start();
+                        () -> container.setVisibility(View.GONE)).start();
             }
             return;
         }
@@ -358,8 +330,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 this,
                 statusReceiver,
                 statusFilter,
-                ContextCompat.RECEIVER_NOT_EXPORTED
-        );
+                ContextCompat.RECEIVER_NOT_EXPORTED);
         syncRefreshHandler.removeCallbacks(syncDurationRefresh);
         syncRefreshHandler.post(syncDurationRefresh);
         refreshProfile();
@@ -435,14 +406,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         themeSummary.setText(ThemeController.getSummaryResource(ThemeController.getSavedMode(this)));
         accentColorSummary.setText(AccentColorController.getSummaryResource(
                 this,
-                AccentColorController.getSavedMode(this)
-        ));
+                AccentColorController.getSavedMode(this)));
         alertSoundSummary.setText(AlertSoundController.getProfileSummary(this));
         navigationAnimationSummary.setText(NavigationAnimationController.getSummaryResource(
-                NavigationAnimationController.getSavedMode(this)
-        ));
-        propertyIntervalSummary.setText(getPropertyIntervalSummary(false));
-        propertyZipIntervalSummary.setText(getPropertyIntervalSummary(true));
+                NavigationAnimationController.getSavedMode(this)));
+        propertyIntervalSummary.setText(getPropertyIntervalSummary());
         treasuryIntervalSummary.setText(formatCheckIntervalSeconds(
                 TreasuryDirectSettings.getCheckIntervalSeconds(this)));
         vivoOutletIntervalSummary.setText(formatStoreInterval(R.string.vivo_outlet_source_title, VivoOutletSource.getCheckIntervalSeconds(this)));
@@ -534,15 +502,15 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         showCompactDialog(dialog, content);
     }
 
-    private String getPropertyIntervalSummary(boolean zip) {
-        if (!PropertyMarketReferenceSettings.isVisible(this, zip)) {
+    private String getPropertyIntervalSummary() {
+        if (!PropertyMarketReferenceSettings.isVisible(this)) {
             return getString(R.string.store_source_disabled);
         }
         return formatCheckIntervalSeconds(
-                PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, zip));
+                PropertyMarketReferenceSettings.getCheckIntervalSeconds(this));
     }
 
-    private void showPropertyIntervalDialog(boolean zip) {
+    private void showPropertyIntervalDialog() {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -550,14 +518,13 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         content.setBackgroundResource(R.drawable.bg_dialog);
 
         TextView title = new TextView(this);
-        title.setText(zip ? R.string.property_zip_interval_dialog_title
-                : R.string.property_interval_dialog_title);
+        title.setText(R.string.property_interval_dialog_title);
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(21);
         content.addView(title);
 
-        int savedInterval = PropertyMarketReferenceSettings.getCheckIntervalSeconds(this, zip);
-        boolean enabled = PropertyMarketReferenceSettings.isVisible(this, zip);
+        int savedInterval = PropertyMarketReferenceSettings.getCheckIntervalSeconds(this);
+        boolean enabled = PropertyMarketReferenceSettings.isVisible(this);
         LinearLayout options = new LinearLayout(this);
         options.setOrientation(LinearLayout.VERTICAL);
         options.setPadding(0, dp(10), 0, dp(10));
@@ -565,14 +532,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
                     enabled && interval == savedInterval);
             option.setOnClickListener(view -> {
-                PropertyMarketReferenceSettings.saveCheckIntervalSeconds(this, zip, interval);
-                if (zip) {
-                    PropertyMarketReferenceSettings.setZipVisible(this, true);
-                } else {
+                PropertyMarketReferenceSettings.saveCheckIntervalSeconds(this, interval);
+                {
                     PropertyMarketReferenceSettings.setCondominiumVisible(this, true);
                 }
-                (zip ? propertyZipIntervalSummary : propertyIntervalSummary)
-                        .setText(getPropertyIntervalSummary(zip));
+                (propertyIntervalSummary)
+                        .setText(getPropertyIntervalSummary());
                 PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
                 notifyPropertyDisplaySettingsChanged();
                 dialog.dismiss();
@@ -581,13 +546,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         TextView pause = createThemeOption(R.string.store_source_never_consult, !enabled);
         pause.setOnClickListener(view -> {
-            if (zip) {
-                PropertyMarketReferenceSettings.setZipVisible(this, false);
-            } else {
+            {
                 PropertyMarketReferenceSettings.setCondominiumVisible(this, false);
             }
-            (zip ? propertyZipIntervalSummary : propertyIntervalSummary)
-                    .setText(getPropertyIntervalSummary(zip));
+            (propertyIntervalSummary)
+                    .setText(getPropertyIntervalSummary());
             PropertyPageMonitor.getInstance().rescheduleIfRunning(this);
             notifyPropertyDisplaySettingsChanged();
             dialog.dismiss();
@@ -1268,8 +1231,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         preview.setBackgroundResource(R.drawable.bg_input);
         content.addView(preview, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(112)
-        ));
+                dp(112)));
 
         TextView previewTitle = new TextView(this);
         previewTitle.setText(R.string.accent_color_preview_title);
@@ -1298,8 +1260,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(6), 0, dp(3));
         content.addView(options, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
+                LinearLayout.LayoutParams.WRAP_CONTENT));
 
         String[] modes = new String[]{
                 AccentColorController.MODE_BLUE,
@@ -1338,29 +1299,25 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             TextView option = createAccentColorOption(
                     labels[index],
                     modes[index],
-                    modes[index].equals(selectedMode[0])
-            );
+                    modes[index].equals(selectedMode[0]));
             final int optionIndex = index;
             option.setOnClickListener(view -> {
                 selectedMode[0] = modes[optionIndex];
                 AccentColorController.saveMode(this, selectedMode[0]);
                 accentColorSummary.setText(
-                        AccentColorController.getSummaryResource(this, selectedMode[0])
-                );
+                        AccentColorController.getSummaryResource(this, selectedMode[0]));
                 for (int current = 0; current < optionViews.size(); current++) {
                     updateAccentColorOption(
                             optionViews.get(current),
                             labels[current],
                             modes[current],
-                            current == optionIndex
-                    );
+                            current == optionIndex);
                 }
                 updateAccentColorPreview(
                         previewTitle,
                         previewIndicator,
                         previewAction,
-                        selectedMode[0]
-                );
+                        selectedMode[0]);
             });
             optionViews.add(option);
             GridLayout.LayoutParams optionParams = new GridLayout.LayoutParams();
@@ -1485,8 +1442,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         preview.setFocusable(true);
         content.addView(preview, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(136)
-        ));
+                dp(136)));
 
         LinearLayout previewPanel = new LinearLayout(this);
         previewPanel.setOrientation(LinearLayout.VERTICAL);
@@ -1495,8 +1451,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         previewPanel.setBackgroundResource(R.drawable.bg_card_compact);
         FrameLayout.LayoutParams previewPanelParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT
-        );
+                FrameLayout.LayoutParams.MATCH_PARENT);
         previewPanelParams.setMargins(dp(12), dp(8), dp(12), dp(42));
         preview.addView(previewPanel, previewPanelParams);
 
@@ -1510,8 +1465,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         FrameLayout.LayoutParams fixedSearchParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 dp(27),
-                Gravity.BOTTOM
-        );
+                Gravity.BOTTOM);
         fixedSearchParams.setMargins(dp(36), 0, dp(36), dp(8));
         preview.addView(fixedSearch, fixedSearchParams);
 
@@ -1526,16 +1480,14 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 AccentColorController.getPrimaryColor(this), 0.74f);
         LinearLayout.LayoutParams primaryLineParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(8)
-        );
+                dp(8));
         primaryLineParams.setMargins(0, dp(12), dp(42), 0);
         previewPanel.addView(previewLinePrimary, primaryLineParams);
 
         View previewLineSecondary = createAnimationPreviewLine(getColor(R.color.divider), 0.6f);
         LinearLayout.LayoutParams secondaryLineParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(7)
-        );
+                dp(7));
         secondaryLineParams.setMargins(0, dp(8), dp(76), 0);
         previewPanel.addView(previewLineSecondary, secondaryLineParams);
 
@@ -1546,8 +1498,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setPadding(0, dp(5), 0, dp(3));
         content.addView(options, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
+                LinearLayout.LayoutParams.WRAP_CONTENT));
 
         String[] modes = new String[]{
                 NavigationAnimationController.MODE_FADE,
@@ -1578,21 +1529,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         for (int index = 0; index < modes.length; index++) {
             TextView option = createNavigationAnimationOption(
                     labels[index],
-                    modes[index].equals(savedMode)
-            );
+                    modes[index].equals(savedMode));
             final int optionIndex = index;
             option.setOnClickListener(view -> {
                 String selectedMode = modes[optionIndex];
                 NavigationAnimationController.saveMode(this, selectedMode);
                 navigationAnimationSummary.setText(
-                        NavigationAnimationController.getSummaryResource(selectedMode)
-                );
+                        NavigationAnimationController.getSummaryResource(selectedMode));
                 for (int current = 0; current < optionViews.size(); current++) {
                     updateNavigationAnimationOption(
                             optionViews.get(current),
                             labels[current],
-                            current == optionIndex
-                    );
+                            current == optionIndex);
                 }
                 playNavigationAnimationPreview(previewPanel, previewTitle, selectedMode);
             });
@@ -1610,8 +1558,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         preview.setOnClickListener(view -> playNavigationAnimationPreview(
                 previewPanel,
                 previewTitle,
-                NavigationAnimationController.getSavedMode(this)
-        ));
+                NavigationAnimationController.getSavedMode(this)));
 
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
@@ -1640,8 +1587,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         preview.post(() -> playNavigationAnimationPreview(
                 previewPanel,
                 previewTitle,
-                NavigationAnimationController.getSavedMode(this)
-        ));
+                NavigationAnimationController.getSavedMode(this)));
     }
 
     private View createAnimationPreviewLine(int color, float alpha) {
@@ -1888,8 +1834,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         title.setLayoutParams(new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-        ));
+                1f));
         TextView add = new TextView(this);
         add.setText("+");
         add.setGravity(Gravity.CENTER);
@@ -1923,8 +1868,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             String customKey = customSound.getKey();
             LinearLayout customOption = createCustomSoundRow(
                     customKey,
-                    customKey.equals(savedSound)
-            );
+                    customKey.equals(savedSound));
             customOption.setTag(customKey);
             customOptions.add(customOption);
             TextView customRemove = customOption.findViewWithTag("custom_remove");
@@ -1940,8 +1884,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                             customSoundOption.findViewWithTag("custom_radio"),
                             customSoundOption.findViewWithTag("custom_file_name"),
                             optionSound,
-                            optionSound.equals(currentSound)
-                    );
+                            optionSound.equals(currentSound));
                 }
                 for (LinearLayout soundOption : soundOptions) {
                     String optionSound = (String) soundOption.getTag();
@@ -1950,8 +1893,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                             soundOption.findViewWithTag("sound_radio"),
                             soundOption.findViewWithTag("sound_label"),
                             AlertSoundController.getLabel(this, optionSound),
-                            optionSound.equals(currentSound)
-                    );
+                            optionSound.equals(currentSound));
                 }
                 playAlertSoundPreview(customKey);
             });
@@ -1971,8 +1913,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                             customSoundOption.findViewWithTag("custom_radio"),
                             customSoundOption.findViewWithTag("custom_file_name"),
                             optionSound,
-                            optionSound.equals(currentSound)
-                    );
+                            optionSound.equals(currentSound));
                 }
                 for (LinearLayout soundOption : soundOptions) {
                     String optionSound = (String) soundOption.getTag();
@@ -1981,8 +1922,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                             soundOption.findViewWithTag("sound_radio"),
                             soundOption.findViewWithTag("sound_label"),
                             AlertSoundController.getLabel(this, optionSound),
-                            optionSound.equals(currentSound)
-                    );
+                            optionSound.equals(currentSound));
                 }
             });
             options.addView(customOption);
@@ -1998,8 +1938,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             String sound = sounds[soundIndex];
             LinearLayout option = createDialogOption(
                     AlertSoundController.getLabel(this, sound),
-                    sound.equals(savedSound)
-            );
+                    sound.equals(savedSound));
             option.setTag(sound);
             soundOptions.add(option);
             option.setOnClickListener(view -> {
@@ -2013,8 +1952,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                             soundOption.findViewWithTag("sound_radio"),
                             soundOption.findViewWithTag("sound_label"),
                             AlertSoundController.getLabel(this, optionSound),
-                            optionSound.equals(currentSound)
-                    );
+                            optionSound.equals(currentSound));
                 }
                 for (LinearLayout customSoundOption : customOptions) {
                     String optionSound = (String) customSoundOption.getTag();
@@ -2023,8 +1961,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                             customSoundOption.findViewWithTag("custom_radio"),
                             customSoundOption.findViewWithTag("custom_file_name"),
                             optionSound,
-                            optionSound.equals(currentSound)
-                    );
+                            optionSound.equals(currentSound));
                 }
                 playAlertSoundPreview(sound);
             });
@@ -2039,16 +1976,14 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         options.addView(builtInGrid, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        ));
+                LinearLayout.LayoutParams.WRAP_CONTENT));
         ScrollView scrollView = new ScrollView(this);
         scrollView.setFillViewport(false);
         scrollView.setOverScrollMode(View.OVER_SCROLL_IF_CONTENT_SCROLLS);
         scrollView.addView(options);
         LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                Math.min(dp(500), (int) (getResources().getDisplayMetrics().heightPixels * 0.62f))
-        );
+                Math.min(dp(500), (int) (getResources().getDisplayMetrics().heightPixels * 0.62f)));
         content.addView(scrollView, scrollParams);
 
         content.addView(createAlertSoundVolumeBar());
@@ -2116,8 +2051,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         option.setMinimumHeight(dp(44));
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         params.setMargins(0, dp(1), 0, dp(1));
         option.setLayoutParams(params);
 
@@ -2131,8 +2065,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-        );
+                1f);
         label.setLayoutParams(labelParams);
         option.addView(radio);
         option.addView(label);
@@ -2146,8 +2079,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         card.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         params.setMargins(0, dp(1), 0, dp(1));
         card.setLayoutParams(params);
 
@@ -2162,8 +2094,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         LinearLayout.LayoutParams fileNameParams = new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-        );
+                1f);
         fileName.setLayoutParams(fileNameParams);
 
         TextView remove = new TextView(this);
@@ -2223,8 +2154,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(
                 0,
                 dp(1),
-                1f
-        );
+                1f);
         lineParams.setMargins(dp(10), 0, 0, 0);
         header.addView(line, lineParams);
         return header;
@@ -2283,8 +2213,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         bar.setBackgroundResource(R.drawable.bg_alert_sound_volume_bar);
         LinearLayout.LayoutParams barParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
+                LinearLayout.LayoutParams.WRAP_CONTENT);
         barParams.setMargins(0, dp(8), 0, dp(2));
         bar.setLayoutParams(barParams);
 
@@ -2300,8 +2229,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         volume.setLayoutParams(new LinearLayout.LayoutParams(
                 0,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
-                1f
-        ));
+                1f));
         volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -2412,30 +2340,25 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.string.profile_telegram_details_name,
                 TextUtils.isEmpty(accountName)
                         ? getString(R.string.profile_telegram_details_unavailable)
-                        : accountName
-        ));
+                        : accountName));
         details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_phone,
                 TextUtils.isEmpty(accountPhone)
                         ? getString(R.string.profile_telegram_details_unavailable)
-                        : getString(R.string.profile_telegram_phone, accountPhone)
-        ));
+                        : getString(R.string.profile_telegram_phone, accountPhone)));
         details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_status,
-                getString(R.string.profile_telegram_status_connected)
-        ));
+                getString(R.string.profile_telegram_status_connected)));
         details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_compiled_at,
-                BuildConfig.BUILD_TIMESTAMP
-        ));
+                BuildConfig.BUILD_TIMESTAMP));
         details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_app_size,
-                getInstalledAppSize()
-        ));
+                getInstalledAppSize()));
         content.addView(details);
 
         LinearLayout actions = new LinearLayout(this);
@@ -2510,8 +2433,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         divider.setBackgroundColor(getColor(R.color.divider));
         divider.setLayoutParams(new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1)
-        ));
+                dp(1)));
         return divider;
     }
 
@@ -2521,8 +2443,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.string.profile_logout_dialog_message,
                 R.string.profile_action_disconnect,
                 true,
-                this::disconnectTelegram
-        );
+                this::disconnectTelegram);
     }
 
     private void refreshSyncSummary() {
@@ -2679,8 +2600,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         showInformationDialog(
                 R.string.profile_ranking_rules_title,
                 R.string.profile_ranking_rules_message,
-                true
-        );
+                true);
     }
 
     private void showInformationDialog(int titleResource, int messageResource) {
@@ -2711,14 +2631,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             messageScroll.setScrollbarFadingEnabled(false);
             messageScroll.addView(message, new ScrollView.LayoutParams(
                     ScrollView.LayoutParams.MATCH_PARENT,
-                    ScrollView.LayoutParams.WRAP_CONTENT
-            ));
+                    ScrollView.LayoutParams.WRAP_CONTENT));
             int availableHeight = getResources().getDisplayMetrics().heightPixels - dp(170);
             int scrollHeight = Math.max(dp(120), availableHeight);
             content.addView(messageScroll, new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
-                    scrollHeight
-            ));
+                    scrollHeight));
         } else {
             content.addView(message);
         }

@@ -32,19 +32,6 @@ public class PropertyPageMonitorTest {
     }
 
     @Test
-    public void publicZipListingCanUseTheAuthoritativeSearchPageValues() {
-        PropertyPageListing listing = new PropertyPageListing("123", 58d, 530000d, "",
-                "https://www.quintoandar.com.br/imovel/123/comprar", false, false,
-                "Rua Peixoto Gomide");
-
-        assertTrue(PropertyPageMonitor.matchesPropertyZipAddress(
-                new Interest(1L, "", 880000d, Interest.TYPE_PROPERTY_ZIP,
-                        15d, 90d, "", "", "01409000", "Rua Peixoto Gomide",
-                        "Jardim Paulista", "São Paulo", "SP"), listing));
-        assertTrue(listing.matches(15d, 90d, 880000d));
-    }
-
-    @Test
     public void invalidListingUrlCannotBypassIdentityValidation() {
         PropertyPageListing listing = new PropertyPageListing("123", 40, 520000, "", "");
         assertNull(PropertyPageMonitor.resolveCurrentListing(listing, null));
@@ -103,36 +90,5 @@ public class PropertyPageMonitorTest {
                 previous, knownListing, PropertyHistoryRepository.UNCHANGED));
         assertTrue(PropertyPageMonitor.isNewLowestMarketReference(
                 previous, knownListing, PropertyHistoryRepository.CREATED));
-    }
-
-    @Test
-    public void propertyZipAcceptsOnlyTheRequestedStreet() {
-        Interest zipInterest = new Interest(9L, "https://example.com", 420000d,
-                Interest.TYPE_PROPERTY_ZIP, 15d, 40d, "Rua Doutor Plínio Barreto", "",
-                "01313020", "Rua Doutor Plínio Barreto", "Bela Vista", "São Paulo", "SP");
-        PropertyPageListing sameStreet = new PropertyPageListing("same", 22d, 365000d, "",
-                "https://example.com/same", false, false, "R. Dr. Plínio Barreto, 100");
-        PropertyPageListing otherStreet = new PropertyPageListing("other", 22d, 365000d, "",
-                "https://example.com/other", false, false, "Rua Treze de Maio, 100");
-
-        assertTrue(PropertyPageMonitor.matchesPropertyZipAddress(zipInterest, sameStreet));
-        assertFalse(PropertyPageMonitor.matchesPropertyZipAddress(zipInterest, otherStreet));
-    }
-
-    @Test
-    public void avenidaPaulistaDoesNotMatchTheNeighborhoodOfAnotherStreet() {
-        Interest interest = new Interest(10L, "", 500000d, Interest.TYPE_PROPERTY_ZIP,
-                15d, 40d, "", "", "01310000", "Avenida Paulista",
-                "Bela Vista", "São Paulo", "SP");
-        PropertyPageListing campinas = new PropertyPageListing("1", 29d, 448898d, "", "",
-                false, false, "Alameda Campinas, Jardim Paulista");
-        PropertyPageListing jau = new PropertyPageListing("2", 32d, 500000d, "", "",
-                false, false, "Alameda Jaú, Jardim Paulista");
-        PropertyPageListing paulista = new PropertyPageListing("3", 30d, 500000d, "", "",
-                false, false, "Av. Paulista, 1000, Bela Vista");
-
-        assertFalse(PropertyPageMonitor.matchesPropertyZipAddress(interest, campinas));
-        assertFalse(PropertyPageMonitor.matchesPropertyZipAddress(interest, jau));
-        assertTrue(PropertyPageMonitor.matchesPropertyZipAddress(interest, paulista));
     }
 }
