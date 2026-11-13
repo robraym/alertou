@@ -38,6 +38,7 @@ final class TreasuryDirectMonitor {
     private static final String LAST_NOTIFIED_RATE_PREFIX = "last_notified_rate_";
     private static final String KEY_LAST_SUCCESS_AT = "last_success_at";
     private static final String KEY_LAST_ATTEMPT_AT = "last_attempt_at";
+    private static final String KEY_LAST_ATTEMPT_FAILED = "last_attempt_failed";
     private static final String KEY_LAST_DURATION = "last_duration";
     /** Timestamp published by Tesouro Direto, not the time Alertou downloaded the feed. */
     private static final String KEY_OFFICIAL_UPDATED_AT = "official_updated_at";
@@ -94,6 +95,11 @@ final class TreasuryDirectMonitor {
                 .getLong(KEY_LAST_DURATION, 0L);
     }
 
+    static boolean didLastAttemptFail(Context context) {
+        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(KEY_LAST_ATTEMPT_FAILED, false);
+    }
+
     static long getOfficialUpdatedAt(Context context) {
         return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getLong(KEY_OFFICIAL_UPDATED_AT, 0L);
@@ -112,6 +118,7 @@ final class TreasuryDirectMonitor {
         long startedAt = SystemClock.elapsedRealtime();
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                 .putLong(KEY_LAST_ATTEMPT_AT, System.currentTimeMillis())
+                .putBoolean(KEY_LAST_ATTEMPT_FAILED, false)
                 .apply();
         boolean completed = false;
         checking = true;
@@ -123,6 +130,7 @@ final class TreasuryDirectMonitor {
             TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(context);
             SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             boolean recordedReading = false;
+            boolean missingReading = false;
             boolean treasuryHistoryChanged = false;
             long officialUpdatedAt = findLatestMarketPricingAt(bonds);
             long nextMarketAvailabilityAt = findNextMarketAvailabilityAt(bonds, officialUpdatedAt);
@@ -130,7 +138,10 @@ final class TreasuryDirectMonitor {
                 if (!interest.isTreasury()) continue;
                 Double rate = findPurchaseRate(bonds, interest.getTerm());
                 String key = LAST_NOTIFIED_RATE_PREFIX + interest.getId();
-                if (rate == null) continue;
+                if (rate == null) {
+                    missingReading = true;
+                    continue;
+                }
                 treasuryHistoryChanged |= historyRepository.record(
                         interest.getId(), rate, System.currentTimeMillis());
                 recordedReading = true;
@@ -155,10 +166,12 @@ final class TreasuryDirectMonitor {
             if (recordedReading) context.sendBroadcast(new Intent(ACTION_RATES_CHANGED)
                     .setPackage(context.getPackageName()));
             if (treasuryHistoryChanged) CloudSyncStore.markLocalChanged(context);
-            completed = true;
+            completed = !missingReading;
         } catch (Exception ignored) {
             // The next scheduled check retries. A failed read must not alter alert state.
         } finally {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                    .putBoolean(KEY_LAST_ATTEMPT_FAILED, !completed).apply();
             if (completed) {
                 context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                         .putLong(KEY_LAST_SUCCESS_AT, System.currentTimeMillis())

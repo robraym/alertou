@@ -786,7 +786,8 @@ public class MainActivity extends AlertouActivity {
         TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(this);
         StringBuilder fingerprint = new StringBuilder().append(expanded).append('|')
                 .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this)).append('|')
-                .append(TreasuryDirectMonitor.getLastAttemptAt(this));
+                .append(TreasuryDirectMonitor.getLastAttemptAt(this)).append('|')
+                .append(TreasuryDirectMonitor.didLastAttemptFail(this));
         for (Interest interest : treasuryInterests) {
             List<TreasuryRatePoint> points = historyRepository.get(interest.getId());
             fingerprint.append('|').append(interest.getId()).append('|')
@@ -866,7 +867,6 @@ public class MainActivity extends AlertouActivity {
         // The official date is important data. Let it use the whole line (and wrap on
         // exceptionally narrow devices) instead of truncating it beside an empty duration.
         status.setSingleLine(false);
-        status.setMaxLines(2);
         status.setText(getTreasuryLastCheckSummary());
         LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -1772,6 +1772,9 @@ public class MainActivity extends AlertouActivity {
         String lastAttempt = lastAttemptAt <= 0L ? "" : getString(
                 R.string.treasury_direct_last_checked,
                 formatCompactCheckTime(lastAttemptAt));
+        if (!lastAttempt.isEmpty() && TreasuryDirectMonitor.didLastAttemptFail(this)) {
+            lastAttempt += "\n" + getString(R.string.app_status_source_error);
+        }
         if (officialUpdatedAt > 0L) {
             String official = getString(R.string.treasury_direct_official_updated,
                     new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
