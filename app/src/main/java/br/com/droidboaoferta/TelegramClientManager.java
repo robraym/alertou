@@ -127,6 +127,7 @@ final class TelegramClientManager {
 
     private final Map<Long, JSONObject> chats = new HashMap<>();
     private final Map<String, InterestHistorySearch> interestHistorySearches = new HashMap<>();
+    private final Set<Long> activeInterestHistoryIds = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final Map<String, LowestPriceSearch> lowestPriceSearches = new HashMap<>();
     private final Map<String, QualityHistorySearch> qualityHistorySearches = new HashMap<>();
     private final Map<Long, LowestPriceBatch> lowestPriceBatches = new HashMap<>();
@@ -326,14 +327,18 @@ final class TelegramClientManager {
     }
 
     synchronized void refreshInterestHistory(long interestId, String term) {
+        Log.d(TAG, "history request interest=" + interestId + ", state=" + state);
         if (state != State.READY || term == null || term.trim().isEmpty()) {
             return;
         }
         interestHistoryGeneration++;
         interestHistorySearches.clear();
+        activeInterestHistoryIds.clear();
         Set<String> selectedGroups = appContext
                 .getSharedPreferences("telegram_preferences", Context.MODE_PRIVATE)
                 .getStringSet("selected_groups", Collections.emptySet());
+        Log.d(TAG, "history groups interest=" + interestId + ", count=" + selectedGroups.size());
+        if (!selectedGroups.isEmpty()) activeInterestHistoryIds.add(interestId);
         for (String selectedGroup : selectedGroups) {
             try {
                 long chatId = Long.parseLong(selectedGroup);
@@ -349,6 +354,23 @@ final class TelegramClientManager {
                 Log.w(TAG, "Invalid selected chat id", exception);
             }
         }
+        if (interestHistorySearches.isEmpty()) activeInterestHistoryIds.remove(interestId);
+    }
+
+    boolean hasInterestHistorySearch(long interestId) {
+        return activeInterestHistoryIds.contains(interestId);
+    }
+
+    private void finishInterestHistorySearch(String extra) {
+        InterestHistorySearch finished = interestHistorySearches.remove(extra);
+        if (finished != null) {
+            boolean remaining = false;
+            for (InterestHistorySearch search : interestHistorySearches.values()) {
+                if (search.interestId == finished.interestId) { remaining = true; break; }
+            }
+            if (!remaining) activeInterestHistoryIds.remove(finished.interestId);
+        }
+        OfferMonitor.getInstance().revalidationProgressChanged();
     }
 
     synchronized void refreshQualityHistorySince(long sinceMillis) {
@@ -1120,7 +1142,9 @@ final class TelegramClientManager {
                 return;
             }
             if (result.optString("@extra").startsWith("interest_history:")) {
-                interestHistorySearches.remove(result.optString("@extra"));
+                Log.w(TAG, "history failed extra=" + result.optString("@extra")
+                        + ", code=" + result.optInt("code") + ", message=" + result.optString("message"));
+                finishInterestHistorySearch(result.optString("@extra"));
             }
             if (result.optString("@extra").startsWith("quality_history:")) {
                 qualityHistorySearches.remove(result.optString("@extra"));
@@ -1297,6 +1321,9 @@ final class TelegramClientManager {
             return;
         }
         JSONArray messages = result.optJSONArray("messages");
+        Log.d(TAG, "history page interest=" + search.interestId + ", extra=" + extra
+                + ", messages=" + (messages == null ? -1 : messages.length())
+                + ", next=" + result.optLong("next_from_message_id", 0L));
         if (messages != null) {
             for (int index = 0; index < messages.length(); index++) {
                 JSONObject message = messages.optJSONObject(index);
@@ -1307,7 +1334,7 @@ final class TelegramClientManager {
         }
         long nextFromMessageId = result.optLong("next_from_message_id", 0L);
         if (nextFromMessageId == 0L || nextFromMessageId == search.lastFromMessageId) {
-            interestHistorySearches.remove(extra);
+            finishInterestHistorySearch(extra);
             return;
         }
         search.lastFromMessageId = nextFromMessageId;
@@ -1494,7 +1521,7 @@ final class TelegramClientManager {
                     .put("message_thread_id", 0)
                     .put("@extra", search.extra));
         } catch (JSONException exception) {
-            interestHistorySearches.remove(search.extra);
+            finishInterestHistorySearch(search.extra);
             notifyError(exception.getMessage());
         }
     }
@@ -1711,6 +1738,7 @@ final class TelegramClientManager {
         chats.clear();
         groupChatIds.clear();
         interestHistorySearches.clear();
+        activeInterestHistoryIds.clear();
         lowestPriceSearches.clear();
         lowestPriceBatches.clear();
         cachedLowestPriceResults.clear();

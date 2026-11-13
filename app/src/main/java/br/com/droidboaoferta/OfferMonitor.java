@@ -15,6 +15,7 @@ import java.util.Set;
 
 final class OfferMonitor implements TelegramClientManager.MessageListener {
     static final String ACTION_OFFER_FOUND = "br.com.droidboaoferta.OFFER_FOUND";
+    static final String ACTION_REVALIDATION_CHANGED = "br.com.droidboaoferta.REVALIDATION_CHANGED";
     private static final OfferMonitor INSTANCE = new OfferMonitor();
 
     static OfferMonitor getInstance() {
@@ -26,6 +27,38 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
     private InterestRepository interestRepository;
     private OfferRepository offerRepository;
     private final Set<String> pendingPublications = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final java.util.Map<Long, String> revalidatingProducts =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    private final Set<Long> preparingRevalidations = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
+    void prepareRevalidation(Context context, Interest interest) {
+        if (interest == null || !interest.isPrice()) return;
+        revalidatingProducts.put(interest.getId(), interest.getTerm());
+        preparingRevalidations.add(interest.getId());
+        context.sendBroadcast(new Intent(ACTION_REVALIDATION_CHANGED)
+                .setPackage(context.getPackageName()));
+    }
+
+    String getRevalidationStatus(Context context) {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (java.util.Map.Entry<Long, String> entry : revalidatingProducts.entrySet()) {
+            boolean pending = preparingRevalidations.contains(entry.getKey())
+                    || TelegramClientManager.getInstance().hasInterestHistorySearch(entry.getKey());
+            String suffix = ":" + entry.getKey();
+            for (String publication : pendingPublications) {
+                if (publication.endsWith(suffix)) { pending = true; break; }
+            }
+            if (pending) names.add(entry.getValue());
+        }
+        java.util.Collections.sort(names);
+        return names.isEmpty() ? "" : context.getString(R.string.product_revalidating,
+                android.text.TextUtils.join(", ", names));
+    }
+
+    void revalidationProgressChanged() {
+        if (appContext != null) appContext.sendBroadcast(new Intent(ACTION_REVALIDATION_CHANGED)
+                .setPackage(appContext.getPackageName()));
+    }
 
     private OfferMonitor() {
     }
@@ -68,18 +101,26 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
         if (interest == null || !interest.isPrice()) {
             return;
         }
-        start(context);
-        new GroupSpeedRepository(appContext).clearForInterest(interest.getTerm());
-        offerRepository.clearProcessedForInterest(interest.getId());
-        offerRepository.clearRecentForInterest(interest.getId());
-        TelegramClientManager.getInstance().refreshInterestHistory(
-                interest.getId(), interest.getTerm());
+        prepareRevalidation(context, interest);
+        try {
+            start(context);
+            new GroupSpeedRepository(appContext).clearForInterest(interest.getTerm());
+            offerRepository.clearProcessedForInterest(interest.getId());
+            offerRepository.clearRecentForInterest(interest.getId());
+            TelegramClientManager.getInstance().refreshInterestHistory(
+                    interest.getId(), interest.getTerm());
+        } finally {
+            preparingRevalidations.remove(interest.getId());
+            revalidationProgressChanged();
+        }
     }
 
     void stop() {
         session.invalidate();
         TelegramClientManager.getInstance().setMessageListener(null);
         pendingPublications.clear();
+        revalidatingProducts.clear();
+        preparingRevalidations.clear();
     }
 
     @Override
@@ -213,6 +254,8 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
             return;
         }
         final long token = session.token();
+        android.util.Log.d("BoaOfertaSync", "offer candidate interest=" + interest.getId()
+                + ", message=" + messageId + ", price=" + price + ", date=" + messageDate);
         String pendingKey = token + ":" + chatId + ":" + messageId + ":" + interest.getId();
         if (!pendingPublications.add(pendingKey)) return;
         TelegramClientManager client = TelegramClientManager.getInstance();
@@ -220,10 +263,13 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
             if (token != session.token() || !MonitorRunPolicy.canRun(appContext)
                     || telegramPostLink.isEmpty()) {
                 pendingPublications.remove(pendingKey);
+                revalidationProgressChanged();
                 return;
             }
             client.validateMessageLink(telegramPostLink, chatId, messageId, message -> {
-                pendingPublications.remove(pendingKey);
+                try {
+                android.util.Log.d("BoaOfertaSync", "offer link validation interest=" + interest.getId()
+                        + ", message=" + messageId + ", readable=" + (message != null));
                 if (message == null || !session.accepts(token, MonitorRunPolicy.canRun(appContext),
                         appContext.getSharedPreferences("telegram_preferences", Context.MODE_PRIVATE)
                         .getStringSet("selected_groups", java.util.Collections.emptySet())
@@ -269,22 +315,27 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
                 // ranking or notification state.
                 if (!offerRepository.markOfferProcessed(chatId, messageId, current.getId())) return;
                 GroupSpeedRepository speedRepository = new GroupSpeedRepository(appContext);
-                if (!speedRepository.record(
-                        chatId, sourceTitle, current, verifiedPrice, offer.getObservedAt(), verifiedLink
-                )) {
-                    return;
-                }
+                // Ranking accepts only eligible ranking events (for example, after its start
+                // date). A declined ranking event must not discard an otherwise valid offer.
+                boolean ranked = speedRepository.record(
+                        chatId, sourceTitle, current, verifiedPrice, offer.getObservedAt(), verifiedLink);
                 if (recordQuality) {
                     new GroupQualityRepository(appContext).recordApprovedOffer(chatId, messageId, verifiedDate);
                 }
                 new OfferLinkValidationStore(appContext).setValidated(offer, true);
                 offerRepository.add(offer);
+                android.util.Log.d("BoaOfertaSync", "offer stored interest=" + current.getId()
+                        + ", message=" + messageId + ", ranked=" + ranked);
                 MonitorStatusStore.markApprovedOffer(appContext);
                 if (notifyUser) {
                     showOfferNotification(offer, chatId, messageId);
                 }
                 appContext.sendBroadcast(new Intent(ACTION_OFFER_FOUND)
                         .setPackage(appContext.getPackageName()));
+                } finally {
+                    pendingPublications.remove(pendingKey);
+                    revalidationProgressChanged();
+                }
             });
         });
     }

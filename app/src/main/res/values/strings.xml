@@ -19,6 +19,8 @@
     <string name="app_status_login">Conecte sua conta em Fontes.</string>
     <string name="app_status_source_ok">Concluída</string>
     <string name="app_status_source_error">Falha na última consulta</string>
+    <string name="product_revalidating">Buscando ofertas de %1$s…</string>
+    <string name="product_no_offers_count">0 ofertas</string>
     <string name="app_status_source_waiting">Aguardando confirmação da consulta</string>
     <string name="app_status_source_idle">Sem alerta de produto para acompanhar</string>
     <string name="app_status_last_check">Última consulta: %1$s</string>
@@ -501,7 +503,7 @@
     <string name="profile_restore_size_format">Arquivo: %1$s</string>
     <string name="profile_restore_size_unavailable">Arquivo: indisponível</string>
     <string name="profile_restore_size_preparing">Tamanho: Calculando%1$s</string>
-    <string name="action_revalidate_history">Revalidar</string>
+    <string name="action_revalidate_history">Buscar ofertas novamente</string>
     <string name="profile_manual_backup_clearing">Excluindo backup...</string>
     <string name="profile_manual_backup_cleared">Backup excluído.</string>
     <string name="profile_manual_backup_clear_failed">Não foi possível excluir o backup.</string>

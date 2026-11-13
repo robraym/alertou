@@ -837,35 +837,39 @@ public class AlertsActivity extends AlertouActivity {
         suggestionParams.topMargin = dp(10);
         content.addView(suggestionView, suggestionParams);
 
-        if (editing) {
-            LinearLayout secondaryActions = new LinearLayout(this);
-            secondaryActions.setGravity(Gravity.CENTER_VERTICAL);
-            secondaryActions.setPadding(0, dp(12), 0, 0);
-            TextView remove = createDialogAction(R.string.action_remove_interest);
-            remove.setTextColor(getColor(R.color.danger));
-            remove.setOnClickListener(view -> {
+        if (editing && !couponAlert) {
+            TextView revalidate = createDialogAction(R.string.action_revalidate_history);
+            revalidate.setSingleLine(false);
+            revalidate.setMinHeight(dp(48));
+            revalidate.setBackgroundResource(R.drawable.bg_button_secondary);
+            revalidate.setOnClickListener(view -> {
                 dialog.dismiss();
-                showRemoveInterestConfirmation(interestToEdit);
+                revalidateInterestHistory(interestToEdit);
             });
-            secondaryActions.addView(remove);
-            if (!couponAlert) {
-                TextView revalidate = createDialogAction(R.string.action_revalidate_history);
-                revalidate.setOnClickListener(view -> {
-                    dialog.dismiss();
-                    revalidateInterestHistory(interestToEdit);
-                });
-                LinearLayout.LayoutParams revalidateParams = new LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.WRAP_CONTENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT);
-                revalidateParams.leftMargin = dp(12);
-                secondaryActions.addView(revalidate, revalidateParams);
-            }
-            content.addView(secondaryActions);
+            LinearLayout.LayoutParams revalidateParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT);
+            revalidateParams.topMargin = dp(12);
+            content.addView(revalidate, revalidateParams);
         }
 
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         actions.setPadding(0, dp(14), 0, 0);
+        if (editing) {
+            android.widget.ImageButton remove = new android.widget.ImageButton(this);
+            remove.setImageResource(R.drawable.ic_trash_outline);
+            remove.setColorFilter(getColor(R.color.danger));
+            remove.setBackgroundResource(R.drawable.bg_icon_danger);
+            remove.setContentDescription(getString(R.string.action_remove_interest));
+            remove.setPadding(dp(12), dp(12), dp(12), dp(12));
+            remove.setOnClickListener(view -> {
+                dialog.dismiss();
+                showRemoveInterestConfirmation(interestToEdit);
+            });
+            actions.addView(remove, new LinearLayout.LayoutParams(dp(48), dp(48)));
+            actions.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
+        }
         TextView cancel = createDialogAction(R.string.action_cancel);
         cancel.setOnClickListener(view -> dialog.dismiss());
         actions.addView(cancel);
@@ -893,6 +897,10 @@ public class AlertsActivity extends AlertouActivity {
             double maximumPrice;
             try {
                 maximumPrice = Double.parseDouble(priceText);
+                if (!couponAlert) {
+                    maximumPrice = ((LowestPriceSuggestionView) suggestionView)
+                            .resolveEnteredPrice(maximumPrice);
+                }
             } catch (NumberFormatException exception) {
                 priceInput.setError(getString(couponAlert
                         ? R.string.coupon_value_required
@@ -1334,16 +1342,13 @@ public class AlertsActivity extends AlertouActivity {
     }
 
     private void revalidateInterestHistory(Interest interest) {
-        Dialog updatingDialog = showUpdatingDialog();
+        OfferMonitor.getInstance().prepareRevalidation(this, interest);
         alertUpdateExecutor.execute(() -> {
             OfferMonitor.getInstance().revalidateInterestHistory(this, interest);
-            runOnUiThread(() -> {
-                if (updatingDialog.isShowing()) {
-                    updatingDialog.dismiss();
-                }
-                renderInterests();
-            });
         });
+        startActivity(new android.content.Intent(this, MainActivity.class)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
     private void updateInterestInBackground(Interest interestToEdit, String term,
@@ -1410,11 +1415,13 @@ public class AlertsActivity extends AlertouActivity {
                                 this,
                                 interestIdForHistory);
                     } else {
-                        OfferMonitor.getInstance().refreshInterestHistory(
-                                this,
-                                interestIdForHistory,
-                                term,
-                                maximumPrice);
+                        if (!editing) {
+                            OfferMonitor.getInstance().refreshInterestHistory(
+                                    this,
+                                    interestIdForHistory,
+                                    term,
+                                    maximumPrice);
+                        }
                         refreshProductSources(interestIdForHistory);
                     }
                     MonitorServiceController.update(this);

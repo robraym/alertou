@@ -15,9 +15,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.text.NumberFormat;
 import java.util.ArrayDeque;
-import java.util.Locale;
 
 final class LowestPriceSuggestionView extends LinearLayout {
     private final LinearLayout actionRow;
@@ -34,6 +32,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
     private EditText termInput;
     private EditText priceInput;
     private boolean searching;
+    private double displayedExactPrice = Double.NaN;
 
     LowestPriceSuggestionView(Context context) {
         super(context);
@@ -88,6 +87,19 @@ final class LowestPriceSuggestionView extends LinearLayout {
         this.priceInput.setInputType(
                 InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL
         );
+        double initialPrice = parseCurrentPrice();
+        if (!Double.isNaN(initialPrice)) {
+            displayedExactPrice = initialPrice;
+            priceInput.setText(formatEditablePrice(initialPrice));
+        }
+    }
+
+    double resolveEnteredPrice(double enteredPrice) {
+        // Whole-real display must not lower the observed limit and exclude the very
+        // offer suggested by the search (for example, 6163.08 displayed as 6163).
+        return !Double.isNaN(displayedExactPrice)
+                && priceInput.getText().toString().trim().equals(formatEditablePrice(displayedExactPrice))
+                ? displayedExactPrice : enteredPrice;
     }
 
     private void search() {
@@ -179,6 +191,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
     }
 
     private void setPriceValue(double price) {
+        displayedExactPrice = price;
         String value = formatEditablePrice(price);
         priceInput.setText(value);
         priceInput.setSelection(value.length());
@@ -219,10 +232,7 @@ final class LowestPriceSuggestionView extends LinearLayout {
     }
 
     private String formatEditablePrice(double value) {
-        if (value == Math.rint(value)) {
-            return String.valueOf((long) value);
-        }
-        return String.format(Locale.US, "%.2f", value).replace('.', ',');
+        return String.valueOf(Math.round(value));
     }
 
     private int dp(int value) {

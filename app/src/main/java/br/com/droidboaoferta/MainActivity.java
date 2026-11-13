@@ -125,6 +125,10 @@ public class MainActivity extends AlertouActivity {
                 return;
             }
             String action = intent.getAction();
+            if (OfferMonitor.ACTION_REVALIDATION_CHANGED.equals(action)) {
+                refreshProductRevalidationStatus();
+                return;
+            }
             if (TreasuryDirectMonitor.ACTION_CHECK_STATE_CHANGED.equals(action)) {
                 updateTreasuryRefreshIcon();
                 return;
@@ -245,6 +249,7 @@ public class MainActivity extends AlertouActivity {
         clientManager.start(this);
         clientManager.refreshCloudBackupSoon();
         IntentFilter filter = new IntentFilter(OfferMonitor.ACTION_OFFER_FOUND);
+        filter.addAction(OfferMonitor.ACTION_REVALIDATION_CHANGED);
         filter.addAction(ACTION_PROPERTY_DISPLAY_SETTINGS_CHANGED);
         filter.addAction(MonitorStatusStore.ACTION_STATUS_CHANGED);
         filter.addAction(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED);
@@ -256,6 +261,7 @@ public class MainActivity extends AlertouActivity {
                 offerReceiver,
                 filter,
                 ContextCompat.RECEIVER_NOT_EXPORTED);
+        refreshProductRevalidationStatus();
     }
 
     @Override
@@ -725,6 +731,8 @@ public class MainActivity extends AlertouActivity {
                         getPropertyMarketLastCheckSummary(noOffers), R.drawable.ic_property_alert);
             }
             addTreasurySection();
+            addOfferSection(R.string.product_alerts_list_title, noOffers, currency,
+                    SECTION_PRODUCTS_EXPANDED, "");
             if (offersContainer.getChildCount() == 0) {
                 boolean awaitingLinks = offersSearchInput.getText().toString().trim().isEmpty()
                         && !offerRepository.getRecentForValidation().isEmpty();
@@ -772,6 +780,16 @@ public class MainActivity extends AlertouActivity {
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
                 SECTION_PRODUCTS_EXPANDED, "");
         offerSectionCache.end(offersContainer);
+    }
+
+    private void refreshProductRevalidationStatus() {
+        if (offersContainer == null) return;
+        View row = offersContainer.findViewWithTag("product_search_status_row");
+        TextView label = offersContainer.findViewWithTag("product_search_status_text");
+        if (row == null || label == null) return;
+        String status = OfferMonitor.getInstance().getRevalidationStatus(this);
+        label.setText(status);
+        row.setVisibility(status.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     /** Tesouro is not an ObservedOffer: its display comes only from confirmed official-rate reads. */
@@ -1108,9 +1126,17 @@ public class MainActivity extends AlertouActivity {
                                  String sectionSummary,
                                  int sectionIconResource) {
         boolean propertyMarketSection = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey);
+        boolean productSection = SECTION_PRODUCTS_EXPANDED.equals(preferenceKey);
+        boolean hasProductAlert = false;
+        if (productSection) {
+            sectionSummary = OfferMonitor.getInstance().getRevalidationStatus(this);
+            for (Interest interest : interestRepository.getAll()) {
+                if (interest.isPrice()) { hasProductAlert = true; break; }
+            }
+        }
         // Imóveis configurados nunca somem da tela por uma consulta vazia, incompleta
         // ou em andamento. A visibilidade é decidida somente no Perfil.
-        if (offers.isEmpty() && !propertyMarketSection) {
+        if (offers.isEmpty() && !propertyMarketSection && !(productSection && hasProductAlert)) {
             return;
         }
         boolean expanded = isOfferSectionExpanded(preferenceKey);
@@ -1130,6 +1156,7 @@ public class MainActivity extends AlertouActivity {
             if (propertyMarketSection) {
                 refreshPropertyMarketProgressVisuals();
             }
+            if (productSection) refreshProductRevalidationStatus();
             return;
         }
 
@@ -1192,6 +1219,8 @@ public class MainActivity extends AlertouActivity {
                     : getString(R.string.action_trash_offer_section));
             if (sectionIconResource == 0) {
                 sectionAction.setOnClickListener(view -> trashOfferSection(offers));
+                sectionAction.setEnabled(!offers.isEmpty());
+                sectionAction.setAlpha(offers.isEmpty() ? 0.4f : 1f);
             } else {
                 sectionAction.setOnClickListener(view -> toggleOfferSection(preferenceKey));
             }
@@ -1245,21 +1274,23 @@ public class MainActivity extends AlertouActivity {
             titleLine.addView(count, countParams);
         }
 
-        if (!sectionSummary.isEmpty() || propertySection) {
+        if (!sectionSummary.isEmpty() || propertySection || productSection) {
             LinearLayout summaryLine = new LinearLayout(this);
             summaryLine.setGravity(Gravity.CENTER_VERTICAL);
             summaryLine.setOrientation(LinearLayout.HORIZONTAL);
+            if (productSection) summaryLine.setTag("product_search_status_row");
             TextView summary = new TextView(this);
+            if (productSection) summary.setTag("product_search_status_text");
             String statusText = sectionSummary.isEmpty()
                     ? getString(R.string.property_alerts_status_empty) : sectionSummary;
             boolean propertyStatusActive = propertyMarketSection
                     ? PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
                     : false;
-            summary.setTextColor(getColor(propertyStatusActive
+            summary.setTextColor(getColor(propertyStatusActive || productSection
                     ? R.color.action_green : R.color.text_secondary));
             summary.setTextSize(11.5f);
             summary.setIncludeFontPadding(false);
-            summary.setSingleLine(!propertyMarketSection);
+            summary.setSingleLine(!propertyMarketSection && !productSection);
             if (propertyMarketSection) summary.setMaxLines(3);
             summary.setEllipsize(TextUtils.TruncateAt.END);
             if (propertyMarketSection) {
@@ -1281,6 +1312,16 @@ public class MainActivity extends AlertouActivity {
             }
             summaryLine.addView(duration);
             applyPropertyStatusLine(summary, duration, statusText);
+            if (productSection) {
+                duration.setVisibility(View.GONE);
+                ProgressBar progress = new ProgressBar(this);
+                progress.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(
+                        getColor(R.color.action_green)));
+                LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(18), dp(18));
+                progressParams.leftMargin = dp(8);
+                summaryLine.addView(progress, progressParams);
+                summaryLine.setVisibility(sectionSummary.isEmpty() ? View.GONE : View.VISIBLE);
+            }
             LinearLayout.LayoutParams summaryLineParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -1344,6 +1385,7 @@ public class MainActivity extends AlertouActivity {
         }
         String countText = getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
                 sectionOfferCount, sectionOfferCount);
+        if (productSection && sectionOfferCount == 0) countText = getString(R.string.product_no_offers_count);
         count.setText(countBelowTitle ? stripCountBullet(countText) : countText);
         String previousGroup = null;
         String activePropertyCardKey = null;
