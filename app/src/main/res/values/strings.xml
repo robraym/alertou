@@ -685,6 +685,7 @@
     <string name="treasury_direct_rate_waiting">Aguardando a primeira consulta</string>
     <string name="treasury_direct_alerts_count">%1$d títulos</string>
     <string name="treasury_direct_official_updated">Atualizado: %1$s</string>
+    <string name="treasury_direct_last_checked">Consultado: %1$s</string>
     <string name="treasury_direct_market_maintenance">Em manutenção</string>
     <string name="treasury_direct_market_available">Disponível</string>
     <string name="treasury_direct_history_title">Histórico da taxa</string>

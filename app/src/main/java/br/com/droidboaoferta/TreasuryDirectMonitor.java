@@ -37,6 +37,7 @@ final class TreasuryDirectMonitor {
     private static final String PREFS = "treasury_direct_monitor";
     private static final String LAST_NOTIFIED_RATE_PREFIX = "last_notified_rate_";
     private static final String KEY_LAST_SUCCESS_AT = "last_success_at";
+    private static final String KEY_LAST_ATTEMPT_AT = "last_attempt_at";
     private static final String KEY_LAST_DURATION = "last_duration";
     /** Timestamp published by Tesouro Direto, not the time Alertou downloaded the feed. */
     private static final String KEY_OFFICIAL_UPDATED_AT = "official_updated_at";
@@ -82,6 +83,12 @@ final class TreasuryDirectMonitor {
                 .getLong(KEY_LAST_SUCCESS_AT, 0L);
     }
 
+    /** Last scheduled/manual attempt, including a read that failed while the official site was closed. */
+    static long getLastAttemptAt(Context context) {
+        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getLong(KEY_LAST_ATTEMPT_AT, 0L);
+    }
+
     static long getLastCheckDurationMillis(Context context) {
         return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .getLong(KEY_LAST_DURATION, 0L);
@@ -103,6 +110,9 @@ final class TreasuryDirectMonitor {
         Context context = appContext;
         if (context == null || !MonitorRunPolicy.canRun(context)) return;
         long startedAt = SystemClock.elapsedRealtime();
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                .putLong(KEY_LAST_ATTEMPT_AT, System.currentTimeMillis())
+                .apply();
         boolean completed = false;
         checking = true;
         notifyCheckState(context);
@@ -158,6 +168,9 @@ final class TreasuryDirectMonitor {
             }
             checking = false;
             notifyCheckState(context);
+            // The dashboard distinguishes this consultation from the last valid rate read.
+            context.sendBroadcast(new Intent(ACTION_RATES_CHANGED)
+                    .setPackage(context.getPackageName()));
         }
     }
 

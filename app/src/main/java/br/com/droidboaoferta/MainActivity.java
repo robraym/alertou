@@ -848,7 +848,8 @@ public class MainActivity extends AlertouActivity {
         boolean expanded = isOfferSectionExpanded(SECTION_TREASURY_EXPANDED);
         TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(this);
         StringBuilder fingerprint = new StringBuilder().append(expanded).append('|')
-                .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this));
+                .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this)).append('|')
+                .append(TreasuryDirectMonitor.getLastAttemptAt(this));
         for (Interest interest : treasuryInterests) {
             List<TreasuryRatePoint> points = historyRepository.get(interest.getId());
             fingerprint.append('|').append(interest.getId()).append('|')
@@ -1909,14 +1910,21 @@ public class MainActivity extends AlertouActivity {
 
     private String getTreasuryLastCheckSummary() {
         long officialUpdatedAt = TreasuryDirectMonitor.getOfficialUpdatedAt(this);
+        long lastAttemptAt = TreasuryDirectMonitor.getLastAttemptAt(this);
+        String lastAttempt = lastAttemptAt <= 0L ? "" : getString(
+                R.string.treasury_direct_last_checked,
+                formatCompactCheckTime(lastAttemptAt)
+        );
         if (officialUpdatedAt > 0L) {
-            return getString(R.string.treasury_direct_official_updated,
+            String official = getString(R.string.treasury_direct_official_updated,
                     new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
                             .format(new java.util.Date(officialUpdatedAt)));
+            return lastAttempt.isEmpty() ? official : official + "\n" + lastAttempt;
         }
-        long lastCheckAt = TreasuryDirectMonitor.getLastCheckAt(this);
+        long lastCheckAt = lastAttemptAt > 0L ? lastAttemptAt
+                : TreasuryDirectMonitor.getLastCheckAt(this);
         if (lastCheckAt <= 0L) return getString(R.string.property_alerts_status_empty);
-        return appendCheckDuration(formatCompactCheckTime(lastCheckAt),
+        return appendCheckDuration(lastAttempt.isEmpty() ? formatCompactCheckTime(lastCheckAt) : lastAttempt,
                 TreasuryDirectMonitor.getLastCheckDurationMillis(this));
     }
 

@@ -44,7 +44,19 @@ public class OfferMonitorService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         updateMonitors();
-        return START_STICKY;
+        // Keep the same monitoring intent if Android has to recreate this foreground service.
+        return START_REDELIVER_INTENT;
+    }
+
+    @Override
+    public void onTaskRemoved(Intent rootIntent) {
+        // Removing the UI task is not a request to stop monitoring. Keep the foreground
+        // notification and re-evaluate the configured monitors while the service remains alive.
+        if (MonitorServiceController.shouldRun(this)) {
+            startForeground(NOTIFICATION_ID, createNotification());
+            updateMonitors();
+        }
+        super.onTaskRemoved(rootIntent);
     }
 
     @Nullable
