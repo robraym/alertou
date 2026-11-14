@@ -229,14 +229,11 @@ final class OfferRepository {
                 Interest matchingInterest = findMatchingInterest(offer, interests);
                 boolean propertyMarketReference = PropertyMarketReferenceSettings.isReference(offer);
                 if (matchingInterest == null
+                        || !matchesInterestPriceLimit(offer, matchingInterest)
                         || (propertyMarketReference && !PropertyMarketReferenceSettings.isEnabled(context))
-                        || (!propertyMarketReference && !matchingInterest.isCoupon()
-                        && offer.getPrice() > matchingInterest.getMaximumPrice())
                         || (!propertyMarketReference && matchingInterest.isPrice()
                         && !OfferTextParser.isPlausiblePriceForInterest(
                         offer.getPrice(), matchingInterest.getTerm()))
-                        || (matchingInterest.isCoupon()
-                        && offer.getPrice() < matchingInterest.getMaximumPrice())
                         || !OfferEligibility.canDisplay(offer, now)) {
                     continue;
                 }
@@ -260,6 +257,11 @@ final class OfferRepository {
             long changedAt = System.currentTimeMillis();
             CloudSyncStore.rememberRecentChanged(context, changedAt);
         }
+    }
+
+    static boolean matchesInterestPriceLimit(ObservedOffer offer, Interest interest) {
+        return interest.isCoupon() ? offer.getPrice() >= interest.getMaximumPrice()
+                : offer.getPrice() <= interest.getMaximumPrice();
     }
 
     /** Removes offers from sources retired in this version, including saved and archived lists. */

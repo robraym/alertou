@@ -805,7 +805,9 @@ public class MainActivity extends AlertouActivity {
         StringBuilder fingerprint = new StringBuilder().append(expanded).append('|')
                 .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this)).append('|')
                 .append(TreasuryDirectMonitor.getLastAttemptAt(this)).append('|')
-                .append(TreasuryDirectMonitor.didLastAttemptFail(this));
+                .append(TreasuryDirectMonitor.didLastAttemptFail(this)).append('|')
+                .append(TreasuryDirectMonitor.getOfficialMarketStatus(this)).append('|')
+                .append(TreasuryDirectMonitor.getOfficialIndicatorColor(this));
         for (Interest interest : treasuryInterests) {
             List<TreasuryRatePoint> points = historyRepository.get(interest.getId());
             fingerprint.append('|').append(interest.getId()).append('|')
@@ -1831,20 +1833,19 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getTreasuryMarketStatus() {
-        if (TreasuryDirectMonitor.isOfficialMarketInMaintenance(this)) {
-            return getString(R.string.treasury_direct_market_maintenance);
+        switch (TreasuryDirectMonitor.getOfficialMarketStatus(this)) {
+            case OPEN: return getString(R.string.treasury_direct_market_available);
+            case CLOSED: return getString(R.string.treasury_direct_market_closed);
+            case SUSPENDED: return getString(R.string.treasury_direct_market_suspended);
+            case MAINTENANCE: return getString(R.string.treasury_direct_market_maintenance);
+            default: return getString(R.string.treasury_direct_market_unknown);
         }
-        return TreasuryDirectMonitor.getLastCheckAt(this) > 0L
-                ? getString(R.string.treasury_direct_market_available)
-                : getString(R.string.treasury_direct_rate_waiting);
     }
 
     private int getTreasuryMarketStatusColor() {
-        if (TreasuryDirectMonitor.isOfficialMarketInMaintenance(this)) {
-            return getColor(R.color.action_yellow);
-        }
-        return TreasuryDirectMonitor.getLastCheckAt(this) > 0L
-                ? getColor(R.color.action_green) : getColor(R.color.text_secondary);
+        String color = TreasuryDirectMonitor.getOfficialIndicatorColor(this);
+        return TreasuryDirectMonitor.getOfficialMarketStatus(this) != TreasuryMarketStatus.UNKNOWN
+                && !color.isEmpty() ? Color.parseColor(color) : getColor(R.color.text_secondary);
     }
 
     private String getPropertyStatusName(Interest interest) {
@@ -2169,15 +2170,17 @@ public class MainActivity extends AlertouActivity {
 
     private List<ObservedOffer> filterOffers(List<ObservedOffer> offers, String query) {
         String normalizedQuery = OfferTextParser.normalize(query);
-        if (normalizedQuery.isEmpty()) {
-            return offers;
-        }
+        java.util.Map<Long, Interest> currentInterests = getInterestsById();
         NumberFormat currency = CurrencyTextFormatter.displayFormatter();
         List<ObservedOffer> filtered = new java.util.ArrayList<>();
         for (ObservedOffer offer : offers) {
+            if (isPropertyOffer(offer)) {
+                Interest current = currentInterests.get(offer.getInterestId());
+                if (current == null || !OfferRepository.matchesInterestPriceLimit(offer, current)) continue;
+            }
             String text = offer.getDisplayTitle() + " " + offer.getInterest() + " " + offer.getSource() + " "
                     + currency.format(offer.getPrice()) + " " + offer.getPrice();
-            if (OfferTextParser.normalize(text).contains(normalizedQuery)) {
+            if (normalizedQuery.isEmpty() || OfferTextParser.normalize(text).contains(normalizedQuery)) {
                 filtered.add(offer);
             }
         }

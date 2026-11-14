@@ -920,10 +920,17 @@ final class PropertyPageMonitor {
         if (!PropertyMarketReferenceSettings.isEnabled(context)) {
             return repository.clearPropertyMarketReferences();
         }
+        ObservedOffer previousReference = repository.getPropertyMarketReference(interest.getId());
+        if (listing != null && !listing.matches(interest.getMinimumArea(),
+                interest.getMaximumArea(), interest.getMaximumPrice())) {
+            return previousReference != null && repository.clearRecentOffer(previousReference.getId());
+        }
         if (listing == null) {
             // A consulta pode falhar parcialmente (por exemplo, sem metadados do anúncio).
             // Preserve a última referência válida para não fazer um dos alertas sumir da lista.
-            return false;
+            return previousReference != null
+                    && !OfferRepository.matchesInterestPriceLimit(previousReference, interest)
+                    && repository.clearRecentOffer(previousReference.getId());
         }
         NumberFormat areaFormat = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         areaFormat.setMaximumFractionDigits(1);
@@ -942,7 +949,6 @@ final class PropertyPageMonitor {
                 listing.getUrl(),
                 "",
                 "");
-        ObservedOffer previousReference = repository.getPropertyMarketReference(interest.getId());
         boolean lowerReferenceReplacement = isNewLowestMarketReference(
                 previousReference, marketReference);
         boolean shouldNotifyNewLowest = isNewLowestMarketReference(

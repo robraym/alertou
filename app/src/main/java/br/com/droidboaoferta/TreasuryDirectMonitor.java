@@ -34,6 +34,8 @@ final class TreasuryDirectMonitor {
     static final String EXTRA_CHECKING = "treasury_checking";
     private static final String URL_RATES =
             "https://www.tesourodireto.com.br/o/rentabilidade/investir";
+    private static final String URL_MARKET_STATUS =
+            "https://www.tesourodireto.com.br/produtos/dados-sobre-titulos/rendimento-dos-titulos";
     private static final String PREFS = "treasury_direct_monitor";
     private static final String LAST_NOTIFIED_RATE_PREFIX = "last_notified_rate_";
     private static final String KEY_LAST_SUCCESS_AT = "last_success_at";
@@ -42,8 +44,8 @@ final class TreasuryDirectMonitor {
     private static final String KEY_LAST_DURATION = "last_duration";
     /** Timestamp published by Tesouro Direto, not the time Alertou downloaded the feed. */
     private static final String KEY_OFFICIAL_UPDATED_AT = "official_updated_at";
-    /** Next opening timestamp published with the regular Tesouro Direto titles. */
-    private static final String KEY_NEXT_MARKET_AVAILABILITY_AT = "next_market_availability_at";
+    private static final String KEY_OFFICIAL_MARKET_STATUS = "official_market_status";
+    private static final String KEY_OFFICIAL_INDICATOR_COLOR = "official_indicator_color";
     private static final Pattern RATE = Pattern.compile("([+-]?\\s*\\d+(?:,\\d+)?)%");
     private static final TreasuryDirectMonitor INSTANCE = new TreasuryDirectMonitor();
 
@@ -105,11 +107,17 @@ final class TreasuryDirectMonitor {
                 .getLong(KEY_OFFICIAL_UPDATED_AT, 0L);
     }
 
-    static boolean isOfficialMarketInMaintenance(Context context) {
-        long nextAvailabilityAt = context.getApplicationContext()
-                .getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getLong(KEY_NEXT_MARKET_AVAILABILITY_AT, 0L);
-        return nextAvailabilityAt > System.currentTimeMillis();
+    static TreasuryMarketStatus getOfficialMarketStatus(Context context) {
+        String status = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_OFFICIAL_MARKET_STATUS, TreasuryMarketStatus.UNKNOWN.name());
+        try { return TreasuryMarketStatus.valueOf(status); }
+        catch (IllegalArgumentException invalid) { return TreasuryMarketStatus.UNKNOWN; }
+    }
+
+    static String getOfficialIndicatorColor(Context context) {
+        String color = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_OFFICIAL_INDICATOR_COLOR, "");
+        return color.matches("#[0-9A-Fa-f]{6}") ? color : "";
     }
 
     private void checkSafely() {
@@ -133,7 +141,6 @@ final class TreasuryDirectMonitor {
             boolean missingReading = false;
             boolean treasuryHistoryChanged = false;
             long officialUpdatedAt = findLatestMarketPricingAt(bonds);
-            long nextMarketAvailabilityAt = findNextMarketAvailabilityAt(bonds, officialUpdatedAt);
             for (Interest interest : interests) {
                 if (!interest.isTreasury()) continue;
                 Double rate = findPurchaseRate(bonds, interest.getTerm());
@@ -157,11 +164,7 @@ final class TreasuryDirectMonitor {
             }
             SharedPreferences.Editor officialState = preferences.edit();
             if (officialUpdatedAt > 0L) officialState.putLong(KEY_OFFICIAL_UPDATED_AT, officialUpdatedAt);
-            if (nextMarketAvailabilityAt > 0L) {
-                officialState.putLong(KEY_NEXT_MARKET_AVAILABILITY_AT, nextMarketAvailabilityAt);
-            } else {
-                officialState.remove(KEY_NEXT_MARKET_AVAILABILITY_AT);
-            }
+            officialState.remove("next_market_availability_at");
             officialState.apply();
             if (recordedReading) context.sendBroadcast(new Intent(ACTION_RATES_CHANGED)
                     .setPackage(context.getPackageName()));
@@ -170,6 +173,18 @@ final class TreasuryDirectMonitor {
         } catch (Exception ignored) {
             // The next scheduled check retries. A failed read must not alter alert state.
         } finally {
+            TreasuryMarketStatus marketStatus = TreasuryMarketStatus.UNKNOWN;
+            String indicatorColor = "";
+            try {
+                String officialPage = download(URL_MARKET_STATUS, "text/html");
+                marketStatus = TreasuryMarketStatus.fromOfficialPage(officialPage);
+                indicatorColor = TreasuryMarketStatus.indicatorColorFromOfficialPage(officialPage);
+            } catch (Exception unavailable) {
+                // A failed status read confirms neither an open nor a closed market.
+            }
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+                    .putString(KEY_OFFICIAL_MARKET_STATUS, marketStatus.name())
+                    .putString(KEY_OFFICIAL_INDICATOR_COLOR, indicatorColor).apply();
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putBoolean(KEY_LAST_ATTEMPT_FAILED, !completed).apply();
             if (completed) {
@@ -216,21 +231,6 @@ final class TreasuryDirectMonitor {
         return latest;
     }
 
-    /**
-     * The regular-title feed gives the next sale opening in startDate. When it is still in the
-     * future, the official page is in its maintenance/closed state.
-     */
-    static long findNextMarketAvailabilityAt(JSONArray bonds, long officialUpdatedAt) {
-        long next = 0L;
-        for (int index = 0; bonds != null && index < bonds.length(); index++) {
-            JSONObject bond = bonds.optJSONObject(index);
-            long startsAt = parseOfficialDate(bond == null ? "" : bond.optString("startDate"));
-            if (startsAt <= officialUpdatedAt) continue;
-            next = next == 0L ? startsAt : Math.min(next, startsAt);
-        }
-        return next;
-    }
-
     private static long parseOfficialDate(String value) {
         if (value == null || value.trim().isEmpty()) return 0L;
         try {
@@ -245,15 +245,25 @@ final class TreasuryDirectMonitor {
     }
 
     private String download() throws Exception {
-        HttpURLConnection connection = (HttpURLConnection) new URL(URL_RATES).openConnection();
+        return download(URL_RATES, "application/json");
+    }
+
+    private String download(String url, String accept) throws Exception {
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setConnectTimeout(15000);
         connection.setReadTimeout(15000);
-        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Accept", accept);
+        connection.setRequestProperty("Cache-Control", "no-cache");
+        connection.setUseCaches(false);
         connection.setRequestProperty("User-Agent", "Alertou/1.0");
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                connection.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
             StringBuilder result = new StringBuilder();
             String line;
-            while ((line = reader.readLine()) != null) result.append(line);
+            while ((line = reader.readLine()) != null) {
+                result.append(line).append('\n');
+                if (result.length() > 2_000_000) throw new java.io.IOException("Resposta do Tesouro muito grande");
+            }
             return result.toString();
         } finally {
             connection.disconnect();

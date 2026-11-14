@@ -22,13 +22,4 @@ public class TreasuryDirectMonitorTest {
                 new JSONArray().put(new JSONObject())));
     }
 
-    @Test
-    public void findsNextPublishedOpeningAfterOfficialPricing() throws Exception {
-        JSONArray bonds = new JSONArray()
-                .put(new JSONObject().put("startDate", "2026-11-12T09:30:00.000"))
-                .put(new JSONObject().put("startDate", "2026-11-13T09:30:00.000"));
-
-        assertEquals(1_794_486_600_000L, TreasuryDirectMonitor.findNextMarketAvailabilityAt(
-                bonds, 1_794_400_000_000L));
-    }
 }

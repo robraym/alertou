@@ -13,6 +13,40 @@ import java.util.concurrent.Future;
 import static org.junit.Assert.*;
 
 public class OfferRepositoryTest {
+    @Test public void loweringCondominiumLimitsRemovesAboveLimitMarketReferences() {
+        SharedPreferences preferences = TestPreferences.create();
+        OfferRepository repository = new OfferRepository(preferences);
+        double[] limits = {340000, 600000, 300000, 420000};
+        double[] prices = {345000, 630000, 320000, 425000};
+        List<Interest> interests = new ArrayList<>();
+        for (int i = 0; i < limits.length; i++) {
+            long id = i + 1;
+            interests.add(new Interest(id, "Condomínio " + id, limits[i], Interest.TYPE_PROPERTY));
+            repository.replacePropertyMarketReference(new ObservedOffer(
+                    "property_market|" + id + "|listing", id, "Condomínio " + id,
+                    "QuintoAndar", prices[i], 900000, System.currentTimeMillis(),
+                    "https://example.com/" + id, ""));
+        }
+
+        repository.reconcileRecentWithInterests(interests);
+
+        assertTrue(repository.getRecentForValidation().isEmpty());
+    }
+
+    @Test public void condominiumPriceLimitIncludesEqualityForOffersAndReferences() {
+        Interest interest = new Interest(23L, "Princes", 600000, Interest.TYPE_PROPERTY);
+        for (String prefix : new String[]{"property", "property_market"}) {
+            ObservedOffer equal = new ObservedOffer(prefix + "|23|listing", 23L,
+                    "Princes", "QuintoAndar", 600000, 900000,
+                    System.currentTimeMillis(), "https://example.com/listing", "");
+            ObservedOffer above = new ObservedOffer(prefix + "|23|above", 23L,
+                    "Princes", "QuintoAndar", 600000.01, 900000,
+                    System.currentTimeMillis(), "https://example.com/above", "");
+            assertTrue(OfferRepository.matchesInterestPriceLimit(equal, interest));
+            assertFalse(OfferRepository.matchesInterestPriceLimit(above, interest));
+        }
+    }
+
     @Test public void simultaneousSourcesKeepEveryOffer() throws Exception {
         SharedPreferences preferences = TestPreferences.create();
         ExecutorService workers = Executors.newFixedThreadPool(8);
