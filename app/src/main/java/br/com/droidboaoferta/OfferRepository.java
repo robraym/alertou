@@ -445,22 +445,39 @@ final class OfferRepository {
                 return false;
             }
             Set<String> targetIds = new HashSet<>(ids);
-            List<ObservedOffer> recent = new ArrayList<>(readOffers(KEY_OFFERS));
+            List<ObservedOffer> targets = new ArrayList<>();
+            for (ObservedOffer offer : readOffers(KEY_OFFERS)) {
+                if (targetIds.contains(offer.getId())) targets.add(offer);
+            }
+            return trashDisplayedRecent(targets);
+        }
+    }
+
+    /** Preserves the exact offers confirmed on screen, even if a concurrent update removed them. */
+    boolean trashDisplayedRecent(List<ObservedOffer> displayed) {
+        synchronized (OfferStorage.LOCK) {
+            if (displayed == null || displayed.isEmpty()) return false;
+            java.util.Map<String, ObservedOffer> targets = new java.util.LinkedHashMap<>();
+            for (ObservedOffer offer : displayed) targets.put(offer.getId(), offer);
             List<ObservedOffer> remaining = new ArrayList<>();
+            Set<String> movedRecentIds = new HashSet<>();
+            for (ObservedOffer offer : readOffers(KEY_OFFERS)) {
+                if (targets.containsKey(offer.getId())) {
+                    // Prefer the latest stored version when the selected offer still exists.
+                    targets.put(offer.getId(), offer);
+                    movedRecentIds.add(offer.getId());
+                } else remaining.add(offer);
+            }
             List<ObservedOffer> trashed = new ArrayList<>(readOffers(KEY_TRASHED_OFFERS));
-            boolean changed = false;
-            for (ObservedOffer offer : recent) {
-                if (targetIds.contains(offer.getId())) {
-                    trashed.removeIf(item -> item.getId().equals(offer.getId()));
-                    trashed.add(0, offer);
-                    changed = true;
-                } else {
-                    remaining.add(offer);
-                }
+            boolean changed = !movedRecentIds.isEmpty();
+            for (ObservedOffer offer : targets.values()) {
+                boolean alreadyTrashed = trashed.stream().anyMatch(item -> item.getId().equals(offer.getId()));
+                if (alreadyTrashed && !movedRecentIds.contains(offer.getId())) continue;
+                trashed.removeIf(item -> item.getId().equals(offer.getId()));
+                trashed.add(0, offer);
+                changed = true;
             }
-            if (!changed) {
-                return false;
-            }
+            if (!changed) return false;
             preferences.edit().putString(KEY_OFFERS, OfferStorage.encode(remaining))
                     .putString(KEY_TRASHED_OFFERS, OfferStorage.encode(sortByObservedAt(trashed))).apply();
             long changedAt = System.currentTimeMillis();

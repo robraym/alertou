@@ -13,6 +13,56 @@ import java.util.concurrent.Future;
 import static org.junit.Assert.*;
 
 public class OfferRepositoryTest {
+    @Test public void trashingDisplayedProductsPreservesOtherSectionsAndSupportsRestoring() {
+        OfferRepository repository = new OfferRepository(TestPreferences.create());
+        ObservedOffer product = offer(1);
+        ObservedOffer property = new ObservedOffer("property|23|listing", 23L,
+                "Condomínio", "QuintoAndar", 300000, 400000,
+                System.currentTimeMillis(), "https://example.com/property", "");
+        repository.add(product);
+        repository.add(property);
+
+        assertTrue(repository.trashDisplayedRecent(java.util.Collections.singletonList(product)));
+        assertEquals(1, repository.getRecentForValidation().size());
+        assertEquals(property.getId(), repository.getRecentForValidation().get(0).getId());
+        assertEquals(product.getId(), repository.getTrashed().get(0).getId());
+
+        repository.restoreTrashed(product.getId());
+        assertTrue(repository.getTrashed().isEmpty());
+        assertEquals(2, repository.getRecentForValidation().size());
+    }
+
+    @Test public void confirmationPreservesDisplayedOfferEvenIfConcurrentUpdateRemovedIt() {
+        OfferRepository repository = new OfferRepository(TestPreferences.create());
+        ObservedOffer displayed = offer(1);
+        repository.add(displayed);
+        List<ObservedOffer> dialogSnapshot = repository.getRecentForValidation();
+        repository.clearRecentOffer(displayed.getId());
+        repository.add(offer(2));
+
+        assertTrue(repository.trashDisplayedRecent(dialogSnapshot));
+        assertEquals("offer-2", repository.getRecentForValidation().get(0).getId());
+        assertEquals(displayed.getId(), repository.getTrashed().get(0).getId());
+        assertEquals(displayed.getPrice(), repository.getTrashed().get(0).getPrice(), 0d);
+        assertEquals(displayed.getLink(), repository.getTrashed().get(0).getLink());
+        assertFalse(repository.trashDisplayedRecent(dialogSnapshot));
+        assertEquals(1, repository.getTrashed().size());
+    }
+
+    @Test public void confirmationMovesLatestStoredVersionInsteadOfOverwritingItWithOldDisplay() {
+        OfferRepository repository = new OfferRepository(TestPreferences.create());
+        ObservedOffer displayed = offer(1);
+        ObservedOffer updated = new ObservedOffer(displayed.getId(), displayed.getInterestId(),
+                displayed.getInterest(), displayed.getSource(), 90, 200,
+                System.currentTimeMillis(), displayed.getLink(), "");
+        repository.add(displayed);
+        repository.add(updated);
+
+        assertTrue(repository.trashDisplayedRecent(java.util.Collections.singletonList(displayed)));
+        assertTrue(repository.getRecentForValidation().isEmpty());
+        assertEquals(90d, repository.getTrashed().get(0).getPrice(), 0d);
+    }
+
     @Test public void loweringCondominiumLimitsRemovesAboveLimitMarketReferences() {
         SharedPreferences preferences = TestPreferences.create();
         OfferRepository repository = new OfferRepository(preferences);

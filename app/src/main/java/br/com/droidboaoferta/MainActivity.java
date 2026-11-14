@@ -599,13 +599,17 @@ public class MainActivity extends AlertouActivity {
     }
 
     private void performTrashOfferSection(List<ObservedOffer> offers) {
-        List<String> ids = new java.util.ArrayList<>();
+        java.util.Set<String> ids = new java.util.HashSet<>();
         for (ObservedOffer offer : offers) {
             ids.add(offer.getId());
         }
-        if (offerRepository.trashRecent(ids)) {
-            refreshDashboard();
-        }
+        offerRepository.trashDisplayedRecent(offers);
+        // Do not leave a confirmed card on screen just because its stored snapshot changed.
+        List<ObservedOffer> remaining = new java.util.ArrayList<>(displayedOffers);
+        remaining.removeIf(offer -> ids.contains(offer.getId()));
+        ++dashboardRenderGeneration;
+        renderOffers(remaining, displayedPropertyHistory);
+        refreshDashboard(false);
     }
 
     private void renderInterests(List<Interest> interests) {
