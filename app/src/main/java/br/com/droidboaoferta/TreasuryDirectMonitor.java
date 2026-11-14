@@ -36,6 +36,8 @@ final class TreasuryDirectMonitor {
             "https://www.tesourodireto.com.br/o/rentabilidade/investir";
     private static final String URL_MARKET_STATUS =
             "https://www.tesourodireto.com.br/produtos/dados-sobre-titulos/rendimento-dos-titulos";
+    private static final String URL_PORTAL_INDICATOR_STYLES =
+            "https://portalinvestidor.tesourodireto.com.br/bundles/appcss";
     private static final String PREFS = "treasury_direct_monitor";
     private static final String LAST_NOTIFIED_RATE_PREFIX = "last_notified_rate_";
     private static final String KEY_LAST_SUCCESS_AT = "last_success_at";
@@ -46,6 +48,7 @@ final class TreasuryDirectMonitor {
     private static final String KEY_OFFICIAL_UPDATED_AT = "official_updated_at";
     private static final String KEY_OFFICIAL_MARKET_STATUS = "official_market_status";
     private static final String KEY_OFFICIAL_INDICATOR_COLOR = "official_indicator_color";
+    private static final String KEY_INDICATOR_SOURCE = "indicator_color_source";
     private static final Pattern RATE = Pattern.compile("([+-]?\\s*\\d+(?:,\\d+)?)%");
     private static final TreasuryDirectMonitor INSTANCE = new TreasuryDirectMonitor();
 
@@ -115,8 +118,10 @@ final class TreasuryDirectMonitor {
     }
 
     static String getOfficialIndicatorColor(Context context) {
-        String color = context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                .getString(KEY_OFFICIAL_INDICATOR_COLOR, "");
+        SharedPreferences preferences = context.getApplicationContext()
+                .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (!URL_PORTAL_INDICATOR_STYLES.equals(preferences.getString(KEY_INDICATOR_SOURCE, ""))) return "";
+        String color = preferences.getString(KEY_OFFICIAL_INDICATOR_COLOR, "");
         return color.matches("#[0-9A-Fa-f]{6}") ? color : "";
     }
 
@@ -178,13 +183,21 @@ final class TreasuryDirectMonitor {
             try {
                 String officialPage = download(URL_MARKET_STATUS, "text/html");
                 marketStatus = TreasuryMarketStatus.fromOfficialPage(officialPage);
-                indicatorColor = TreasuryMarketStatus.indicatorColorFromOfficialPage(officialPage);
             } catch (Exception unavailable) {
                 // A failed status read confirms neither an open nor a closed market.
             }
+            if (marketStatus != TreasuryMarketStatus.UNKNOWN) {
+                try {
+                    indicatorColor = marketStatus.indicatorColorFromPortalStyles(
+                            download(URL_PORTAL_INDICATOR_STYLES, "text/css"));
+                } catch (Exception unavailable) {
+                    // Never replace the Portal palette with colors from another site.
+                }
+            }
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putString(KEY_OFFICIAL_MARKET_STATUS, marketStatus.name())
-                    .putString(KEY_OFFICIAL_INDICATOR_COLOR, indicatorColor).apply();
+                    .putString(KEY_OFFICIAL_INDICATOR_COLOR, indicatorColor)
+                    .putString(KEY_INDICATOR_SOURCE, URL_PORTAL_INDICATOR_STYLES).apply();
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putBoolean(KEY_LAST_ATTEMPT_FAILED, !completed).apply();
             if (completed) {

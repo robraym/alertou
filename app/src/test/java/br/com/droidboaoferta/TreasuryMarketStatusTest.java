@@ -40,32 +40,34 @@ public class TreasuryMarketStatusTest {
         return "<button type='button' class='other open-modal-status-mercado'>" + label + "</button>";
     }
 
-    @Test public void readsIndicatorColorForEveryStatusWithoutChoosingItFromTheLabel() {
-        String[] labels = {"Mercado aberto", "Mercado fechado", "Mercado suspenso", "Em manutenção"};
-        String[] colors = {"#21DE72", "#FFC914", "#FF8900", "#FFD033"};
-        for (int i = 0; i < labels.length; i++) {
-            String html = button(labels[i] + "<svg class='m-indicator'><rect fill='" + colors[i] + "'/></svg>");
-            assertEquals(colors[i], TreasuryMarketStatus.indicatorColorFromOfficialPage(html));
-        }
-        assertEquals("#123456", TreasuryMarketStatus.indicatorColorFromOfficialPage(
-                button("Mercado fechado<svg class='m-indicator'><rect fill='#123456'/></svg>")));
+    @Test public void readsAllFourIndicatorColorsFromTheActualPortalStyles() {
+        // Rules verified in the public Portal stylesheet and the logged-in page's CSSOM.
+        String css = ".td-mercado-status--aberto:before {background-color: #237131; display: inline-block;}"
+                + ".td-mercado-status--suspenso:before {background-color: #ce185d; display: inline-block;}"
+                + ".td-mercado-status--encerrado:before {background-color: #333; display: inline-block;}"
+                + ".td-mercado-status--sem:before {background-color: #ffc914; display: inline-block;}";
+        assertEquals("#237131", TreasuryMarketStatus.OPEN.indicatorColorFromPortalStyles(css));
+        assertEquals("#FFC914", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(css));
+        assertEquals("#CE185D", TreasuryMarketStatus.SUSPENDED.indicatorColorFromPortalStyles(css));
+        assertEquals("#333333", TreasuryMarketStatus.MAINTENANCE.indicatorColorFromPortalStyles(css));
     }
 
-    @Test public void cssIndicatorFillOverridesSvgAttributeAndNeverUsesTheFontColor() {
-        String html = "<style>:root { --indicator: #808080; }"
-                + ".open-modal-status-mercado {color: #07172C;}"
-                + "svg.m-fechado rect {fill: var(--indicator) !important;}</style>"
-                + button("Mercado fechado<svg class='m-fechado'><rect fill='#21DE72'/></svg>");
-        assertEquals("#808080", TreasuryMarketStatus.indicatorColorFromOfficialPage(html));
+    @Test public void neverUsesThePublicSiteIndicatorOrThePortalFontColor() {
+        String css = "svg.m-fechado rect {fill: #808080;}"
+                + ".td-mercado-status {color: #767676;}"
+                + ".td-mercado-status--sem::before {background-color: #ffc914;}";
+        assertEquals("#FFC914", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(css));
+        assertEquals("", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(
+                "svg.m-fechado rect {fill: #808080;}"));
     }
 
     @Test public void missingOrConflictingIndicatorColorIsNotInvented() {
-        assertEquals("", TreasuryMarketStatus.indicatorColorFromOfficialPage(button("Mercado fechado")));
-        assertEquals("", TreasuryMarketStatus.indicatorColorFromOfficialPage(
-                "<style>.m-fechado rect {fill: var(--missing);}</style>"
-                        + button("Mercado fechado<svg class='m-fechado'><rect fill='#21DE72'/></svg>")));
-        assertEquals("", TreasuryMarketStatus.indicatorColorFromOfficialPage(
-                "<style>.m-fechado rect {fill: #123456;} .m-fechado rect {fill: #654321;}</style>"
-                        + button("Mercado fechado<svg class='m-fechado'><rect fill='#21DE72'/></svg>")));
+        assertEquals("", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(null));
+        assertEquals("", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(""));
+        assertEquals("", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(
+                ".td-mercado-status--sem:before {background-color: var(--missing);}"));
+        assertEquals("", TreasuryMarketStatus.CLOSED.indicatorColorFromPortalStyles(
+                ".td-mercado-status--sem:before {background-color: #123456;}"
+                        + ".td-mercado-status--sem:before {background-color: #654321;}"));
     }
 }

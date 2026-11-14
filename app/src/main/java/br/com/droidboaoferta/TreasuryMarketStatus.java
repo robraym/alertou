@@ -36,59 +36,29 @@ enum TreasuryMarketStatus {
         return confirmed;
     }
 
-    /** Reads the indicator's fill, including the CSS override used by the official page.
-     * The status label is never used to choose a color. */
-    static String indicatorColorFromOfficialPage(String html) {
-        if (fromOfficialPage(html) == UNKNOWN) return "";
-        StringBuilder styles = new StringBuilder();
-        Matcher styleBlocks = Pattern.compile("(?is)<style\\b[^>]*>(.*?)</style>").matcher(html);
-        while (styleBlocks.find()) styles.append(styleBlocks.group(1)).append('\n');
-        String css = styles.toString().replaceAll("(?s)/\\*.*?\\*/", "");
-        Matcher buttons = STATUS_BUTTON.matcher(html);
-        String confirmed = "";
-        while (buttons.find()) {
-            String content = buttons.group(2);
-            Matcher icon = Pattern.compile("(?is)<svg\\b[^>]*class\\s*=\\s*([\"'])"
-                    + "[^\"']*\\b(m-[a-z-]+)\\b[^\"']*\\1[^>]*>").matcher(content);
-            if (!icon.find()) return "";
-            Matcher overrides = Pattern.compile("(?is)\\." + Pattern.quote(icon.group(2))
-                    + "\\s+rect\\s*\\{([^{}]*)\\}").matcher(css);
-            String color = "";
-            boolean hasOverride = false;
-            while (overrides.find()) {
-                Matcher fill = Pattern.compile("(?is)(?:^|;)\\s*fill\\s*:\\s*([^;!}]+)")
-                        .matcher(overrides.group(1));
-                if (!fill.find()) continue;
-                hasOverride = true;
-                String resolved = resolveFill(fill.group(1).trim(), css);
-                if (resolved.isEmpty() || (!color.isEmpty() && !color.equals(resolved))) return "";
-                color = resolved;
-            }
-            if (!hasOverride) {
-                Matcher rect = Pattern.compile("(?is)<rect\\b[^>]*\\bfill\\s*=\\s*([\"'])"
-                        + "(#[0-9a-f]{3}(?:[0-9a-f]{3})?)\\1").matcher(content);
-                if (!rect.find()) return "";
-                color = resolveFill(rect.group(2), css);
-            }
-            if (color.isEmpty() || (!confirmed.isEmpty() && !confirmed.equals(color))) return "";
-            confirmed = color;
+    /** Portal do Investidor indicator selectors, verified against its rendered DOM and CSS. */
+    String indicatorColorFromPortalStyles(String css) {
+        if (css == null) return "";
+        String indicator;
+        switch (this) {
+            case OPEN: indicator = "aberto"; break;
+            case CLOSED: indicator = "sem"; break;
+            case SUSPENDED: indicator = "suspenso"; break;
+            case MAINTENANCE: indicator = "encerrado"; break;
+            default: return "";
         }
-        return confirmed;
-    }
-
-    private static String resolveFill(String value, String css) {
-        if (value.matches("(?i)#[0-9a-f]{6}")) return value.toUpperCase(Locale.ROOT);
-        if (value.matches("(?i)#[0-9a-f]{3}")) {
-            return ("#" + value.charAt(1) + value.charAt(1) + value.charAt(2)
-                    + value.charAt(2) + value.charAt(3) + value.charAt(3)).toUpperCase(Locale.ROOT);
-        }
-        Matcher variable = Pattern.compile("var\\(\\s*(--[a-zA-Z0-9_-]+)\\s*\\)").matcher(value);
-        if (!variable.matches()) return "";
-        Matcher definitions = Pattern.compile(Pattern.quote(variable.group(1))
-                + "\\s*:\\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})\\s*[;}]").matcher(css);
+        String stylesheet = css.replaceAll("(?s)/\\*.*?\\*/", "");
+        Matcher rules = Pattern.compile("(?is)\\.td-mercado-status--" + indicator
+                + "::?before\\s*\\{([^{}]*)\\}").matcher(stylesheet);
         String color = "";
-        while (definitions.find()) {
-            String resolved = resolveFill(definitions.group(1), "");
+        while (rules.find()) {
+            Matcher background = Pattern.compile("(?i)(?:^|;)\\s*background-color\\s*:\\s*"
+                    + "(#[0-9a-f]{6}|#[0-9a-f]{3})\\s*(?:!important\\s*)?(?:;|$)")
+                    .matcher(rules.group(1));
+            if (!background.find()) return "";
+            String resolved = background.group(1).toUpperCase(Locale.ROOT);
+            if (resolved.length() == 4) resolved = "#" + resolved.charAt(1) + resolved.charAt(1)
+                    + resolved.charAt(2) + resolved.charAt(2) + resolved.charAt(3) + resolved.charAt(3);
             if (!color.isEmpty() && !color.equals(resolved)) return "";
             color = resolved;
         }
