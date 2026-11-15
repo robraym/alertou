@@ -1157,6 +1157,27 @@ public class MainActivity extends AlertouActivity {
         renderingSectionFingerprint = OfferSectionCache.fingerprint(this, offers,
                 displayedPropertyHistory, expanded,
                 propertyMarketSection ? "" : sectionSummary);
+        int marketListingTotal = 0;
+        boolean hasMarketListingCounts = false;
+        if (propertyMarketSection) {
+            StringBuilder filters = new StringBuilder();
+            PropertyHistoryRepository listingHistory = new PropertyHistoryRepository(this);
+            for (Interest interest : getInterestsById().values()) {
+                if (interest.isPropertyCondominium()) {
+                    PropertyMarketListingCountHistory counts = listingHistory
+                            .getMarketListingCountHistory(interest.getId());
+                    filters.append('|').append(interest.getId()).append(':').append(interest.getPropertyName())
+                            .append(':').append(interest.getMinimumArea()).append(':').append(interest.getMaximumArea())
+                            .append(':').append(interest.getMaximumPrice())
+                            .append(':').append(counts.getPoints().isEmpty() ? "unknown" : counts.getLatestCount());
+                    if (!counts.getPoints().isEmpty()) {
+                        marketListingTotal += counts.getLatestCount();
+                        hasMarketListingCounts = true;
+                    }
+                }
+            }
+            renderingSectionFingerprint += filters.toString();
+        }
         View cached = offerSectionCache.find(preferenceKey, renderingSectionFingerprint);
         if (cached != null) {
             if (propertyMarketSection) {
@@ -1278,7 +1299,24 @@ public class MainActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             countLineParams.topMargin = dp(3);
-            headerText.addView(count, countLineParams);
+            if (propertyMarketSection && hasMarketListingCounts) {
+                LinearLayout countLine = new LinearLayout(this);
+                countLine.setGravity(Gravity.CENTER_VERTICAL);
+                countLine.addView(count, new LinearLayout.LayoutParams(
+                        0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                TextView totalBadge = createPropertyListingCountBadge(marketListingTotal, null);
+                totalBadge.setClickable(false);
+                totalBadge.setFocusable(false);
+                totalBadge.setContentDescription(getString(
+                        R.string.property_group_total_listing_count, marketListingTotal));
+                LinearLayout.LayoutParams totalParams = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+                totalParams.leftMargin = dp(6);
+                countLine.addView(totalBadge, totalParams);
+                headerText.addView(countLine, countLineParams);
+            } else {
+                headerText.addView(count, countLineParams);
+            }
         } else {
             LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -1627,23 +1665,30 @@ public class MainActivity extends AlertouActivity {
         LinearLayout textColumn = new LinearLayout(this);
         textColumn.setOrientation(LinearLayout.VERTICAL);
 
+        LinearLayout titleLine = new LinearLayout(this);
+        titleLine.setGravity(Gravity.CENTER_VERTICAL);
+        textColumn.addView(titleLine, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
         TextView label = new TextView(this);
         label.setText(title);
         label.setTextColor(getColor(R.color.text_primary));
         label.setTextSize(13);
         label.setSingleLine(true);
         label.setEllipsize(TextUtils.TruncateAt.END);
-        textColumn.addView(label, new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+        titleLine.addView(label, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         TextView returnedOffers = new TextView(this);
         String offerCountText = stripCountBullet(getResources().getQuantityString(
                 R.plurals.dashboard_offer_section_count,
                 returnedOfferCount, returnedOfferCount));
-        if (unavailableOfferCount > 0) {
-            offerCountText += " · " + getResources().getQuantityString(
-                    R.plurals.property_unavailable_offer_count,
-                    unavailableOfferCount, unavailableOfferCount);
+        if (returnedOfferCount == 0) offerCountText = getString(R.string.property_group_no_offers);
+        Interest configuredInterest = getInterestsById().get(interestId);
+        if (configuredInterest != null) {
+            offerCountText = getString(R.string.property_group_offer_filters, offerCountText,
+                    formatPropertyAreaRange(configuredInterest),
+                    CurrencyTextFormatter.displayFormatter().format(configuredInterest.getMaximumPrice()));
         }
         returnedOffers.setText(offerCountText);
         returnedOffers.setTextColor(getColor(R.color.text_secondary));
@@ -1664,8 +1709,7 @@ public class MainActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             countBadgeParams.leftMargin = dp(5);
-            countBadgeParams.rightMargin = dp(6);
-            header.addView(countBadge, countBadgeParams);
+            titleLine.addView(countBadge, countBadgeParams);
         }
 
         boolean expanded = getSharedPreferences(OFFER_PREFS, MODE_PRIVATE)

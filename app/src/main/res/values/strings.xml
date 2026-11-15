@@ -557,6 +557,9 @@
         <item quantity="one">%d indisponível</item>
         <item quantity="other">%d indisponíveis</item>
     </plurals>
+    <string name="property_group_no_offers">0 ofertas</string>
+    <string name="property_group_offer_filters">%1$s · %2$s · até %3$s</string>
+    <string name="property_group_total_listing_count">Soma dos totais exibidos nos condomínios: %1$d imóveis</string>
     <plurals name="property_market_reference_section_progress">
         <item quantity="one">• %1$d de %2$d condomínio cadastrado</item>
         <item quantity="other">• %1$d de %2$d condomínios cadastrados</item>
