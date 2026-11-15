@@ -1413,14 +1413,9 @@ public class MainActivity extends AlertouActivity {
         boolean propertyInterestCards = propertyMarketSection;
         List<ObservedOffer> sectionOffers = propertyMarketSection ? groupPropertyCondominiumOffersByInterest(offers) : offers;
         java.util.Map<Long, Integer> propertyInterestOfferCounts = new java.util.HashMap<>();
-        java.util.Map<Long, Integer> propertyInterestUnavailableCounts = new java.util.HashMap<>();
         if (propertyInterestCards) {
             for (ObservedOffer offer : sectionOffers) {
-                if (isUnavailablePropertyOffer(offer)) {
-                    int unavailableCount = propertyInterestUnavailableCounts.containsKey(offer.getInterestId())
-                            ? propertyInterestUnavailableCounts.get(offer.getInterestId()) : 0;
-                    propertyInterestUnavailableCounts.put(offer.getInterestId(), unavailableCount + 1);
-                } else if (countsAsCurrentPropertyOffer(offer)) {
+                if (countsAsCurrentPropertyOffer(offer)) {
                     int offerCountForInterest = propertyInterestOfferCounts.containsKey(offer.getInterestId())
                             ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0;
                     propertyInterestOfferCounts.put(offer.getInterestId(), offerCountForInterest + 1);
@@ -1463,9 +1458,7 @@ public class MainActivity extends AlertouActivity {
                     propertyCardOffers = addPropertyInterestCard(content, group,
                             offer.getInterestId(), groupLabel,
                            propertyInterestOfferCounts.containsKey(offer.getInterestId())
-                                    ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0,
-                            propertyInterestUnavailableCounts.containsKey(offer.getInterestId())
-                                    ? propertyInterestUnavailableCounts.get(offer.getInterestId()) : 0);
+                                    ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0);
                     renderedPropertyInterestIds.add(offer.getInterestId());
                 } else if (propertyCardOffers != null && propertyCardOfferCount > 0) {
                     propertyCardOffers.addView(createOfferDivider());
@@ -1549,7 +1542,7 @@ public class MainActivity extends AlertouActivity {
                 }
                 activePropertyCardKey = getPropertyCondominiumCardKey(interest.getId());
                 addPropertyInterestCard(content, activePropertyCardKey, interest.getId(),
-                        getPropertyCondominiumCardTitle(interest), 0, 0);
+                        getPropertyCondominiumCardTitle(interest), 0);
             }
         }
         card.addView(content);
@@ -1636,8 +1629,7 @@ public class MainActivity extends AlertouActivity {
 
     private LinearLayout addPropertyInterestCard(LinearLayout parent, String preferenceKey,
                                                  long interestId, String title,
-                                                int returnedOfferCount,
-                                                 int unavailableOfferCount) {
+                                                int returnedOfferCount) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setBackgroundResource(R.drawable.bg_card_compact);
@@ -2228,6 +2220,8 @@ public class MainActivity extends AlertouActivity {
         List<ObservedOffer> filtered = new java.util.ArrayList<>();
         for (ObservedOffer offer : offers) {
             if (isPropertyOffer(offer)) {
+                PropertyHistoryEntry history = displayedPropertyHistory.get(offer.getId());
+                if (history != null && history.isUnavailable()) continue;
                 Interest current = currentInterests.get(offer.getInterestId());
                 if (current == null || !OfferRepository.matchesInterestPriceLimit(offer, current)) continue;
             }
