@@ -13,6 +13,27 @@ import java.util.concurrent.Future;
 import static org.junit.Assert.*;
 
 public class OfferRepositoryTest {
+    @Test public void eachSavedOfferIsPublishedBeforeItsSourceFinishesTheBatch() {
+        SharedPreferences preferences = TestPreferences.create();
+        List<Integer> visibleCountsAtPublication = new ArrayList<>();
+        List<String> events = new ArrayList<>();
+        OfferRepository repository = new OfferRepository(preferences, () -> {
+            // Read from a separate repository, as the dashboard does on receiving the event.
+            visibleCountsAtPublication.add(new OfferRepository(preferences).getRecentForValidation().size());
+            events.add("saved");
+        });
+
+        repository.add(offer(1));
+        events.add("notification-1");
+        assertEquals(java.util.Arrays.asList("saved", "notification-1"), events);
+        assertEquals(java.util.Collections.singletonList(1), visibleCountsAtPublication);
+
+        repository.add(offer(2));
+        events.add("notification-2");
+        assertEquals(java.util.Arrays.asList(1, 2), visibleCountsAtPublication);
+        assertEquals(java.util.Arrays.asList("saved", "notification-1", "saved", "notification-2"), events);
+    }
+
     @Test public void trashingDisplayedProductsPreservesOtherSectionsAndSupportsRestoring() {
         OfferRepository repository = new OfferRepository(TestPreferences.create());
         ObservedOffer product = offer(1);

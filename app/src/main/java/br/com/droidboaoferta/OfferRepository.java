@@ -29,15 +29,24 @@ final class OfferRepository {
 
     private final Context context;
     private final SharedPreferences preferences;
+    private final Runnable recentOfferSaved;
 
     OfferRepository(SharedPreferences preferences) {
+        this(preferences, () -> { });
+    }
+
+    OfferRepository(SharedPreferences preferences, Runnable recentOfferSaved) {
         this.context = null;
         this.preferences = preferences;
+        this.recentOfferSaved = recentOfferSaved;
     }
 
     OfferRepository(Context context) {
         this.context = context.getApplicationContext();
         preferences = this.context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        this.recentOfferSaved = () -> this.context.sendBroadcast(
+                new android.content.Intent(OfferMonitor.ACTION_OFFER_FOUND)
+                        .setPackage(this.context.getPackageName()));
     }
 
     boolean markOfferProcessed(long chatId, long messageId, long interestId) {
@@ -76,6 +85,8 @@ final class OfferRepository {
             long changedAt = System.currentTimeMillis();
             CloudSyncStore.rememberRecentChanged(context, changedAt);
         }
+        // Publish each saved result before the caller notifies the user or continues its batch.
+        recentOfferSaved.run();
     }
 
     void clearProcessedForInterest(long interestId) {

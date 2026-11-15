@@ -268,11 +268,9 @@ public class MainActivity extends AlertouActivity {
     protected void onResume() {
         super.onResume();
         BottomNavigationController.resetInitialFocus(this);
-        // Rebuilding every card here blocks the first touch after returning to Alertou.
-        // Existing data is already kept in memory and normal monitor events refresh it.
-        if (displayedOffers.isEmpty() && !restoredInitialDashboard) {
-            refreshDashboard();
-        }
+        // The receiver is unregistered while stopped: offers can be saved and notified then.
+        // Always refresh the local snapshot asynchronously, preserving cards during the read.
+        refreshDashboard(!dashboardInitialContentRendered && !restoredInitialDashboard);
     }
 
     @Override
@@ -864,38 +862,47 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         header.addView(text, textParams);
         TextView title = new TextView(this);
-        title.setText(R.string.treasury_direct_title);
+        String treasuryTitle = getString(R.string.treasury_direct_title);
+        String marketStatus = getTreasuryMarketStatus();
+        android.text.SpannableString titleAndStatus = new android.text.SpannableString(
+                treasuryTitle + " • " + marketStatus);
+        int separatorStart = treasuryTitle.length() + 1;
+        int statusStart = treasuryTitle.length() + 3;
+        titleAndStatus.setSpan(new android.text.style.ForegroundColorSpan(
+                        getTreasuryMarketStatusColor()),
+                separatorStart, titleAndStatus.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        titleAndStatus.setSpan(new android.text.style.RelativeSizeSpan(13f / 16f),
+                statusStart, titleAndStatus.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        title.setText(titleAndStatus);
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(16);
-        title.setSingleLine(true);
+        title.setSingleLine(false);
         text.addView(title);
         TextView count = new TextView(this);
-        String titlesCount = getString(R.string.treasury_direct_alerts_count, treasuryInterests.size());
-        String marketStatus = getTreasuryMarketStatus();
-        android.text.SpannableString countAndStatus = new android.text.SpannableString(
-                titlesCount + " · " + marketStatus);
-        int statusStart = titlesCount.length() + 3;
-        countAndStatus.setSpan(new android.text.style.ForegroundColorSpan(
-                        getTreasuryMarketStatusColor()),
-                statusStart, countAndStatus.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        count.setText(countAndStatus);
+        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size()));
         count.setTextColor(getColor(R.color.text_secondary));
         count.setTextSize(13);
-        count.setPadding(0, dp(3), 0, 0);
-        text.addView(count);
-
-        TextView status = new TextView(this);
-        status.setTextColor(getColor(R.color.text_secondary));
-        status.setTextSize(10.5f);
-        status.setIncludeFontPadding(false);
-        // The official date is important data. Let it use the whole line (and wrap on
-        // exceptionally narrow devices) instead of truncating it beside an empty duration.
-        status.setSingleLine(false);
-        status.setText(getTreasuryLastCheckSummary());
-        LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+        count.setSingleLine(true);
+        LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        statusParams.topMargin = dp(3);
-        text.addView(status, statusParams);
+        countParams.topMargin = dp(3);
+        text.addView(count, countParams);
+
+        // Match the condominium header: each metadata row has 11.5sp text, no font
+        // padding, and a 3dp top margin, rather than different multiline spacing.
+        for (String line : getTreasuryLastCheckSummary().split("\n")) {
+            if (line.isEmpty()) continue;
+            TextView status = new TextView(this);
+            status.setTextColor(getColor(R.color.text_secondary));
+            status.setTextSize(11.5f);
+            status.setIncludeFontPadding(false);
+            status.setSingleLine(false);
+            status.setText(line);
+            LinearLayout.LayoutParams statusParams = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+            statusParams.topMargin = dp(3);
+            text.addView(status, statusParams);
+        }
 
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
@@ -1817,9 +1824,7 @@ public class MainActivity extends AlertouActivity {
     private String getTreasuryLastCheckSummary() {
         long officialUpdatedAt = TreasuryDirectMonitor.getOfficialUpdatedAt(this);
         long lastAttemptAt = TreasuryDirectMonitor.getLastAttemptAt(this);
-        String lastAttempt = lastAttemptAt <= 0L ? "" : getString(
-                R.string.treasury_direct_last_checked,
-                formatCompactCheckTime(lastAttemptAt));
+        String lastAttempt = lastAttemptAt <= 0L ? "" : formatCompactCheckTime(lastAttemptAt);
         if (!lastAttempt.isEmpty() && TreasuryDirectMonitor.didLastAttemptFail(this)) {
             lastAttempt += "\n" + getString(R.string.app_status_source_error);
         }
@@ -1827,7 +1832,7 @@ public class MainActivity extends AlertouActivity {
             String official = getString(R.string.treasury_direct_official_updated,
                     new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR"))
                             .format(new java.util.Date(officialUpdatedAt)));
-            return lastAttempt.isEmpty() ? official : official + "\n" + lastAttempt;
+            return lastAttempt.isEmpty() ? official : lastAttempt + "\n" + official;
         }
         long lastCheckAt = lastAttemptAt > 0L ? lastAttemptAt
                 : TreasuryDirectMonitor.getLastCheckAt(this);
