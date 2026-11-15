@@ -1159,6 +1159,7 @@ public class MainActivity extends AlertouActivity {
                 propertyMarketSection ? "" : sectionSummary);
         int marketListingTotal = 0;
         boolean hasMarketListingCounts = false;
+        List<PropertyMarketListingCountHistory> marketListingHistories = new java.util.ArrayList<>();
         if (propertyMarketSection) {
             StringBuilder filters = new StringBuilder();
             PropertyHistoryRepository listingHistory = new PropertyHistoryRepository(this);
@@ -1166,6 +1167,7 @@ public class MainActivity extends AlertouActivity {
                 if (interest.isPropertyCondominium()) {
                     PropertyMarketListingCountHistory counts = listingHistory
                             .getMarketListingCountHistory(interest.getId());
+                    marketListingHistories.add(counts);
                     filters.append('|').append(interest.getId()).append(':').append(interest.getPropertyName())
                             .append(':').append(interest.getMinimumArea()).append(':').append(interest.getMaximumArea())
                             .append(':').append(interest.getMaximumPrice())
@@ -1304,9 +1306,11 @@ public class MainActivity extends AlertouActivity {
                 countLine.setGravity(Gravity.CENTER_VERTICAL);
                 countLine.addView(count, new LinearLayout.LayoutParams(
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-                TextView totalBadge = createPropertyListingCountBadge(marketListingTotal, null);
-                totalBadge.setClickable(false);
-                totalBadge.setFocusable(false);
+                PropertyMarketListingCountHistory totalHistory =
+                        PropertyMarketListingCountHistory.sumLatestKnown(marketListingHistories);
+                TextView totalBadge = createPropertyListingCountBadge(marketListingTotal,
+                        view -> showPropertyMarketListingCountHistoryDialog(
+                                getString(R.string.property_alerts_list_title), totalHistory, true));
                 totalBadge.setContentDescription(getString(
                         R.string.property_group_total_listing_count, marketListingTotal));
                 LinearLayout.LayoutParams totalParams = new LinearLayout.LayoutParams(
@@ -3154,7 +3158,13 @@ public class MainActivity extends AlertouActivity {
 
     private void showPropertyMarketListingCountHistoryDialog(String condominiumName,
                                                               PropertyMarketListingCountHistory history) {
-        if (history == null || history.getPoints().isEmpty()) return;
+        showPropertyMarketListingCountHistoryDialog(condominiumName, history, false);
+    }
+
+    private void showPropertyMarketListingCountHistoryDialog(String condominiumName,
+                                                              PropertyMarketListingCountHistory history,
+                                                              boolean total) {
+        if (history == null || (!total && history.getPoints().isEmpty())) return;
         Dialog dialog = new Dialog(this);
         ScrollView scroll = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
@@ -3164,7 +3174,8 @@ public class MainActivity extends AlertouActivity {
         scroll.addView(content);
 
         TextView title = new TextView(this);
-        title.setText(R.string.property_market_listing_count_history_title);
+        title.setText(total ? R.string.property_market_total_history_title
+                : R.string.property_market_listing_count_history_title);
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(21);
         content.addView(title);
@@ -3177,7 +3188,9 @@ public class MainActivity extends AlertouActivity {
         content.addView(condominium);
 
         TextView summary = new TextView(this);
-        summary.setText(R.string.property_market_listing_count_history_summary);
+        summary.setText(total ? (history.getPoints().isEmpty()
+                ? R.string.property_market_total_history_waiting : R.string.property_market_total_history_summary)
+                : R.string.property_market_listing_count_history_summary);
         summary.setTextColor(getColor(R.color.text_secondary));
         summary.setTextSize(13);
         summary.setPadding(0, dp(3), 0, dp(10));
@@ -3185,12 +3198,14 @@ public class MainActivity extends AlertouActivity {
 
         PropertyListingCountTrendView trendView = new PropertyListingCountTrendView(this);
         trendView.setPoints(history.getPoints());
+        trendView.setVisibility(history.getPoints().isEmpty() ? View.GONE : View.VISIBLE);
         content.addView(trendView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(history.getPoints().size() <= 2 ? 140 : 180)));
 
         TextView readingsTitle = new TextView(this);
         readingsTitle.setText(R.string.property_market_listing_count_readings_title);
+        readingsTitle.setVisibility(history.getPoints().isEmpty() ? View.GONE : View.VISIBLE);
         readingsTitle.setTextColor(getColor(R.color.text_primary));
         readingsTitle.setTextSize(16);
         readingsTitle.setPadding(0, dp(8), 0, dp(4));

@@ -718,7 +718,10 @@
     <string name="property_history_published">Anunciado em</string>
     <string name="property_history_chart_title">Histórico de preço</string>
     <string name="property_market_listing_count_history_title">Histórico de imóveis</string>
-    <string name="property_market_listing_count_history_summary">Quantidade encontrada nesta rua durante a consulta.</string>
+    <string name="property_market_listing_count_history_summary">Quantidade de imóveis publicada para este condomínio em cada leitura registrada.</string>
+    <string name="property_market_total_history_title">Histórico do total de imóveis</string>
+    <string name="property_market_total_history_summary">Soma das últimas contagens conhecidas dos condomínios atuais em cada data. O histórico começa quando todos têm uma leitura registrada.</string>
+    <string name="property_market_total_history_waiting">Aguardando uma contagem registrada de todos os condomínios para apresentar o histórico do total.</string>
     <string name="property_market_listing_count_readings_title">Últimas leituras</string>
     <string name="property_market_listing_count_change_increase">↑ %1$d</string>
     <string name="property_market_listing_count_change_decrease">↓ %1$d</string>
