@@ -808,7 +808,7 @@ public class MainActivity extends AlertouActivity {
                 .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this)).append('|')
                 .append(TreasuryDirectMonitor.getLastAttemptAt(this)).append('|')
                 .append(TreasuryDirectMonitor.didLastAttemptFail(this)).append('|')
-                .append(TreasuryDirectMonitor.getOfficialMarketStatus(this)).append('|')
+                .append(TreasuryDirectMonitor.getOfficialMarketLabel(this)).append('|')
                 .append(TreasuryDirectMonitor.getOfficialIndicatorColor(this));
         for (Interest interest : treasuryInterests) {
             List<TreasuryRatePoint> points = historyRepository.get(interest.getId());
@@ -861,23 +861,36 @@ public class MainActivity extends AlertouActivity {
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(0,
                 LinearLayout.LayoutParams.WRAP_CONTENT, 1);
         header.addView(text, textParams);
+        LinearLayout titleLine = new LinearLayout(this);
+        titleLine.setGravity(Gravity.TOP);
         TextView title = new TextView(this);
-        String treasuryTitle = getString(R.string.treasury_direct_title);
-        String marketStatus = getTreasuryMarketStatus();
-        android.text.SpannableString titleAndStatus = new android.text.SpannableString(
-                treasuryTitle + " • " + marketStatus);
-        int separatorStart = treasuryTitle.length() + 1;
-        int statusStart = treasuryTitle.length() + 3;
-        titleAndStatus.setSpan(new android.text.style.ForegroundColorSpan(
-                        getTreasuryMarketStatusColor()),
-                separatorStart, titleAndStatus.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        titleAndStatus.setSpan(new android.text.style.RelativeSizeSpan(13f / 16f),
-                statusStart, titleAndStatus.length(), android.text.Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
-        title.setText(titleAndStatus);
+        title.setText(R.string.treasury_direct_title);
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(16);
         title.setSingleLine(false);
-        text.addView(title);
+        titleLine.addView(title, new LinearLayout.LayoutParams(0,
+                LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        TextView statusBadge = new TextView(this);
+        String fullStatus = getTreasuryMarketStatus();
+        statusBadge.setText(fullStatus.replaceFirst("(?iu)^mercado\\s+", ""));
+        statusBadge.setContentDescription(fullStatus);
+        int statusColor = getTreasuryMarketStatusColor();
+        statusBadge.setTextColor(statusColor);
+        statusBadge.setTextSize(10.5f);
+        statusBadge.setTypeface(null, android.graphics.Typeface.BOLD);
+        statusBadge.setGravity(Gravity.CENTER);
+        statusBadge.setMaxWidth(dp(140));
+        statusBadge.setPadding(dp(7), dp(3), dp(7), dp(3));
+        android.graphics.drawable.GradientDrawable badgeBackground = new android.graphics.drawable.GradientDrawable();
+        badgeBackground.setColor(getColor(R.color.card_pressed));
+        badgeBackground.setCornerRadius(dp(8));
+        badgeBackground.setStroke(dp(1), androidx.core.graphics.ColorUtils.setAlphaComponent(statusColor, 80));
+        statusBadge.setBackground(badgeBackground);
+        LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        badgeParams.leftMargin = dp(8);
+        titleLine.addView(statusBadge, badgeParams);
+        text.addView(titleLine);
         TextView count = new TextView(this);
         count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size()));
         count.setTextColor(getColor(R.color.text_secondary));
@@ -1882,19 +1895,28 @@ public class MainActivity extends AlertouActivity {
     }
 
     private String getTreasuryMarketStatus() {
-        switch (TreasuryDirectMonitor.getOfficialMarketStatus(this)) {
-            case OPEN: return getString(R.string.treasury_direct_market_available);
-            case CLOSED: return getString(R.string.treasury_direct_market_closed);
-            case SUSPENDED: return getString(R.string.treasury_direct_market_suspended);
-            case MAINTENANCE: return getString(R.string.treasury_direct_market_maintenance);
-            default: return getString(R.string.treasury_direct_market_unknown);
-        }
+        String published = TreasuryDirectMonitor.getOfficialMarketLabel(this);
+        return published.isEmpty() ? getString(R.string.treasury_direct_market_unknown) : published;
     }
 
     private int getTreasuryMarketStatusColor() {
-        String color = TreasuryDirectMonitor.getOfficialIndicatorColor(this);
-        return TreasuryDirectMonitor.getOfficialMarketStatus(this) != TreasuryMarketStatus.UNKNOWN
-                && !color.isEmpty() ? Color.parseColor(color) : getColor(R.color.text_secondary);
+        int foreground = getColor(TreasuryDirectMonitor.getOfficialMarketStatus(this) == TreasuryMarketStatus.OPEN
+                ? R.color.action_green : R.color.action_yellow);
+        int background = getColor(R.color.card_pressed);
+        if (androidx.core.graphics.ColorUtils.calculateContrast(foreground, background) >= 4.5d) {
+            return foreground;
+        }
+        // Keep the selected green/yellow legible without changing the published status text.
+        int target = androidx.core.graphics.ColorUtils.calculateContrast(Color.WHITE, background)
+                >= androidx.core.graphics.ColorUtils.calculateContrast(Color.BLACK, background)
+                ? Color.WHITE : Color.BLACK;
+        for (int step = 1; step <= 20; step++) {
+            int adjusted = androidx.core.graphics.ColorUtils.blendARGB(foreground, target, step / 20f);
+            if (androidx.core.graphics.ColorUtils.calculateContrast(adjusted, background) >= 4.5d) {
+                return adjusted;
+            }
+        }
+        return target;
     }
 
     private String getPropertyStatusName(Interest interest) {

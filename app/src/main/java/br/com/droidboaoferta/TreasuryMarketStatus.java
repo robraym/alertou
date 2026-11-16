@@ -12,28 +12,49 @@ enum TreasuryMarketStatus {
             "<button\\b[^>]*\\bclass\\s*=\\s*([\"'])[^\"']*\\bopen-modal-status-mercado\\b"
                     + "[^\"']*\\1[^>]*>(.*?)</button>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
-    static TreasuryMarketStatus fromOfficialPage(String html) {
-        if (html == null) return UNKNOWN;
+    static String labelFromOfficialPage(String html) {
+        if (html == null) return "";
         Matcher buttons = STATUS_BUTTON.matcher(html);
-        TreasuryMarketStatus confirmed = UNKNOWN;
+        String confirmed = "";
         while (buttons.find()) {
             String label = buttons.group(2).replaceAll("(?is)<svg\\b.*?</svg>", "")
-                    .replaceAll("<[^>]*>", " ").replace("&nbsp;", " ")
-                    .replace("&#160;", " ").replace("&ccedil;", "ç")
-                    .replace("&atilde;", "ã").replaceAll("\\s+", " ")
-                    .trim().toLowerCase(Locale.ROOT);
-            TreasuryMarketStatus status;
-            switch (label) {
-                case "mercado aberto": status = OPEN; break;
-                case "mercado fechado": status = CLOSED; break;
-                case "mercado suspenso": status = SUSPENDED; break;
-                case "em manutenção": status = MAINTENANCE; break;
-                default: return UNKNOWN;
-            }
-            if (confirmed != UNKNOWN && confirmed != status) return UNKNOWN;
-            confirmed = status;
+                    .replaceAll("<[^>]*>", " ");
+            label = decodeLabel(label).replace('\u00a0', ' ').replaceAll("\\s+", " ").trim();
+            if (label.isEmpty() || (!confirmed.isEmpty() && !confirmed.equals(label))) return "";
+            confirmed = label;
         }
         return confirmed;
+    }
+
+    /** Classification is used only for the Portal indicator palette, never as display text. */
+    static TreasuryMarketStatus fromOfficialPage(String html) {
+        switch (labelFromOfficialPage(html).toLowerCase(Locale.ROOT)) {
+            case "mercado aberto": return OPEN;
+            case "mercado fechado": return CLOSED;
+            case "mercado suspenso": return SUSPENDED;
+            case "em manutenção":
+            case "mercado em manutenção": return MAINTENANCE;
+            default: return UNKNOWN;
+        }
+    }
+
+    private static String decodeLabel(String value) {
+        Matcher entities = Pattern.compile("&#(x[0-9a-fA-F]+|[0-9]+);").matcher(value);
+        StringBuffer decoded = new StringBuffer();
+        while (entities.find()) {
+            String encoded = entities.group(1);
+            String replacement = entities.group();
+            try {
+                int code = encoded.startsWith("x") ? Integer.parseInt(encoded.substring(1), 16)
+                        : Integer.parseInt(encoded);
+                if (Character.isValidCodePoint(code)) replacement = new String(Character.toChars(code));
+            } catch (IllegalArgumentException invalid) { /* Preserve malformed source text. */ }
+            entities.appendReplacement(decoded, Matcher.quoteReplacement(replacement));
+        }
+        entities.appendTail(decoded);
+        return decoded.toString().replace("&nbsp;", " ").replace("&ccedil;", "ç")
+                .replace("&atilde;", "ã").replace("&quot;", "\"").replace("&apos;", "'")
+                .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&");
     }
 
     /** Portal do Investidor indicator selectors, verified against its rendered DOM and CSS. */

@@ -4,6 +4,27 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 
 public class TreasuryMarketStatusTest {
+    @Test public void preservesPublishedTextEvenWhenItsWordingHasNeverBeenListedBefore() {
+        String published = "Negociações temporariamente interrompidas";
+        assertEquals(published, TreasuryMarketStatus.labelFromOfficialPage(button(published)));
+        // An unknown palette classification must not replace the actual published text.
+        assertEquals(TreasuryMarketStatus.UNKNOWN, TreasuryMarketStatus.fromOfficialPage(button(published)));
+        assertEquals("Mercado em manutenção", TreasuryMarketStatus.labelFromOfficialPage(
+                button("\n Mercado em manutenção \n")));
+        assertEquals("Mercado Fechado", TreasuryMarketStatus.labelFromOfficialPage(button("Mercado Fechado")));
+    }
+
+    @Test public void decodesPublishedHtmlTextAndRejectsMissingOrConflictingFields() {
+        assertEquals("Mercado em manutenção", TreasuryMarketStatus.labelFromOfficialPage(
+                button("Mercado em manuten&#231;&#227;o")));
+        assertEquals("Aguardando confirmação & liberação", TreasuryMarketStatus.labelFromOfficialPage(
+                button("Aguardando confirma&#xE7;&#xE3;o &amp; liberação")));
+        assertEquals("", TreasuryMarketStatus.labelFromOfficialPage(null));
+        assertEquals("", TreasuryMarketStatus.labelFromOfficialPage("<p>Mercado aberto</p>"));
+        assertEquals("", TreasuryMarketStatus.labelFromOfficialPage(button("")));
+        assertEquals("", TreasuryMarketStatus.labelFromOfficialPage(button("Mercado aberto") + button("Mercado fechado")));
+    }
+
     @Test public void readsTheExplicitLabelPublishedByTheOfficialStatusButton() {
         // Structure observed on the official page: label followed by a decorative SVG.
         String html = "<button class=\"open-modal-status-mercado\">\n Mercado fechado\n"
@@ -18,6 +39,14 @@ public class TreasuryMarketStatusTest {
                 button("Mercado&nbsp;suspenso")));
         assertEquals(TreasuryMarketStatus.MAINTENANCE, TreasuryMarketStatus.fromOfficialPage(
                 button("Em manuten&ccedil;&atilde;o")));
+    }
+
+    @Test public void recognizesFullMaintenanceLabelReturnedByTheOfficialPage() {
+        String html = button("\nMercado em manutenção\n<svg class='m-manutencao'>"
+                + "<rect fill='#21DE72'/></svg>");
+        assertEquals(TreasuryMarketStatus.MAINTENANCE, TreasuryMarketStatus.fromOfficialPage(html));
+        assertEquals(TreasuryMarketStatus.MAINTENANCE, TreasuryMarketStatus.fromOfficialPage(
+                button("Mercado em manuten&ccedil;&atilde;o")));
     }
 
     @Test public void neverInfersStatusFromDatesRatesNoticesOrCss() {

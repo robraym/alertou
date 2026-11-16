@@ -47,6 +47,7 @@ final class TreasuryDirectMonitor {
     /** Timestamp published by Tesouro Direto, not the time Alertou downloaded the feed. */
     private static final String KEY_OFFICIAL_UPDATED_AT = "official_updated_at";
     private static final String KEY_OFFICIAL_MARKET_STATUS = "official_market_status";
+    private static final String KEY_OFFICIAL_MARKET_LABEL = "official_market_label";
     private static final String KEY_OFFICIAL_INDICATOR_COLOR = "official_indicator_color";
     private static final String KEY_INDICATOR_SOURCE = "indicator_color_source";
     private static final Pattern RATE = Pattern.compile("([+-]?\\s*\\d+(?:,\\d+)?)%");
@@ -117,6 +118,11 @@ final class TreasuryDirectMonitor {
         catch (IllegalArgumentException invalid) { return TreasuryMarketStatus.UNKNOWN; }
     }
 
+    static String getOfficialMarketLabel(Context context) {
+        return context.getApplicationContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(KEY_OFFICIAL_MARKET_LABEL, "");
+    }
+
     static String getOfficialIndicatorColor(Context context) {
         SharedPreferences preferences = context.getApplicationContext()
                 .getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -179,9 +185,11 @@ final class TreasuryDirectMonitor {
             // The next scheduled check retries. A failed read must not alter alert state.
         } finally {
             TreasuryMarketStatus marketStatus = TreasuryMarketStatus.UNKNOWN;
+            String marketLabel = "";
             String indicatorColor = "";
             try {
                 String officialPage = download(URL_MARKET_STATUS, "text/html");
+                marketLabel = TreasuryMarketStatus.labelFromOfficialPage(officialPage);
                 marketStatus = TreasuryMarketStatus.fromOfficialPage(officialPage);
             } catch (Exception unavailable) {
                 // A failed status read confirms neither an open nor a closed market.
@@ -196,6 +204,7 @@ final class TreasuryDirectMonitor {
             }
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
                     .putString(KEY_OFFICIAL_MARKET_STATUS, marketStatus.name())
+                    .putString(KEY_OFFICIAL_MARKET_LABEL, marketLabel)
                     .putString(KEY_OFFICIAL_INDICATOR_COLOR, indicatorColor)
                     .putString(KEY_INDICATOR_SOURCE, URL_PORTAL_INDICATOR_STYLES).apply();
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
