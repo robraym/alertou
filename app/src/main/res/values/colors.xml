@@ -64,4 +64,7 @@
     <color name="danger">#FF5C5C</color>
     <color name="danger_soft">#FFB8B8</color>
     <color name="danger_soft_pressed">#FF9E9E</color>
+    <color name="badge_green_outline">#50168A55</color>
+    <color name="badge_danger_outline">#50FF5C5C</color>
+    <color name="badge_gold_outline">#50F2B705</color>
 </resources>

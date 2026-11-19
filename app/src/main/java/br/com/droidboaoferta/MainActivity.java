@@ -879,6 +879,7 @@ public class MainActivity extends AlertouActivity {
         header.addView(text, textParams);
         LinearLayout titleLine = new LinearLayout(this);
         titleLine.setGravity(Gravity.TOP);
+        titleLine.setBaselineAligned(false);
         TextView title = new TextView(this);
         title.setText(R.string.treasury_direct_title);
         title.setTextColor(getColor(R.color.text_primary));
@@ -895,6 +896,8 @@ public class MainActivity extends AlertouActivity {
         statusBadge.setTextSize(10.5f);
         statusBadge.setTypeface(null, android.graphics.Typeface.BOLD);
         statusBadge.setGravity(Gravity.CENTER);
+        statusBadge.setIncludeFontPadding(true);
+        statusBadge.setMinHeight(dp(24));
         statusBadge.setMaxWidth(dp(140));
         statusBadge.setPadding(dp(7), dp(3), dp(7), dp(3));
         android.graphics.drawable.GradientDrawable badgeBackground = new android.graphics.drawable.GradientDrawable();
