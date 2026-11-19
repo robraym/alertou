@@ -120,4 +120,8 @@
         <item name="colorActionSoft">@color/action_magenta_soft</item>
         <item name="colorActionSoftPressed">@color/action_magenta_soft_pressed</item>
     </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Condensed" parent="">
+        <item name="android:fontFamily">@font/app_condensed</item>
+        <item name="fontFamily">@font/app_condensed</item>
+    </style>
 </resources>

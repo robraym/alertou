@@ -860,7 +860,7 @@ public class MainActivity extends AlertouActivity {
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
-        header.setPadding(dp(10), dp(2), 0, dp(3));
+        header.setPadding(dp(6), dp(2), 0, dp(3));
 
         ImageButton icon = new ImageButton(this);
         icon.setTag(TREASURY_ACTION_TAG);
@@ -1245,9 +1245,8 @@ public class MainActivity extends AlertouActivity {
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
-        // Fontes is the visual reference for title icons: keep the same 10dp
-        // distance from the card edge on every Alertou section.
-        header.setPadding(dp(10), dp(2), 0, dp(3));
+        // Match the 6dp inset of the cashback source card in Fontes.
+        header.setPadding(dp(6), dp(2), 0, dp(3));
 
         boolean propertySection = propertyMarketSection
                 || SECTION_PROPERTIES_EXPANDED.equals(preferenceKey);
@@ -1332,9 +1331,8 @@ public class MainActivity extends AlertouActivity {
                     LinearLayout.LayoutParams.WRAP_CONTENT);
             countLineParams.topMargin = dp(3);
             if (propertyMarketSection && hasMarketListingCounts) {
-                LinearLayout countLine = new LinearLayout(this);
-                countLine.setGravity(Gravity.CENTER_VERTICAL);
-                countLine.addView(count, new LinearLayout.LayoutParams(
+                titleLine.setBaselineAligned(false);
+                title.setLayoutParams(new LinearLayout.LayoutParams(
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
                 PropertyMarketListingCountHistory totalHistory =
                         PropertyMarketListingCountHistory.sumLatestKnown(marketListingHistories);
@@ -1346,11 +1344,9 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams totalParams = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
                 totalParams.leftMargin = dp(6);
-                countLine.addView(totalBadge, totalParams);
-                headerText.addView(countLine, countLineParams);
-            } else {
-                headerText.addView(count, countLineParams);
+                titleLine.addView(totalBadge, totalParams);
             }
+            headerText.addView(count, countLineParams);
         } else {
             LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,

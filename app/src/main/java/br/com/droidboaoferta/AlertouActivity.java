@@ -9,6 +9,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 abstract class AlertouActivity extends AppCompatActivity {
     private String appliedAccentMode;
+    private String appliedFontMode;
+    private FontController.Binding fontBinding;
     private AppStatusIndicator appStatusIndicator;
 
     @Override
@@ -38,7 +40,10 @@ abstract class AlertouActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         appliedAccentMode = AccentColorController.getSavedMode(this);
         AccentColorController.apply(this);
+        appliedFontMode = FontController.getSavedMode(this);
+        FontController.applyTheme(this, appliedFontMode);
         super.onCreate(savedInstanceState);
+        fontBinding = FontController.bind(getWindow().getDecorView(), appliedFontMode);
     }
 
     @Override
@@ -49,7 +54,8 @@ abstract class AlertouActivity extends AppCompatActivity {
         }
         if (appStatusIndicator != null) appStatusIndicator.start();
         String savedAccentMode = AccentColorController.getSavedMode(this);
-        if (!savedAccentMode.equals(appliedAccentMode)) {
+        if (!savedAccentMode.equals(appliedAccentMode)
+                || !FontController.getSavedMode(this).equals(appliedFontMode)) {
             recreate();
         }
     }
@@ -58,5 +64,11 @@ abstract class AlertouActivity extends AppCompatActivity {
     protected void onPause() {
         if (appStatusIndicator != null) appStatusIndicator.stop();
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (fontBinding != null) fontBinding.close();
+        super.onDestroy();
     }
 }

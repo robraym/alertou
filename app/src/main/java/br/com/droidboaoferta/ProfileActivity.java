@@ -197,6 +197,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             }
         });
         findViewById(R.id.row_theme).setOnClickListener(view -> showThemeDialog());
+        findViewById(R.id.row_font).setOnClickListener(view -> showFontDialog());
         findViewById(R.id.row_accent_color).setOnClickListener(
                 view -> showAccentColorDialog());
         findViewById(R.id.row_alert_sound).setOnClickListener(view -> showAlertSoundDialog());
@@ -403,6 +404,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     }
 
     private void refreshSettingsControls() {
+        ((TextView) findViewById(R.id.text_font_summary)).setText(
+                FontController.summary(FontController.getSavedMode(this)));
         themeSummary.setText(ThemeController.getSummaryResource(ThemeController.getSavedMode(this)));
         accentColorSummary.setText(AccentColorController.getSummaryResource(
                 this,
@@ -1121,6 +1124,54 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+    }
+
+    private void showFontDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        TextView title = new TextView(this);
+        title.setText(R.string.font_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+        TextView hint = new TextView(this);
+        hint.setText(R.string.font_description);
+        hint.setTextSize(13);
+        hint.setTextColor(getColor(R.color.text_secondary));
+        hint.setPadding(0, dp(8), 0, dp(12));
+        content.addView(hint);
+        String selected = FontController.getSavedMode(this);
+        for (String mode : new String[]{FontController.MODE_DEFAULT, FontController.MODE_CONDENSED}) {
+            LinearLayout option = new LinearLayout(this);
+            option.setOrientation(LinearLayout.VERTICAL);
+            option.setPadding(0, dp(10), 0, dp(10));
+            option.setBackgroundResource(R.drawable.bg_row_pressed);
+            option.setFocusable(true);
+            TextView name = createThemeOption(FontController.summary(mode), mode.equals(selected));
+            name.setPadding(0, 0, 0, dp(6));
+            name.setTypeface(FontController.typeface(this, mode, android.graphics.Typeface.NORMAL));
+            option.addView(name);
+            TextView preview = new TextView(this);
+            preview.setText(R.string.font_preview);
+            preview.setTextSize(16);
+            preview.setTextColor(getColor(R.color.text_primary));
+            preview.setTypeface(FontController.typeface(this, mode, android.graphics.Typeface.NORMAL));
+            option.addView(preview);
+            option.setOnClickListener(view -> {
+                FontController.save(this, mode);
+                dialog.dismiss();
+                if (!mode.equals(selected)) recreate();
+            });
+            content.addView(option);
+        }
+        TextView close = createThemeOption(R.string.action_cancel, false);
+        close.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        close.setOnClickListener(view -> dialog.dismiss());
+        content.addView(close);
+        showCompactDialog(dialog, content);
     }
 
     private void showThemeDialog() {

@@ -82,7 +82,7 @@ final class MeliuzCashbackUi {
         card.setClipToOutline(true);
         card.setPadding(0, dp(activity, 2), 0, dp(activity, 2));
         LinearLayout header = horizontal(activity);
-        header.setPadding(dp(activity, 10), dp(activity, 2), 0, dp(activity, 3));
+        header.setPadding(dp(activity, 6), dp(activity, 2), 0, dp(activity, 3));
         ImageButton refresh = icon(activity, R.drawable.ic_refresh_cashback, R.string.meliuz_refresh,
                 () -> MeliuzCashbackMonitor.getInstance().checkNow(activity));
         refresh.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));

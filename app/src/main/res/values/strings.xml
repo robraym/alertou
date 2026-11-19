@@ -298,7 +298,7 @@
     <string name="coupon_alerts_list_title">Cupons de lojas</string>
     <string name="product_alerts_list_title">Produtos em geral</string>
     <string name="treasury_alerts_list_title">Tesouro Direto</string>
-    <string name="property_alerts_list_title">Imóveis por condomínio</string>
+    <string name="property_alerts_list_title">Imóveis</string>
     <string name="property_market_alerts_list_title">Imóveis</string>
     <string name="coupon_alerts_registered_count_empty">Nenhum cadastrado</string>
     <string name="price_alerts_registered_count_empty">Nenhum cadastrado</string>
@@ -371,15 +371,15 @@
     <string name="samsung_discount_offer_source_title">Samsung Desconto</string>
     <string name="samsung_discount_offer_open_link">Editar página da Samsung Desconto</string>
     <string name="samsung_discount_offer_source_check_pending">Aguardando primeira consulta</string>
-    <string name="property_market_reference_title">Imóveis por condomínio</string>
-    <string name="property_market_reference_dialog_title">Imóveis por condomínio</string>
+    <string name="property_market_reference_title">Imóveis</string>
+    <string name="property_market_reference_dialog_title">Imóveis</string>
     <string name="property_market_reference_enabled">Mostrar no Alertou</string>
     <string name="property_market_reference_disabled">Não mostrar</string>
-    <string name="property_market_reference_enable">Mostrar imóveis por condomínio</string>
-    <string name="property_market_reference_disable">Não mostrar imóveis por condomínio</string>
-    <string name="property_interval_title">Consulta por condomínio</string>
-    <string name="property_condominium_interval_title">Imóveis por condomínio</string>
-    <string name="property_interval_dialog_title">Intervalo de consulta por condomínio</string>
+    <string name="property_market_reference_enable">Mostrar imóveis</string>
+    <string name="property_market_reference_disable">Não mostrar imóveis</string>
+    <string name="property_interval_title">Consulta de imóveis</string>
+    <string name="property_condominium_interval_title">Imóveis</string>
+    <string name="property_interval_dialog_title">Intervalo de consulta de imóveis</string>
     <string name="property_interval_summary">Consulta a cada %1$d minutos</string>
     <string name="property_interval_default">A cada 15 minutos</string>
     <string name="property_market_reference_source">%1$s • %2$s m²</string>
@@ -431,9 +431,9 @@
     <string name="alert_sound_custom_error">Não foi possível usar o som selecionado.</string>
     <string name="profile_screen_title">Perfil</string>
     <string name="profile_section_appearance">Aparência</string>
-    <string name="profile_section_appearance_summary">Tema, cor, som e transições</string>
+    <string name="profile_section_appearance_summary">Tema, fonte, cor, som e transições</string>
     <string name="profile_section_properties">Imóveis</string>
-    <string name="profile_section_properties_summary">Imóveis por condomínio</string>
+    <string name="profile_section_properties_summary">Imóveis</string>
     <string name="profile_section_external_sources">Lojas</string>
     <string name="profile_section_external_sources_summary">Intervalos de consulta das lojas</string>
     <string name="profile_section_sync">Sincronização</string>
@@ -852,4 +852,9 @@
     <string name="dashboard_configure_treasury">Configurar Tesouro Direto</string>
     <string name="dashboard_configure_products">Configurar produtos</string>
     <string name="dashboard_configure_coupons">Configurar cupons</string>
+    <string name="font_title">Fonte do aplicativo</string>
+    <string name="font_default">Padrão</string>
+    <string name="font_condensed">Estreita · Barlow Condensed</string>
+    <string name="font_description">Escolha a fonte. O tamanho dos textos será mantido.</string>
+    <string name="font_preview">Imóveis · Tesouro Direto</string>
 </resources>

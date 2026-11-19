@@ -28,7 +28,7 @@ final class SettingsBackup {
             "home_section_property_market_expanded", "home_section_properties_expanded",
             "home_section_treasury_expanded",
             "home_section_products_expanded"};
-    private static final String[] APPEARANCE_KEYS = {"theme_mode", "accent_color",
+    private static final String[] APPEARANCE_KEYS = {"theme_mode", "accent_color", "font_family",
             "navigation_animation"};
     private static final String[] PROFILE_KEYS = {"appearance_expanded", "properties_expanded",
             "treasury_expanded", "external_sources_expanded", "sync_expanded", "info_expanded"};
@@ -191,6 +191,7 @@ final class SettingsBackup {
         if (appearance) {
             if (!(value instanceof String)) return false;
             String mode = (String) value;
+            if (key.equals(FontController.KEY)) return FontController.isSupported(mode);
             if (key.equals("theme_mode")) {
                 return ThemeController.MODE_LIGHT.equals(mode) || ThemeController.MODE_DARK.equals(mode);
             }

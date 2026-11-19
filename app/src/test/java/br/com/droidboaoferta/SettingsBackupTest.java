@@ -8,6 +8,17 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class SettingsBackupTest {
+    @Test public void fontChoiceRoundTripsAndRejectsUnsupportedFamilies() throws Exception {
+        SettingsBackup.Preferences source = files();
+        source.get("app_preferences").edit().putString("font_family", "condensed").apply();
+        SettingsBackup.Preferences destination = files();
+        assertTrue(SettingsBackup.restore(destination, SettingsBackup.export(source), true));
+        assertEquals("condensed", destination.get("app_preferences").getString("font_family", ""));
+        assertFalse(SettingsBackup.restore(destination, new JSONObject()
+                .put("app_preferences/font_family", value("unknown-font")), true));
+        assertEquals("condensed", destination.get("app_preferences").getString("font_family", ""));
+        assertFalse(SettingsBackup.restore(destination, null, true));
+    }
     @Test public void cashbackSettingsRoundTripAndInvalidBackupValues() throws Exception {
         SettingsBackup.Preferences source = files();
         source.get("meliuz_cashback_settings").edit().putBoolean("enabled", true)
