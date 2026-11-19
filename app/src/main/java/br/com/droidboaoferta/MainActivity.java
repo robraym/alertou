@@ -868,7 +868,7 @@ public class MainActivity extends AlertouActivity {
         icon.setPadding(dp(7), dp(7), dp(7), dp(7));
         icon.setScaleType(ImageView.ScaleType.CENTER);
         treasuryActionView = icon;
-        addSectionHeaderActions(header, icon, Interest.TYPE_TREASURY);
+        addSectionHeaderAction(header, icon);
         icon.setOnClickListener(view -> refreshTreasuryRates());
         updateTreasuryRefreshIcon();
 
@@ -1296,8 +1296,7 @@ public class MainActivity extends AlertouActivity {
         if (sectionIconResource != 0 || propertyMarketSection) {
             sectionAction.setColorFilter(AccentColorController.getPrimaryColor(this));
         }
-        addSectionHeaderActions(header, sectionAction, propertyMarketSection ? Interest.TYPE_PROPERTY
-                : productSection ? Interest.TYPE_PRICE : Interest.TYPE_COUPON);
+        addSectionHeaderAction(header, sectionAction);
 
         LinearLayout headerText = new LinearLayout(this);
         headerText.setOrientation(LinearLayout.VERTICAL);
@@ -1585,34 +1584,10 @@ public class MainActivity extends AlertouActivity {
         addOfferSectionCard(card);
     }
 
-    private void addSectionHeaderActions(LinearLayout header, ImageButton primaryAction, String type) {
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.VERTICAL);
-        actions.setGravity(Gravity.CENTER_HORIZONTAL);
-        actions.addView(primaryAction, new LinearLayout.LayoutParams(dp(36), dp(36)));
-
-        int label = Interest.TYPE_PROPERTY.equals(type) ? R.string.dashboard_configure_properties
-                : Interest.TYPE_TREASURY.equals(type) ? R.string.dashboard_configure_treasury
-                : Interest.TYPE_COUPON.equals(type) ? R.string.dashboard_configure_coupons
-                : R.string.dashboard_configure_products;
-        ImageButton settings = new ImageButton(this);
-        settings.setImageResource(R.drawable.ic_card_settings);
-        settings.setContentDescription(getString(label));
-        settings.setColorFilter(AccentColorController.getPrimaryColor(this));
-        settings.setPadding(dp(8), dp(8), dp(8), dp(8));
-        settings.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        settings.setBackgroundResource(R.drawable.bg_icon_circle);
-        settings.setOnClickListener(view -> startActivity(new Intent(this, AlertsActivity.class)
-                .putExtra(AlertsActivity.EXTRA_CONFIGURE_TYPE, type)
-                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
-        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-        settingsParams.topMargin = dp(2);
-        actions.addView(settings, settingsParams);
-
-        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(dp(36),
-                LinearLayout.LayoutParams.WRAP_CONTENT);
-        actionsParams.rightMargin = dp(8);
-        header.addView(actions, actionsParams);
+    private void addSectionHeaderAction(LinearLayout header, ImageButton primaryAction) {
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(dp(36), dp(36));
+        params.rightMargin = dp(8);
+        header.addView(primaryAction, params);
     }
 
     private void addOfferSectionCard(LinearLayout card) {
