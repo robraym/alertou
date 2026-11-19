@@ -51,8 +51,15 @@ final class MeliuzCashbackUi {
         slot.removeAllViews();
         LinearLayout card = card(activity);
         LinearLayout row = horizontal(activity);
-        row.addView(icon(activity, R.drawable.ic_cashback, R.string.meliuz_settings,
-                () -> showSettings(activity, () -> mountSettings(activity, slot))));
+        int iconResource = slot.getId() == R.id.container_meliuz_settings
+                ? R.drawable.ic_add_cashback_alert : R.drawable.ic_cashback;
+        ImageButton sourceIcon = icon(activity, iconResource, R.string.meliuz_settings,
+                () -> showSettings(activity, () -> mountSettings(activity, slot)));
+        sourceIcon.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
+        sourceIcon.setScaleType(ImageView.ScaleType.CENTER);
+        LinearLayout.LayoutParams sourceIconParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
+        sourceIconParams.rightMargin = dp(activity, 8);
+        row.addView(sourceIcon, sourceIconParams);
         LinearLayout text = vertical(activity);
         text.addView(label(activity, activity.getString(R.string.meliuz_title), 16, false));
         text.addView(label(activity, activity.getString(MeliuzCashbackSettings.isEnabled(activity)
@@ -76,7 +83,7 @@ final class MeliuzCashbackUi {
         card.setPadding(0, dp(activity, 2), 0, dp(activity, 2));
         LinearLayout header = horizontal(activity);
         header.setPadding(dp(activity, 10), dp(activity, 2), 0, dp(activity, 3));
-        ImageButton refresh = icon(activity, R.drawable.ic_cashback, R.string.meliuz_refresh,
+        ImageButton refresh = icon(activity, R.drawable.ic_refresh_cashback, R.string.meliuz_refresh,
                 () -> MeliuzCashbackMonitor.getInstance().checkNow(activity));
         refresh.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
         refresh.setScaleType(ImageView.ScaleType.CENTER);

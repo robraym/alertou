@@ -1265,7 +1265,7 @@ public class MainActivity extends AlertouActivity {
             boolean updatingPropertyMarket = PropertyPageMonitor.getInstance()
                     .isCheckingPropertyCondominium();
             sectionAction.setImageResource(updatingPropertyMarket
-                    ? R.drawable.ic_sync : R.drawable.ic_property_alert);
+                    ? R.drawable.ic_sync : R.drawable.ic_refresh_property);
             sectionAction.setBackgroundResource(R.drawable.bg_icon_circle);
             sectionAction.setContentDescription(getString(updatingPropertyMarket
                     ? R.string.action_stop_property_check
@@ -2137,7 +2137,7 @@ public class MainActivity extends AlertouActivity {
         boolean checkingCondominium = PropertyPageMonitor.getInstance().isCheckingPropertyCondominium();
         if (propertyMarketActionView != null) {
             updatePropertyRefreshIcon(propertyMarketActionView, checkingCondominium,
-                    R.drawable.ic_property_alert);
+                    R.drawable.ic_refresh_property);
         }
     }
 
@@ -2258,7 +2258,7 @@ public class MainActivity extends AlertouActivity {
         treasuryRefreshAnimator = null;
         treasurySpinningIcon = null;
         treasuryActionView.setRotation(0f);
-        treasuryActionView.setImageResource(R.drawable.ic_tesouro_direto);
+        treasuryActionView.setImageResource(R.drawable.ic_refresh_treasury);
         treasuryActionView.setColorFilter(AccentColorController.getPrimaryColor(this));
     }
 
