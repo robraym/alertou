@@ -263,20 +263,29 @@ final class MeliuzCashbackUi {
 
     private static void showHistory(Activity activity, JSONObject store, MeliuzCashbackStore repository) {
         LinearLayout content = dialogContent(activity);
+        content.setBackgroundResource(R.drawable.bg_dialog);
         content.addView(label(activity, store.optString("name"), 21, false));
         content.addView(label(activity, activity.getString(R.string.meliuz_history_description), 13, true));
         JSONArray points = repository.history().optJSONArray(Long.toString(store.optLong("id")));
-        if (points != null) for (int i = points.length() - 1; i >= 0; i--) {
+        List<JSONObject> readings = new ArrayList<>();
+        if (points != null) for (int i = 0; i < points.length(); i++) {
             JSONObject point = points.optJSONObject(i);
-            if (point == null) continue;
-            divider(activity, content);
-            TextView item = label(activity, rate(activity, point) + "\n" + date(point.optLong("observed_at")), 14, false);
-            item.setPadding(0, dp(activity, 8), 0, dp(activity, 8));
-            content.addView(item);
+            if (point != null) readings.add(point);
         }
-        Dialog dialog = dialog(activity, content);
+        content.addView(HistoryReadingsView.create(activity, readings, (point, previous) -> {
+            TextView item = previous instanceof TextView ? (TextView) previous : label(activity, "", 14, false);
+            item.setText(rate(activity, point) + "\n" + date(point.optLong("observed_at")));
+            item.setPadding(0, dp(activity, 8), 0, dp(activity, 8));
+            return item;
+        }), new LinearLayout.LayoutParams(-1, 0, 1));
+        Dialog dialog = new Dialog(activity);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(content);
         content.addView(action(activity, R.string.meliuz_close, dialog::dismiss));
         show(activity, dialog);
+        if (dialog.getWindow() != null) dialog.getWindow().setLayout(
+                activity.getResources().getDisplayMetrics().widthPixels - dp(activity, 32),
+                activity.getResources().getDisplayMetrics().heightPixels - dp(activity, 72));
     }
 
     private static String date(long at) {

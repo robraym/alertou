@@ -1078,63 +1078,72 @@ public class MainActivity extends AlertouActivity {
             return;
         }
         Dialog dialog = new Dialog(this);
-        ScrollView scroll = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(24), dp(22), dp(24), dp(16));
         content.setBackgroundResource(R.drawable.bg_dialog);
-        scroll.addView(content);
+        LinearLayout historyHeader = new LinearLayout(this);
+        historyHeader.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
         title.setText(R.string.treasury_direct_history_title);
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(21);
-        content.addView(title);
+        historyHeader.addView(title);
         TextView bond = new TextView(this);
         bond.setText(interest.getTerm());
         bond.setTextColor(getColor(R.color.text_primary));
         bond.setTextSize(15);
         bond.setPadding(0, dp(6), 0, 0);
-        content.addView(bond);
+        historyHeader.addView(bond);
         TextView summary = new TextView(this);
         summary.setText(R.string.treasury_direct_history_summary);
         summary.setTextColor(getColor(R.color.text_secondary));
         summary.setTextSize(13);
         summary.setPadding(0, dp(3), 0, dp(10));
-        content.addView(summary);
+        historyHeader.addView(summary);
         TextView chartTitle = new TextView(this);
         chartTitle.setText(R.string.treasury_direct_history_chart_title);
         chartTitle.setTextColor(getColor(R.color.text_primary));
         chartTitle.setTextSize(16);
-        content.addView(chartTitle);
+        historyHeader.addView(chartTitle);
         TreasuryRateTrendView graph = new TreasuryRateTrendView(this);
         graph.setPoints(points);
-        content.addView(graph, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
+        historyHeader.addView(graph, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(points.size() <= 2 ? 140 : 180)));
         TextView readings = new TextView(this);
         readings.setText(R.string.treasury_direct_history_readings_title);
         readings.setTextColor(getColor(R.color.text_primary));
         readings.setTextSize(16);
         readings.setPadding(0, dp(8), 0, dp(4));
-        content.addView(readings);
+        historyHeader.addView(readings);
+        content.addView(historyHeader, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         SimpleDateFormat date = new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR"));
-        for (int index = points.size() - 1; index >= Math.max(0, points.size() - 8); index--) {
-            TreasuryRatePoint point = points.get(index);
-            LinearLayout row = new LinearLayout(this);
-            row.setGravity(Gravity.CENTER_VERTICAL);
-            row.setPadding(0, dp(4), 0, dp(4));
-            TextView observed = new TextView(this);
-            observed.setText(date.format(point.getObservedAt()));
-            observed.setTextColor(getColor(R.color.text_secondary));
-            observed.setTextSize(12.5f);
-            row.addView(observed, new LinearLayout.LayoutParams(0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-            TextView rate = new TextView(this);
-            rate.setText(formatTreasuryRate(point.getRate()) + "% a.a.");
-            rate.setTextColor(getColor(R.color.text_primary));
-            rate.setTextSize(12.5f);
-            row.addView(rate);
-            content.addView(row);
-        }
+        android.widget.ListView readingsList = HistoryReadingsView.create(this, points,
+                (point, convertView) -> {
+                LinearLayout row;
+                if (convertView instanceof LinearLayout) {
+                    row = (LinearLayout) convertView;
+                } else {
+                    row = new LinearLayout(MainActivity.this);
+                    row.setGravity(Gravity.CENTER_VERTICAL);
+                    row.setPadding(0, dp(4), 0, dp(4));
+                    TextView observed = new TextView(MainActivity.this);
+                    observed.setTextColor(getColor(R.color.text_secondary));
+                    observed.setTextSize(12.5f);
+                    row.addView(observed, new LinearLayout.LayoutParams(0,
+                            LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+                    TextView rate = new TextView(MainActivity.this);
+                    rate.setTextColor(getColor(R.color.text_primary));
+                    rate.setTextSize(12.5f);
+                    row.addView(rate);
+                }
+                ((TextView) row.getChildAt(0)).setText(date.format(point.getObservedAt()));
+                ((TextView) row.getChildAt(1)).setText(formatTreasuryRate(point.getRate()) + "% a.a.");
+                return row;
+        });
+        content.addView(readingsList, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
         actions.setPadding(0, dp(12), 0, 0);
@@ -1142,7 +1151,7 @@ public class MainActivity extends AlertouActivity {
         close.setOnClickListener(view -> dialog.dismiss());
         actions.addView(close);
         content.addView(actions);
-        dialog.setContentView(scroll);
+        dialog.setContentView(content);
         dialog.show();
         Window window = dialog.getWindow();
         if (window != null) {
@@ -3207,12 +3216,10 @@ public class MainActivity extends AlertouActivity {
                                                               boolean total) {
         if (history == null || (!total && history.getPoints().isEmpty())) return;
         Dialog dialog = new Dialog(this);
-        ScrollView scroll = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(24), dp(22), dp(24), dp(16));
         content.setBackgroundResource(R.drawable.bg_dialog);
-        scroll.addView(content);
 
         TextView title = new TextView(this);
         title.setText(total ? R.string.property_market_total_history_title
@@ -3251,10 +3258,9 @@ public class MainActivity extends AlertouActivity {
         readingsTitle.setTextSize(16);
         readingsTitle.setPadding(0, dp(8), 0, dp(4));
         content.addView(readingsTitle);
-        int firstIndex = Math.max(0, history.getPoints().size() - 8);
-        for (int index = history.getPoints().size() - 1; index >= firstIndex; index--) {
-            content.addView(createPropertyMarketListingCountPointRow(history.getPoints().get(index)));
-        }
+        content.addView(HistoryReadingsView.create(this, history.getPoints(),
+                (point, previous) -> createPropertyMarketListingCountPointRow(point)),
+                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
 
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END);
@@ -3264,7 +3270,7 @@ public class MainActivity extends AlertouActivity {
         actions.addView(close);
         content.addView(actions);
 
-        dialog.setContentView(scroll);
+        dialog.setContentView(content);
         dialog.show();
         Window window = dialog.getWindow();
         if (window != null) {
@@ -3310,12 +3316,10 @@ public class MainActivity extends AlertouActivity {
         }
 
         Dialog dialog = new Dialog(this);
-        ScrollView scroll = new ScrollView(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(dp(24), dp(22), dp(24), dp(16));
         content.setBackgroundResource(R.drawable.bg_dialog);
-        scroll.addView(content);
 
         LinearLayout titleLine = new LinearLayout(this);
         titleLine.setOrientation(LinearLayout.HORIZONTAL);
@@ -3477,10 +3481,9 @@ public class MainActivity extends AlertouActivity {
             readingsTitle.setPadding(0, dp(8), 0, dp(4));
             content.addView(readingsTitle);
 
-            int firstIndex = Math.max(0, visibleHistoryPoints.size() - 8);
-            for (int index = visibleHistoryPoints.size() - 1; index >= firstIndex; index--) {
-                content.addView(createPropertyHistoryPointRow(visibleHistoryPoints.get(index), currency));
-            }
+            content.addView(HistoryReadingsView.create(this, visibleHistoryPoints,
+                    (point, previous) -> createPropertyHistoryPointRow(point, currency)),
+                    new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         } else {
             content.addView(createPropertyHistoryNotice(R.string.property_history_empty));
         }
@@ -3493,7 +3496,7 @@ public class MainActivity extends AlertouActivity {
         actions.addView(close);
         content.addView(actions);
 
-        dialog.setContentView(scroll);
+        dialog.setContentView(content);
         Window window = dialog.getWindow();
         if (window != null) window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.show();

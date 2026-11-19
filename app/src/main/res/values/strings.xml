@@ -667,7 +667,7 @@
     <string name="treasury_direct_history_title">Histórico da taxa</string>
     <string name="treasury_direct_history_summary">Taxa de compra observada no Tesouro Direto.</string>
     <string name="treasury_direct_history_chart_title">Variação da taxa</string>
-    <string name="treasury_direct_history_readings_title">Últimas leituras</string>
+    <string name="treasury_direct_history_readings_title">Todas as leituras</string>
     <string name="treasury_direct_rate_change_description">Ver histórico da taxa</string>
     <string name="action_refresh_treasury_rates">Atualizar taxas do Tesouro Direto</string>
     <string name="action_checking_treasury_rates">Consultando taxas do Tesouro Direto</string>
@@ -722,12 +722,12 @@
     <string name="property_market_total_history_title">Histórico do total de imóveis</string>
     <string name="property_market_total_history_summary">Soma das últimas contagens conhecidas dos condomínios atuais em cada data. O histórico começa quando todos têm uma leitura registrada.</string>
     <string name="property_market_total_history_waiting">Aguardando uma contagem registrada de todos os condomínios para apresentar o histórico do total.</string>
-    <string name="property_market_listing_count_readings_title">Últimas leituras</string>
+    <string name="property_market_listing_count_readings_title">Todas as leituras</string>
     <string name="property_market_listing_count_change_increase">↑ %1$d</string>
     <string name="property_market_listing_count_change_decrease">↓ %1$d</string>
     <string name="property_history_chart_old_price">Preço antigo</string>
     <string name="property_history_chart_new_price">Preço novo</string>
-    <string name="property_history_readings_title">Últimas leituras</string>
+    <string name="property_history_readings_title">Todas as leituras</string>
     <string name="property_history_point">%1$s • %2$s m²</string>
     <string name="property_history_unknown_date">Data indisponível</string>
     <string name="property_lowest_price_action">Buscar menor preço</string>
