@@ -272,7 +272,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
                 filterOffers(offers, searchInput.getText().toString())
         );
         sortOffers(visibleOffers);
-        if (visibleOffers.isEmpty()) {
+        if (visibleOffers.isEmpty() && !searchInput.getText().toString().trim().isEmpty()) {
             offersContainer.addView(createEmptyText());
             return;
         }
@@ -295,7 +295,8 @@ abstract class StoredOffersActivity extends AlertouActivity {
     }
 
     private void addOfferSection(int titleResource, int iconResource, List<ObservedOffer> offers) {
-        if (offers.isEmpty()) {
+        if (offers.isEmpty() && (titleResource != R.string.product_alerts_list_title
+                || !searchInput.getText().toString().trim().isEmpty())) {
             return;
         }
         String preferenceKey = "stored_section_" + getBottomNavigationItem() + "_" + titleResource;
@@ -322,6 +323,8 @@ abstract class StoredOffersActivity extends AlertouActivity {
             action.setContentDescription(getString(getSectionActionDescription()));
             action.setPadding(dp(8), dp(8), dp(8), dp(8));
             action.setScaleType(ImageView.ScaleType.CENTER);
+            action.setEnabled(!offers.isEmpty());
+            action.setAlpha(offers.isEmpty() ? 0.4f : 1f);
             action.setOnClickListener(view -> showSectionConfirmationDialog(offers));
             LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(dp(36), dp(36));
             actionParams.rightMargin = dp(8);
