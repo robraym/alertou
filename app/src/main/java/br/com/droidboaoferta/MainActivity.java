@@ -868,9 +868,7 @@ public class MainActivity extends AlertouActivity {
         icon.setPadding(dp(7), dp(7), dp(7), dp(7));
         icon.setScaleType(ImageView.ScaleType.CENTER);
         treasuryActionView = icon;
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-        iconParams.rightMargin = dp(8);
-        header.addView(icon, iconParams);
+        addSectionHeaderActions(header, icon, Interest.TYPE_TREASURY);
         icon.setOnClickListener(view -> refreshTreasuryRates());
         updateTreasuryRefreshIcon();
 
@@ -968,7 +966,6 @@ public class MainActivity extends AlertouActivity {
             content.addView(createTreasuryRateRow(interest,
                     historyRepository.get(interest.getId())));
         }
-        content.addView(createConfigureSectionAction(Interest.TYPE_TREASURY));
         card.addView(content);
         addOfferSectionCard(card);
     }
@@ -1296,9 +1293,8 @@ public class MainActivity extends AlertouActivity {
         if (sectionIconResource != 0 || propertyMarketSection) {
             sectionAction.setColorFilter(AccentColorController.getPrimaryColor(this));
         }
-        LinearLayout.LayoutParams sectionActionParams = new LinearLayout.LayoutParams(dp(36), dp(36));
-        sectionActionParams.rightMargin = dp(8);
-        header.addView(sectionAction, sectionActionParams);
+        addSectionHeaderActions(header, sectionAction, propertyMarketSection ? Interest.TYPE_PROPERTY
+                : productSection ? Interest.TYPE_PRICE : Interest.TYPE_COUPON);
 
         LinearLayout headerText = new LinearLayout(this);
         headerText.setOrientation(LinearLayout.VERTICAL);
@@ -1581,31 +1577,39 @@ public class MainActivity extends AlertouActivity {
                         getPropertyCondominiumCardTitle(interest), 0);
             }
         }
-        content.addView(createConfigureSectionAction(propertyMarketSection ? Interest.TYPE_PROPERTY
-                : productSection ? Interest.TYPE_PRICE : Interest.TYPE_COUPON));
         card.addView(content);
 
         addOfferSectionCard(card);
     }
 
-    private View createConfigureSectionAction(String type) {
+    private void addSectionHeaderActions(LinearLayout header, ImageButton primaryAction, String type) {
+        LinearLayout actions = new LinearLayout(this);
+        actions.setOrientation(LinearLayout.VERTICAL);
+        actions.setGravity(Gravity.CENTER_HORIZONTAL);
+        actions.addView(primaryAction, new LinearLayout.LayoutParams(dp(36), dp(36)));
+
         int label = Interest.TYPE_PROPERTY.equals(type) ? R.string.dashboard_configure_properties
                 : Interest.TYPE_TREASURY.equals(type) ? R.string.dashboard_configure_treasury
                 : Interest.TYPE_COUPON.equals(type) ? R.string.dashboard_configure_coupons
                 : R.string.dashboard_configure_products;
-        TextView action = new TextView(this);
-        action.setText(label);
-        action.setTextSize(14);
-        action.setTextColor(AccentColorController.getPrimaryColor(this));
-        action.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        action.setMinHeight(dp(48));
-        action.setPadding(dp(12), dp(6), dp(12), dp(6));
-        action.setBackgroundResource(R.drawable.bg_row_pressed);
-        action.setFocusable(true);
-        action.setOnClickListener(view -> startActivity(new Intent(this, AlertsActivity.class)
+        ImageButton settings = new ImageButton(this);
+        settings.setImageResource(R.drawable.ic_card_settings);
+        settings.setContentDescription(getString(label));
+        settings.setColorFilter(AccentColorController.getPrimaryColor(this));
+        settings.setPadding(dp(8), dp(8), dp(8), dp(8));
+        settings.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        settings.setBackgroundResource(R.drawable.bg_icon_circle);
+        settings.setOnClickListener(view -> startActivity(new Intent(this, AlertsActivity.class)
                 .putExtra(AlertsActivity.EXTRA_CONFIGURE_TYPE, type)
                 .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
-        return action;
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(dp(36), dp(36));
+        settingsParams.topMargin = dp(2);
+        actions.addView(settings, settingsParams);
+
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(dp(36),
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        actionsParams.rightMargin = dp(8);
+        header.addView(actions, actionsParams);
     }
 
     private void addOfferSectionCard(LinearLayout card) {

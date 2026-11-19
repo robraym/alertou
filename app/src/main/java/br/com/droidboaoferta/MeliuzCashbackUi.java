@@ -80,9 +80,20 @@ final class MeliuzCashbackUi {
                 () -> MeliuzCashbackMonitor.getInstance().checkNow(activity));
         refresh.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
         refresh.setScaleType(ImageView.ScaleType.CENTER);
-        LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
-        refreshParams.rightMargin = dp(activity, 8);
-        header.addView(refresh, refreshParams);
+        LinearLayout actions = vertical(activity);
+        actions.setGravity(Gravity.CENTER_HORIZONTAL);
+        actions.addView(refresh, new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36)));
+        ImageButton settings = icon(activity, R.drawable.ic_card_settings, R.string.meliuz_settings,
+                () -> showSettings(activity, () -> { }));
+        settings.setBackgroundResource(R.drawable.bg_icon_circle);
+        settings.setPadding(dp(activity, 8), dp(activity, 8), dp(activity, 8), dp(activity, 8));
+        settings.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        LinearLayout.LayoutParams settingsParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
+        settingsParams.topMargin = dp(activity, 2);
+        actions.addView(settings, settingsParams);
+        LinearLayout.LayoutParams actionsParams = new LinearLayout.LayoutParams(dp(activity, 36), -2);
+        actionsParams.rightMargin = dp(activity, 8);
+        header.addView(actions, actionsParams);
         LinearLayout titles = vertical(activity);
         TextView title = label(activity, activity.getString(R.string.meliuz_title), 16, false);
         title.setPadding(0, 0, 0, 0);
@@ -163,10 +174,6 @@ final class MeliuzCashbackUi {
             empty.setPadding(dp(activity, 8), dp(activity, 8), dp(activity, 8), dp(activity, 8));
             content.addView(empty);
         }
-        TextView settings = action(activity, R.string.meliuz_settings,
-                () -> showSettings(activity, () -> { }));
-        settings.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
-        content.addView(settings);
         card.addView(content);
         return card;
     }
