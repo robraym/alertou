@@ -72,6 +72,7 @@ public class OfferMonitorService extends Service {
         CouponPageMonitor.getInstance().stop();
         PropertyPageMonitor.getInstance().stop();
         TreasuryDirectMonitor.getInstance().stop();
+        MeliuzCashbackMonitor.getInstance().stop();
         VivoOutletMonitor.getInstance().stop();
         PelandoMonitor.getInstance().stop();
         PromobitMonitor.getInstance().stop();
@@ -92,6 +93,11 @@ public class OfferMonitorService extends Service {
             return;
         }
         boolean hasPriceAlert = false;
+        if (MeliuzCashbackSettings.isEnabled(this)) {
+            MeliuzCashbackMonitor.getInstance().start(this);
+        } else {
+            MeliuzCashbackMonitor.getInstance().stop();
+        }
         boolean hasCouponAlert = false;
         boolean hasPropertyAlert = false;
         boolean hasTreasuryAlert = false;
@@ -181,7 +187,9 @@ public class OfferMonitorService extends Service {
     }
 
     private void retryStoreSourcesAfterReconnect() {
-        if (!MonitorRunPolicy.canRun(this) || !hasPriceAlert()) return;
+        if (!MonitorRunPolicy.canRun(this)) return;
+        if (MeliuzCashbackSettings.isEnabled(this)) MeliuzCashbackMonitor.getInstance().checkNow(this);
+        if (!hasPriceAlert()) return;
         if ((StoreSourceControl.isEnabled(this, R.string.vivo_outlet_source_title)
                 && VivoOutletSource.isConfigured(this))
                 || (StoreSourceControl.isEnabled(this, R.string.vivo_madrugada_source_title)

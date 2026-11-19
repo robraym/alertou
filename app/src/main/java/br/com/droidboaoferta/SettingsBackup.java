@@ -19,6 +19,7 @@ final class SettingsBackup {
             "samsung_discount_offer_check_interval_seconds", StoreSourceControl.KEY_DISABLED_SOURCES_MASK};
     private static final String[] PROPERTY_KEYS = {"enabled", "show_condominium", "check_interval_minutes", "check_interval_seconds"};
     private static final String[] TREASURY_KEYS = {"interval_seconds"};
+    private static final String[] MELIUZ_KEYS = {"enabled", "minimum", "interval_seconds", "expanded"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
     private static final String[] ALERT_KEYS = {"alerts_sort_order", "home_sort_order",
             "alerts_section_coupons_expanded", "alerts_section_properties_expanded",
@@ -63,6 +64,7 @@ final class SettingsBackup {
             capture(files, result, old, "external_offer_sources", EXTERNAL_KEYS);
             capture(files, result, old, "property_market_reference", PROPERTY_KEYS);
             capture(files, result, old, "treasury_direct_settings", TREASURY_KEYS);
+            capture(files, result, old, "meliuz_cashback_settings", MELIUZ_KEYS);
             capture(files, result, old, "telegram_preferences", TELEGRAM_KEYS);
             capture(files, result, old, "offer_preferences", ALERT_KEYS);
             capture(files, result, old, "app_preferences", APPEARANCE_KEYS);
@@ -105,6 +107,7 @@ final class SettingsBackup {
         apply(files, merged, "external_offer_sources", EXTERNAL_KEYS);
         apply(files, merged, "property_market_reference", PROPERTY_KEYS);
         apply(files, merged, "treasury_direct_settings", TREASURY_KEYS);
+        apply(files, merged, "meliuz_cashback_settings", MELIUZ_KEYS);
         apply(files, merged, "telegram_preferences", TELEGRAM_KEYS);
         apply(files, merged, "offer_preferences", ALERT_KEYS);
         apply(files, merged, "app_preferences", APPEARANCE_KEYS);
@@ -135,6 +138,7 @@ final class SettingsBackup {
         boolean external = id.startsWith("external_offer_sources/");
         boolean property = id.startsWith("property_market_reference/");
         boolean treasury = id.startsWith("treasury_direct_settings/");
+        boolean meliuz = id.startsWith("meliuz_cashback_settings/");
         boolean telegram = id.startsWith("telegram_preferences/");
         boolean alerts = id.startsWith("offer_preferences/");
         boolean appearance = id.startsWith("app_preferences/");
@@ -145,6 +149,7 @@ final class SettingsBackup {
         if (!(external && java.util.Arrays.asList(EXTERNAL_KEYS).contains(key))
                 && !(property && java.util.Arrays.asList(PROPERTY_KEYS).contains(key))
                 && !(treasury && java.util.Arrays.asList(TREASURY_KEYS).contains(key))
+                && !(meliuz && java.util.Arrays.asList(MELIUZ_KEYS).contains(key))
                 && !(telegram && java.util.Arrays.asList(TELEGRAM_KEYS).contains(key))
                 && !(alerts && java.util.Arrays.asList(ALERT_KEYS).contains(key))
                 && !(appearance && java.util.Arrays.asList(APPEARANCE_KEYS).contains(key))
@@ -152,6 +157,19 @@ final class SettingsBackup {
                 && !(cloudSync && java.util.Arrays.asList(CLOUD_SYNC_KEYS).contains(key))
                 && !(display && java.util.Arrays.asList(STORE_DISPLAY_KEYS).contains(key))) return false;
         if (value == JSONObject.NULL) return true;
+        if (meliuz) {
+            if (key.equals("enabled") || key.equals("expanded")) return value instanceof Boolean;
+            if (key.equals("minimum")) {
+                if (!(value instanceof String)) return false;
+                try {
+                    double minimum = Double.parseDouble((String) value);
+                    return Double.isFinite(minimum) && minimum >= 0 && minimum <= 100;
+                } catch (RuntimeException invalid) { return false; }
+            }
+            return value instanceof Number && ((Number) value).intValue() >= 300
+                    && ((Number) value).intValue() <= 86400
+                    && ((Number) value).intValue() == ((Number) value).doubleValue();
+        }
         if (display) {
             return value instanceof String && !((String) value).trim().isEmpty()
                     && ((String) value).trim().length() <= 40;

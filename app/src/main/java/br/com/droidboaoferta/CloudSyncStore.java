@@ -1310,6 +1310,7 @@ final class CloudSyncStore {
                     SELECTED_GROUPS,
                     Collections.emptySet())));
             data.put(SettingsBackup.KEY, SettingsBackup.export(appContext));
+            data.put("meliuz_cashback", new MeliuzCashbackStore(appContext).exportBackup());
             data.put(KEY_INTERESTS, offers.getString(KEY_INTERESTS, "[]"));
             data.put(KEY_PROPERTY_HISTORY, PropertyHistorySync.pack(
                     new PropertyHistoryRepository(appContext).exportForSync()));
@@ -1638,6 +1639,8 @@ final class CloudSyncStore {
             return 0;
         }
         if (readArray(data.optString(KEY_INTERESTS, "[]")).length() > 0
+                || (data.optJSONObject("meliuz_cashback") != null
+                && MeliuzCashbackStore.validSnapshot(data.optJSONObject("meliuz_cashback").optJSONObject("snapshot")))
                 || readArray(data.optString(KEY_RECENT_OFFERS, "[]")).length() > 0
                 || readArray(data.optString(KEY_ARCHIVED_OFFERS, "[]")).length() > 0
                 || readArray(data.optString(KEY_TRASHED_OFFERS, "[]")).length() > 0) {
@@ -1677,6 +1680,9 @@ final class CloudSyncStore {
         JSONObject remoteTreasuryHistory = data.optJSONObject(KEY_TREASURY_RATE_HISTORY);
         boolean treasuryHistoryChanged = new TreasuryRateHistoryRepository(appContext)
                 .mergeFromSync(remoteTreasuryHistory);
+        boolean meliuzHistoryChanged = new MeliuzCashbackStore(appContext)
+                .restore(data.optJSONObject("meliuz_cashback"), force);
+        if (meliuzHistoryChanged) MeliuzCashbackMonitor.broadcast(appContext);
         boolean historyNeedsPush = false;
         try {
             historyNeedsPush = (remoteHistory != null || historyChanged)
@@ -1684,10 +1690,10 @@ final class CloudSyncStore {
                     PropertyHistorySync.contentKey(PropertyHistorySync.merge(remoteHistory, new JSONArray())))
                     || backup.optBoolean("_property_history_combined"));
         } catch (Exception ignored) { }
-        if (historyNeedsPush || treasuryHistoryChanged) markLocalChanged(appContext);
+        if (historyNeedsPush || treasuryHistoryChanged || meliuzHistoryChanged) markLocalChanged(appContext);
         if (remoteUpdatedAt <= 0L
                 || (!force && remoteUpdatedAt <= lastSeenRemoteAt)) {
-            return historyChanged || treasuryHistoryChanged;
+            return historyChanged || treasuryHistoryChanged || meliuzHistoryChanged;
         }
 
         boolean settingsChanged = SettingsBackup.restore(appContext, data.optJSONObject(SettingsBackup.KEY), force);
@@ -1826,6 +1832,7 @@ final class CloudSyncStore {
             new android.os.Handler(android.os.Looper.getMainLooper()).post(() -> {
                 PropertyPageMonitor.getInstance().rescheduleIfRunning(appContext);
                 TreasuryDirectMonitor.getInstance().rescheduleIfRunning(appContext);
+                MeliuzCashbackMonitor.getInstance().rescheduleIfRunning(appContext);
                 VivoOutletMonitor.getInstance().rescheduleIfRunning(appContext);
                 PelandoMonitor.getInstance().rescheduleIfRunning(appContext);
                 PromobitMonitor.getInstance().rescheduleIfRunning(appContext);
@@ -2523,6 +2530,7 @@ final class CloudSyncStore {
         SharedPreferences telegram = appContext.getSharedPreferences(TELEGRAM_PREFS, Context.MODE_PRIVATE);
         SharedPreferences offers = appContext.getSharedPreferences(OFFER_PREFS, Context.MODE_PRIVATE);
         if (readArray(offers.getString(KEY_INTERESTS, "[]")).length() > 0
+                || new MeliuzCashbackStore(appContext).lastSuccess() > 0
                 || readArray(offers.getString(KEY_RECENT_OFFERS, "[]")).length() > 0
                 || readArray(offers.getString(KEY_ARCHIVED_OFFERS, "[]")).length() > 0
                 || readArray(offers.getString(KEY_TRASHED_OFFERS, "[]")).length() > 0) {

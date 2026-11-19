@@ -255,6 +255,7 @@ public class MainActivity extends AlertouActivity {
         filter.addAction(TelegramClientManager.ACTION_CLOUD_SYNC_CHANGED);
         filter.addAction(PropertyPageMonitor.ACTION_MARKET_REFERENCE_PROGRESS);
         filter.addAction(TreasuryDirectMonitor.ACTION_RATES_CHANGED);
+        filter.addAction(MeliuzCashbackMonitor.ACTION_CHANGED);
         filter.addAction(TreasuryDirectMonitor.ACTION_CHECK_STATE_CHANGED);
         ContextCompat.registerReceiver(
                 this,
@@ -396,7 +397,7 @@ public class MainActivity extends AlertouActivity {
             else if (interest.isProperty()) hasPropertyAlert = true;
             else if (interest.isPrice()) hasPriceAlert = true;
         }
-        if (isMonitorEnabled() && (hasCouponAlert || hasPropertyAlert
+        if (isMonitorEnabled() && (MeliuzCashbackSettings.isEnabled(this) || hasCouponAlert || hasPropertyAlert
                 || (hasPriceAlert && getSelectedGroupCount() > 0))) {
             requestNotificationPermissionIfNeeded();
         }
@@ -733,6 +734,7 @@ public class MainActivity extends AlertouActivity {
                         getPropertyMarketLastCheckSummary(noOffers), R.drawable.ic_property_alert);
             }
             addTreasurySection();
+            addMeliuzSection();
             addOfferSection(R.string.product_alerts_list_title, noOffers, currency,
                     SECTION_PRODUCTS_EXPANDED, "");
             if (offersContainer.getChildCount() == 0) {
@@ -779,9 +781,25 @@ public class MainActivity extends AlertouActivity {
         addOfferSection(R.string.coupon_alerts_list_title, couponOffers, currency,
                 SECTION_COUPONS_EXPANDED, "");
         addTreasurySection();
+        addMeliuzSection();
         addOfferSection(R.string.product_alerts_list_title, productOffers, currency,
                 SECTION_PRODUCTS_EXPANDED, "");
         offerSectionCache.end(offersContainer);
+    }
+
+    private void addMeliuzSection() {
+        if (!MeliuzCashbackSettings.isEnabled(this)) return;
+        String query = offersSearchInput.getText().toString();
+        MeliuzCashbackStore store = new MeliuzCashbackStore(this);
+        String key = "meliuz_cashback";
+        String fingerprint = store.snapshot().toString() + store.failed()
+                + MeliuzCashbackSettings.signature(this)
+                + MeliuzCashbackSettings.preferences(this).getBoolean("expanded", true)
+                + MeliuzCashbackMonitor.getInstance().isChecking()
+                + MonitorServiceController.isEnabled(this) + query;
+        View card = offerSectionCache.find(key, fingerprint);
+        if (card == null) card = MeliuzCashbackUi.dashboard(this, query);
+        offerSectionCache.attach(offersContainer, key, fingerprint, card);
     }
 
     private void refreshProductRevalidationStatus() {
@@ -950,6 +968,7 @@ public class MainActivity extends AlertouActivity {
             content.addView(createTreasuryRateRow(interest,
                     historyRepository.get(interest.getId())));
         }
+        content.addView(createConfigureSectionAction(Interest.TYPE_TREASURY));
         card.addView(content);
         addOfferSectionCard(card);
     }
@@ -1562,9 +1581,31 @@ public class MainActivity extends AlertouActivity {
                         getPropertyCondominiumCardTitle(interest), 0);
             }
         }
+        content.addView(createConfigureSectionAction(propertyMarketSection ? Interest.TYPE_PROPERTY
+                : productSection ? Interest.TYPE_PRICE : Interest.TYPE_COUPON));
         card.addView(content);
 
         addOfferSectionCard(card);
+    }
+
+    private View createConfigureSectionAction(String type) {
+        int label = Interest.TYPE_PROPERTY.equals(type) ? R.string.dashboard_configure_properties
+                : Interest.TYPE_TREASURY.equals(type) ? R.string.dashboard_configure_treasury
+                : Interest.TYPE_COUPON.equals(type) ? R.string.dashboard_configure_coupons
+                : R.string.dashboard_configure_products;
+        TextView action = new TextView(this);
+        action.setText(label);
+        action.setTextSize(14);
+        action.setTextColor(AccentColorController.getPrimaryColor(this));
+        action.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
+        action.setMinHeight(dp(48));
+        action.setPadding(dp(12), dp(6), dp(12), dp(6));
+        action.setBackgroundResource(R.drawable.bg_row_pressed);
+        action.setFocusable(true);
+        action.setOnClickListener(view -> startActivity(new Intent(this, AlertsActivity.class)
+                .putExtra(AlertsActivity.EXTRA_CONFIGURE_TYPE, type)
+                .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)));
+        return action;
     }
 
     private void addOfferSectionCard(LinearLayout card) {

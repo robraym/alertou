@@ -577,6 +577,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     protected void onResume() {
         super.onResume();
         BottomNavigationController.resetInitialFocus(this);
+        MeliuzCashbackUi.mountSettings(this, findViewById(R.id.container_meliuz_source));
     }
 
     @Override

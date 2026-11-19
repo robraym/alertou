@@ -76,6 +76,16 @@ Não usar scraping da Amazon. Se o aplicativo futuramente usar links de associad
 - Cupons encontrados em páginas oficiais aparecem no histórico, mas não participam do ranking dos grupos do Telegram.
 - A consulta é uma fonte complementar e configurável, não substitui o Telegram como fonte principal.
 
+## Cashback Méliuz — lojas em destaque
+
+- Fonte complementar: a mesma listagem pública de lojas em destaque usada em `https://www.meliuz.com.br/inicio`, pelos endpoints `/v3/api/home/hot-partners` e `/v3/api/home/cashback?ids=...`.
+- Configuração em **Alertas** e **Fontes**: ativação explícita, cashback mínimo em percentual (limite inclusivo) e intervalo de consulta, de 5 minutos a 24 horas. Padrões: desativado, 10% e 15 minutos.
+- Resultados em um card próprio em **Alertou**, sem misturar cashback com preços de produtos. Preservar a indicação **até** quando o benefício depende da categoria. Benefícios em valor fixo não atendem ao filtro percentual.
+- Alertar na primeira leitura que atinja o mínimo, quando voltar a atingi-lo ou quando o percentual aumentar; não repetir notificações de um mesmo percentual nas consultas seguintes.
+- Persistir a leitura completa antes de notificar; resposta incompleta ou inválida mantém os dados anteriores com indicação de falha. Histórico registra somente mudanças observadas, não o valor anterior promocional enviado pelo site.
+- Monitor independente no serviço existente, com atualização manual, retomada após reconexão e configurações, última leitura e histórico incluídos no backup/restauração.
+- São endpoints internos do site, sem contrato público de estabilidade. Não afirmar cobertura de todas as lojas do Méliuz nem ativar cashback automaticamente: a ativação e as regras pertencem à página da loja no Méliuz.
+
 ## Privacidade e segurança
 
 - Processar somente grupos e canais escolhidos explicitamente.

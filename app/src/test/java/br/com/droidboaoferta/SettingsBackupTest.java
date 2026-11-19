@@ -8,6 +8,20 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class SettingsBackupTest {
+    @Test public void cashbackSettingsRoundTripAndInvalidBackupValues() throws Exception {
+        SettingsBackup.Preferences source = files();
+        source.get("meliuz_cashback_settings").edit().putBoolean("enabled", true)
+                .putString("minimum", "12.5").putInt("interval_seconds", 600).apply();
+        SettingsBackup.Preferences destination = files();
+        assertTrue(SettingsBackup.restore(destination, SettingsBackup.export(source), true));
+        assertTrue(destination.get("meliuz_cashback_settings").getBoolean("enabled", false));
+        assertEquals("12.5", destination.get("meliuz_cashback_settings").getString("minimum", ""));
+        assertEquals(600, destination.get("meliuz_cashback_settings").getInt("interval_seconds", 0));
+        JSONObject invalid = new JSONObject().put("meliuz_cashback_settings/minimum", value("NaN"))
+                .put("meliuz_cashback_settings/interval_seconds", value(1));
+        assertFalse(SettingsBackup.restore(destination, invalid, true));
+        assertEquals("12.5", destination.get("meliuz_cashback_settings").getString("minimum", ""));
+    }
     @Test public void roundTripRestoresAllSourceSettingsWithoutRuntimeDataOrEcho() {
         SettingsBackup.Preferences source = files();
         source.get("external_offer_sources").edit().putString("pelando_url", PelandoSource.DEFAULT_URL)

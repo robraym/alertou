@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AlertsActivity extends AlertouActivity {
+    static final String EXTRA_CONFIGURE_TYPE = "br.com.droidboaoferta.CONFIGURE_ALERT_TYPE";
     private static final String OFFER_PREFS = "offer_preferences";
     private static final String MONITOR_ENABLED = "monitor_enabled";
     private static final String ALERTS_SORT_ORDER = "alerts_sort_order";
@@ -79,6 +80,7 @@ public class AlertsActivity extends AlertouActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             renderInterests();
+            MeliuzCashbackUi.mountSettings(AlertsActivity.this, findViewById(R.id.container_meliuz_settings));
         }
     };
 
@@ -154,7 +156,46 @@ public class AlertsActivity extends AlertouActivity {
     protected void onResume() {
         super.onResume();
         BottomNavigationController.resetInitialFocus(this);
+        focusRequestedConfiguration();
         renderInterests();
+        MeliuzCashbackUi.mountSettings(this, findViewById(R.id.container_meliuz_settings));
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+    }
+
+    private void focusRequestedConfiguration() {
+        String type = getIntent().getStringExtra(EXTRA_CONFIGURE_TYPE);
+        if (type == null) return;
+        getIntent().removeExtra(EXTRA_CONFIGURE_TYPE);
+        String section;
+        int headerId;
+        if (Interest.TYPE_PROPERTY.equals(type)) {
+            section = SECTION_PROPERTIES_EXPANDED;
+            headerId = R.id.header_property_alerts;
+        } else if (Interest.TYPE_TREASURY.equals(type)) {
+            section = SECTION_TREASURY_EXPANDED;
+            headerId = R.id.header_treasury_alerts;
+        } else if (Interest.TYPE_COUPON.equals(type)) {
+            section = SECTION_COUPONS_EXPANDED;
+            headerId = R.id.header_coupon_alerts;
+        } else if (Interest.TYPE_PRICE.equals(type)) {
+            section = SECTION_PRODUCTS_EXPANDED;
+            headerId = R.id.header_price_alerts;
+        } else return;
+        getSharedPreferences(OFFER_PREFS, MODE_PRIVATE).edit().putBoolean(section, true).apply();
+        interestsSearchInput.setText("");
+        android.widget.ScrollView scroll = findViewById(R.id.navigation_animated_content);
+        View header = findViewById(headerId);
+        scroll.post(() -> {
+            android.graphics.Rect bounds = new android.graphics.Rect();
+            header.getDrawingRect(bounds);
+            scroll.offsetDescendantRectToMyCoords(header, bounds);
+            scroll.smoothScrollTo(0, Math.max(0, bounds.top - dp(8)));
+        });
     }
 
     @Override

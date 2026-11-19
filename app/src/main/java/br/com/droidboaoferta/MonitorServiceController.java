@@ -56,7 +56,7 @@ final class MonitorServiceController {
                 hasPriceAlert = true;
             }
         }
-        return hasCouponAlert || hasPropertyAlert || hasTreasuryAlert
+        return MeliuzCashbackSettings.isEnabled(context) || hasCouponAlert || hasPropertyAlert || hasTreasuryAlert
                 || (hasPriceAlert && (selectedGroupCount(context) > 0
                 || hasEnabledStoreSource(context)));
     }
