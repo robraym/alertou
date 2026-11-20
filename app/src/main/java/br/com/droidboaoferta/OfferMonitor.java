@@ -377,7 +377,7 @@ final class OfferMonitor implements TelegramClientManager.MessageListener {
         NotificationManager manager = (NotificationManager) appContext.getSystemService(
                 Context.NOTIFICATION_SERVICE
         );
-        manager.notify((int) (messageId ^ chatId), builder.build());
+        if (!ProductNotificationLimiter.post(appContext, offer, builder.build())) return;
         AlertSoundController.playSelectedSound(appContext);
     }
 

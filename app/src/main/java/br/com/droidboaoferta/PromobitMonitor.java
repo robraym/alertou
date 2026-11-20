@@ -216,7 +216,7 @@ final class PromobitMonitor {
                 Context.NOTIFICATION_SERVICE
         );
         if (manager != null) {
-            manager.notify(notificationId, builder.build());
+            if (!ProductNotificationLimiter.post(context, offer, builder.build())) return;
         }
         AlertSoundController.playSelectedSound(context);
     }

@@ -171,7 +171,7 @@ final class SamsungOfferMonitor {
                 .setPriority(NotificationCompat.PRIORITY_HIGH).setSound(AlertSoundController.getSoundUri(context))
                 .setAutoCancel(true).setContentIntent(pendingIntent);
         NotificationManager manager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (manager != null) manager.notify(offer.getId().hashCode(), builder.build());
+        if (manager == null || !ProductNotificationLimiter.post(context, offer, builder.build())) return;
         AlertSoundController.playSelectedSound(context);
     }
 }

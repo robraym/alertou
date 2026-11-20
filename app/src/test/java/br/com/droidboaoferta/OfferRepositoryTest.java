@@ -13,6 +13,33 @@ import java.util.concurrent.Future;
 import static org.junit.Assert.*;
 
 public class OfferRepositoryTest {
+    @Test public void echoSpotNeverExceedsThreeVisibleOffersAcrossAllSources() {
+        OfferRepository repository = new OfferRepository(TestPreferences.create());
+        long now = System.currentTimeMillis();
+        String[] sources = {"Pelando", "Promobit", "ONE PRICE OFERTAS", "Ofertas Benevides", "NERD OFERTAS"};
+        for (int i = 0; i < sources.length; i++) {
+            repository.add(new ObservedOffer(7L, "Echo Spot", sources[i], 327, 331,
+                    now - (sources.length - i) * 60000L, "https://example.com/" + i,
+                    i < 2 ? "" : "https://t.me/group/" + i, "Echo Spot com Alexa"));
+            assertTrue(repository.getRecentForValidation().size() <= 3);
+        }
+        assertEquals(3, repository.getRecentForValidation().size());
+    }
+
+    @Test public void productCapKeepsLowerPricesAndDoesNotLimitPropertyListings() {
+        OfferRepository repository = new OfferRepository(TestPreferences.create());
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < 5; i++) {
+            repository.add(new ObservedOffer(7L, "Echo Spot", "Fonte " + i, 330 - i, 331,
+                    now - 10000 + i, "https://example.com/" + i));
+            repository.add(new ObservedOffer("property|" + i, 23, "Condomínio", "QuintoAndar", 300000,
+                    400000, now - 1000 + i, "https://example.com/property/" + i, ""));
+        }
+        List<ObservedOffer> offers = repository.getRecentForValidation();
+        assertEquals(8, offers.size());
+        assertEquals(3, offers.stream().filter(o -> o.getInterest().equals("Echo Spot")).count());
+        assertFalse(offers.stream().anyMatch(o -> o.getInterest().equals("Echo Spot") && o.getPrice() > 328));
+    }
     @Test public void eachSavedOfferIsPublishedBeforeItsSourceFinishesTheBatch() {
         SharedPreferences preferences = TestPreferences.create();
         List<Integer> visibleCountsAtPublication = new ArrayList<>();
