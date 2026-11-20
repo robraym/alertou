@@ -861,6 +861,8 @@
     <string name="meliuz_expand">Expandir lojas com cashback</string>
     <string name="meliuz_no_matches">Nenhuma loja na última leitura atende ao filtro.</string>
     <string name="meliuz_history">Histórico</string>
+    <string name="meliuz_history_title">Histórico de cashback</string>
+    <string name="meliuz_history_chart_title">Variação do cashback</string>
     <string name="meliuz_history_description">Mudanças de cashback observadas pelo Alertou.</string>
     <string name="meliuz_rules">Confira as categorias e condições no Méliuz antes de comprar. O cashback precisa ser ativado por lá.</string>
     <string name="meliuz_open_store">Abrir no Méliuz</string>

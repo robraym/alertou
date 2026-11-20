@@ -187,6 +187,7 @@ final class MeliuzCashbackUi {
         toggle.setOnClickListener(toggleListener);
         card.addView(header);
         content.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        JSONObject histories = repository.history();
         for (JSONObject store : matches) {
             if (content.getChildCount() > 0) divider(activity, content, 0);
             LinearLayout row = horizontal(activity);
@@ -200,19 +201,38 @@ final class MeliuzCashbackUi {
             row.setBackgroundResource(R.drawable.bg_row_pressed);
             row.setOnClickListener(v -> showStore(activity, store));
             row.setFocusable(true);
-            TextView badge = label(activity, rate(activity, store), 10.5f, false);
-            badge.setTextColor(ContextCompat.getColor(activity, R.color.action_green));
-            badge.setTypeface(null, android.graphics.Typeface.BOLD);
-            badge.setSingleLine(true);
-            badge.setBackgroundResource(R.drawable.bg_property_new_badge);
-            badge.setPadding(dp(activity, 6), dp(activity, 1), dp(activity, 6), dp(activity, 1));
-            badge.setContentDescription(store.optString("name") + ". " + rate(activity, store)
+            double change = MeliuzCashbackChange.percentage(store,
+                    histories.optJSONArray(Long.toString(store.optLong("id"))));
+            if (Double.isFinite(change)) {
+                NumberFormat percent = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
+                percent.setMaximumFractionDigits(1);
+                TextView badge = label(activity, activity.getString(change > 0
+                        ? R.string.property_price_rise_badge_compact : R.string.property_price_drop_badge_compact,
+                        percent.format(Math.abs(change))), 10.5f, false);
+                badge.setTextColor(ContextCompat.getColor(activity, change > 0 ? R.color.action_green : R.color.danger));
+                badge.setTypeface(null, android.graphics.Typeface.BOLD);
+                badge.setSingleLine(true);
+                badge.setBackgroundResource(change > 0 ? R.drawable.bg_property_new_badge
+                        : R.drawable.bg_property_price_rise_badge);
+                badge.setPadding(dp(activity, 6), dp(activity, 1), dp(activity, 6), dp(activity, 1));
+                badge.setContentDescription(store.optString("name") + ". " + badge.getText()
+                        + ". " + activity.getString(R.string.meliuz_history));
+                badge.setOnClickListener(v -> showHistory(activity, store, repository));
+                badge.setFocusable(true);
+                LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(-2, -2);
+                badgeParams.leftMargin = dp(activity, 7);
+                row.addView(badge, badgeParams);
+            }
+            TextView current = label(activity, rate(activity, store), 13, false);
+            current.setPadding(0, 0, 0, 0);
+            current.setSingleLine(true);
+            current.setOnClickListener(v -> showHistory(activity, store, repository));
+            current.setContentDescription(store.optString("name") + ". " + rate(activity, store)
                     + ". " + activity.getString(R.string.meliuz_history));
-            badge.setOnClickListener(v -> showHistory(activity, store, repository));
-            badge.setFocusable(true);
-            LinearLayout.LayoutParams badgeParams = new LinearLayout.LayoutParams(-2, -2);
-            badgeParams.leftMargin = dp(activity, 7);
-            row.addView(badge, badgeParams);
+            current.setFocusable(true);
+            LinearLayout.LayoutParams currentParams = new LinearLayout.LayoutParams(-2, -2);
+            currentParams.leftMargin = dp(activity, 6);
+            row.addView(current, currentParams);
             content.addView(row);
         }
         if (matches.isEmpty()) {
@@ -383,14 +403,32 @@ final class MeliuzCashbackUi {
     private static void showHistory(Activity activity, JSONObject store, MeliuzCashbackStore repository) {
         LinearLayout content = dialogContent(activity);
         content.setBackgroundResource(R.drawable.bg_dialog);
-        content.addView(label(activity, store.optString("name"), 21, false));
-        content.addView(label(activity, activity.getString(R.string.meliuz_history_description), 13, true));
+        content.addView(label(activity, activity.getString(R.string.meliuz_history_title), 21, false));
+        TextView storeName = label(activity, store.optString("name"), 15, false);
+        storeName.setPadding(0, dp(activity, 6), 0, 0);
+        content.addView(storeName);
+        TextView description = label(activity, activity.getString(R.string.meliuz_history_description), 13, true);
+        description.setPadding(0, dp(activity, 3), 0, dp(activity, 10));
+        content.addView(description);
         JSONArray points = repository.history().optJSONArray(Long.toString(store.optLong("id")));
         List<JSONObject> readings = new ArrayList<>();
         if (points != null) for (int i = 0; i < points.length(); i++) {
             JSONObject point = points.optJSONObject(i);
             if (point != null) readings.add(point);
         }
+        content.addView(label(activity, activity.getString(R.string.meliuz_history_chart_title), 16, false));
+        List<PercentageTrendView.Point> graphPoints = new ArrayList<>();
+        for (JSONObject point : readings) {
+            double amount = "percentage".equals(point.optString("type"))
+                    ? point.optDouble("amount", Double.NaN) : Double.NaN;
+            graphPoints.add(new PercentageTrendView.Point(point.optLong("observed_at"), amount));
+        }
+        PercentageTrendView graph = new PercentageTrendView(activity);
+        graph.setValues(graphPoints);
+        content.addView(graph, new LinearLayout.LayoutParams(-1, dp(activity, readings.size() <= 2 ? 140 : 180)));
+        TextView readingsTitle = label(activity, activity.getString(R.string.property_history_readings_title), 16, false);
+        readingsTitle.setPadding(0, dp(activity, 8), 0, dp(activity, 4));
+        content.addView(readingsTitle);
         java.util.Map<String, HistoryValueRange> ranges = new java.util.HashMap<>();
         for (JSONObject point : readings) {
             String type = point.optString("type");
@@ -402,27 +440,39 @@ final class MeliuzCashbackUi {
             ranges.put(type, new HistoryValueRange(amounts));
         }
         content.addView(HistoryReadingsView.create(activity, readings, (point, previous) -> {
-            TextView item = previous instanceof TextView ? (TextView) previous : label(activity, "", 14, false);
-            String value = rate(activity, point);
-            android.text.SpannableString text = new android.text.SpannableString(
-                    value + "\n" + date(point.optLong("observed_at")));
+            LinearLayout row;
+            if (previous instanceof LinearLayout) {
+                row = (LinearLayout) previous;
+            } else {
+                row = horizontal(activity);
+                row.setPadding(0, dp(activity, 4), 0, dp(activity, 4));
+                row.addView(label(activity, "", 12.5f, true), new LinearLayout.LayoutParams(0, -2, 1));
+                row.addView(label(activity, "", 12.5f, false));
+            }
             HistoryValueRange range = ranges.get(point.optString("type"));
             int position = range == null ? 0 : range.position(point.optDouble("amount", Double.NaN));
-            if (position != 0) text.setSpan(new android.text.style.ForegroundColorSpan(
-                    ContextCompat.getColor(activity, position < 0 ? R.color.danger : R.color.action_green)),
-                    0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            item.setTextColor(ContextCompat.getColor(activity, R.color.text_primary));
-            item.setText(text);
-            item.setPadding(0, dp(activity, 8), 0, dp(activity, 8));
-            return item;
+            int color = ContextCompat.getColor(activity, position < 0 ? R.color.danger
+                    : position > 0 ? R.color.action_green : R.color.text_primary);
+            TextView date = (TextView) row.getChildAt(0);
+            date.setText(new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR"))
+                    .format(new Date(point.optLong("observed_at"))));
+            date.setTextColor(color);
+            TextView value = (TextView) row.getChildAt(1);
+            value.setText(rate(activity, point));
+            value.setTextColor(color);
+            return row;
         }), new LinearLayout.LayoutParams(-1, 0, 1));
         Dialog dialog = new Dialog(activity);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(content);
-        content.addView(action(activity, R.string.meliuz_close, dialog::dismiss));
+        LinearLayout actions = horizontal(activity);
+        actions.setGravity(Gravity.END);
+        actions.setPadding(0, dp(activity, 12), 0, 0);
+        actions.addView(editorAction(activity, R.string.meliuz_close, dialog::dismiss));
+        content.addView(actions);
         show(activity, dialog);
         if (dialog.getWindow() != null) dialog.getWindow().setLayout(
-                activity.getResources().getDisplayMetrics().widthPixels - dp(activity, 32),
+                activity.getResources().getDisplayMetrics().widthPixels - dp(activity, 44),
                 activity.getResources().getDisplayMetrics().heightPixels - dp(activity, 72));
     }
 
