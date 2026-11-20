@@ -484,7 +484,6 @@ public class AlertsActivity extends AlertouActivity {
                     R.string.coupon_interest_single_line,
                     getCouponDisplayName(interest),
                     amount), amount));
-            label.setEllipsize(TextUtils.TruncateAt.END);
             row.addView(label, new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         } else if (interest.isProperty()) {
@@ -494,7 +493,6 @@ public class AlertsActivity extends AlertouActivity {
             TextView title = createInterestText();
             title.setText(getPropertyDisplayName(interest));
             title.setTextSize(13);
-            title.setEllipsize(TextUtils.TruncateAt.END);
             textContainer.addView(title);
 
             TextView subtitle = createInterestText();
@@ -509,7 +507,6 @@ public class AlertsActivity extends AlertouActivity {
             }
             subtitle.setTextColor(getColor(R.color.text_secondary));
             subtitle.setTextSize(12);
-            subtitle.setEllipsize(TextUtils.TruncateAt.END);
             textContainer.addView(subtitle);
 
             row.addView(textContainer, new LinearLayout.LayoutParams(
@@ -520,7 +517,6 @@ public class AlertsActivity extends AlertouActivity {
 
             TextView title = createInterestText();
             title.setText(interest.getTerm());
-            title.setEllipsize(TextUtils.TruncateAt.END);
             textContainer.addView(title);
 
             TextView subtitle = createInterestText();
@@ -532,26 +528,10 @@ public class AlertsActivity extends AlertouActivity {
             row.addView(textContainer, new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         } else {
-            LinearLayout textContainer = new LinearLayout(this);
-            textContainer.setOrientation(LinearLayout.HORIZONTAL);
-            textContainer.setGravity(Gravity.CENTER_VERTICAL);
-
             TextView product = createInterestText();
-            product.setText(interest.getTerm());
-            product.setEllipsize(TextUtils.TruncateAt.END);
-            textContainer.addView(product, new LinearLayout.LayoutParams(
-                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-
-            TextView price = createInterestText();
-            price.setText(getString(
-                    R.string.price_interest_value,
-                    currencyFormat.format(interest.getMaximumPrice())));
-            price.setTextColor(getColor(R.color.text_primary));
-            textContainer.addView(price, new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT));
-
-            row.addView(textContainer, new LinearLayout.LayoutParams(
+            product.setText(interest.getTerm() + " " + getString(R.string.price_interest_value,
+                    currencyFormat.format(interest.getMaximumPrice())).trim());
+            row.addView(product, new LinearLayout.LayoutParams(
                     0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         }
         return row;
@@ -561,7 +541,7 @@ public class AlertsActivity extends AlertouActivity {
         TextView text = new TextView(this);
         text.setTextColor(getColor(R.color.text_primary));
         text.setTextSize(13);
-        text.setSingleLine(true);
+        text.setSingleLine(false);
         text.setPadding(0, 0, dp(3), 0);
         return text;
     }

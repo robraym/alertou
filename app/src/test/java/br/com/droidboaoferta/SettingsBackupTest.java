@@ -8,6 +8,24 @@ import java.util.Map;
 import static org.junit.Assert.*;
 
 public class SettingsBackupTest {
+    @Test public void fontSizesAndFamiliesRoundTripAndRejectInvalidValues() throws Exception {
+        SettingsBackup.Preferences source = files();
+        SettingsBackup.Preferences destination = files();
+        for (String family : FontController.MODES) {
+            for (int percent = FontSizeController.MIN; percent <= FontSizeController.MAX; percent++) {
+                source.get("app_preferences").edit().putString(FontController.KEY, family)
+                        .putInt(FontSizeController.KEY, percent).apply();
+                assertTrue(SettingsBackup.restore(destination, SettingsBackup.export(source), true));
+                assertEquals(family, destination.get("app_preferences").getString(FontController.KEY, ""));
+                assertEquals(percent, destination.get("app_preferences").getInt(FontSizeController.KEY, 0));
+            }
+        }
+        assertFalse(FontSizeController.isSupported(0));
+        assertFalse(FontSizeController.isSupported(500));
+        assertFalse(SettingsBackup.restore(destination, new JSONObject()
+                .put("app_preferences/font_size_percent", value(500)), true));
+        assertEquals(130, destination.get("app_preferences").getInt(FontSizeController.KEY, 0));
+    }
     @Test public void fontChoiceRoundTripsAndRejectsUnsupportedFamilies() throws Exception {
         SettingsBackup.Preferences source = files();
         source.get("app_preferences").edit().putString("font_family", "condensed").apply();

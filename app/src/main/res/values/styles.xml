@@ -124,4 +124,64 @@
         <item name="android:fontFamily">@font/app_condensed</item>
         <item name="fontFamily">@font/app_condensed</item>
     </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Serif" parent="">
+        <item name="android:fontFamily">serif</item>
+        <item name="fontFamily">serif</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Monospace" parent="">
+        <item name="android:fontFamily">monospace</item>
+        <item name="fontFamily">monospace</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Light" parent="">
+        <item name="android:fontFamily">sans-serif-light</item>
+        <item name="fontFamily">sans-serif-light</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Anton" parent="">
+        <item name="android:fontFamily">@font/anton_regular</item>
+        <item name="fontFamily">@font/anton_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Pacifico" parent="">
+        <item name="android:fontFamily">@font/pacifico_regular</item>
+        <item name="fontFamily">@font/pacifico_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Abel" parent="">
+        <item name="android:fontFamily">@font/abel_regular</item>
+        <item name="fontFamily">@font/abel_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Questrial" parent="">
+        <item name="android:fontFamily">@font/questrial_regular</item>
+        <item name="fontFamily">@font/questrial_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.TenorSans" parent="">
+        <item name="android:fontFamily">@font/tenorsans_regular</item>
+        <item name="fontFamily">@font/tenorsans_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Lusitana" parent="">
+        <item name="android:fontFamily">@font/lusitana_regular</item>
+        <item name="fontFamily">@font/lusitana_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.ArchitectsDaughter" parent="">
+        <item name="android:fontFamily">@font/architectsdaughter_regular</item>
+        <item name="fontFamily">@font/architectsdaughter_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.Rajdhani" parent="">
+        <item name="android:fontFamily">@font/rajdhani_regular</item>
+        <item name="fontFamily">@font/rajdhani_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.AsapCondensed" parent="">
+        <item name="android:fontFamily">@font/asapcondensed_regular</item>
+        <item name="fontFamily">@font/asapcondensed_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.BarlowSemiCondensed" parent="">
+        <item name="android:fontFamily">@font/barlowsemicondensed_regular</item>
+        <item name="fontFamily">@font/barlowsemicondensed_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.FiraSansCondensed" parent="">
+        <item name="android:fontFamily">@font/firasanscondensed_regular</item>
+        <item name="fontFamily">@font/firasanscondensed_regular</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Font.FiraSansExtraCondensed" parent="">
+        <item name="android:fontFamily">@font/firasansextracondensed_regular</item>
+        <item name="fontFamily">@font/firasansextracondensed_regular</item>
+    </style>
 </resources>

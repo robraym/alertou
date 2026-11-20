@@ -198,6 +198,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         });
         findViewById(R.id.row_theme).setOnClickListener(view -> showThemeDialog());
         findViewById(R.id.row_font).setOnClickListener(view -> showFontDialog());
+        findViewById(R.id.row_font_size).setOnClickListener(view -> showFontSizeDialog());
         findViewById(R.id.row_accent_color).setOnClickListener(
                 view -> showAccentColorDialog());
         findViewById(R.id.row_alert_sound).setOnClickListener(view -> showAlertSoundDialog());
@@ -413,6 +414,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private void refreshSettingsControls() {
         ((TextView) findViewById(R.id.text_font_summary)).setText(
                 FontController.summary(FontController.getSavedMode(this)));
+        ((TextView) findViewById(R.id.text_font_size_summary)).setText(
+                getString(R.string.font_size_percent, FontSizeController.getPercent(this)));
         themeSummary.setText(ThemeController.getSummaryResource(ThemeController.getSavedMode(this)));
         accentColorSummary.setText(AccentColorController.getSummaryResource(
                 this,
@@ -1182,6 +1185,81 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
     }
 
+    private void showFontSizeDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+        TextView title = new TextView(this);
+        title.setText(R.string.font_size_title);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+        int selected = FontSizeController.getPercent(this);
+        TextView value = new TextView(this);
+        value.setTextColor(AccentColorController.getPrimaryColor(this));
+        value.setTextSize(20);
+        value.setGravity(Gravity.CENTER);
+        value.setPadding(0, dp(12), 0, dp(4));
+        content.addView(value);
+        TextView preview = new TextView(this);
+        preview.setText(R.string.font_preview);
+        preview.setTextColor(getColor(R.color.text_primary));
+        preview.setGravity(Gravity.CENTER);
+        preview.setMinHeight(dp(72));
+        content.addView(preview);
+        LinearLayout controls = new LinearLayout(this);
+        controls.setGravity(Gravity.CENTER_VERTICAL);
+        TextView smaller = createDialogAction(R.string.font_size_minus);
+        smaller.setContentDescription(getString(R.string.font_size_decrease));
+        smaller.setGravity(Gravity.CENTER);
+        controls.addView(smaller, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        SeekBar slider = new SeekBar(this);
+        slider.setMax(FontSizeController.MAX - FontSizeController.MIN);
+        slider.setProgress(selected - FontSizeController.MIN);
+        slider.setContentDescription(getString(R.string.font_size_title));
+        controls.addView(slider, new LinearLayout.LayoutParams(0, dp(48), 1));
+        TextView larger = createDialogAction(R.string.font_size_plus);
+        larger.setContentDescription(getString(R.string.font_size_increase));
+        larger.setGravity(Gravity.CENTER);
+        controls.addView(larger, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        content.addView(controls);
+        Runnable update = () -> {
+            int percent = FontSizeController.MIN + slider.getProgress();
+            value.setText(getString(percent == 100 ? R.string.font_size_standard
+                    : R.string.font_size_percent, percent));
+            preview.setTextSize(16f * percent / selected);
+            smaller.setEnabled(percent > FontSizeController.MIN);
+            larger.setEnabled(percent < FontSizeController.MAX);
+        };
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) { update.run(); }
+            @Override public void onStartTrackingTouch(SeekBar bar) { }
+            @Override public void onStopTrackingTouch(SeekBar bar) { }
+        });
+        smaller.setOnClickListener(view -> slider.setProgress(slider.getProgress() - 1));
+        larger.setOnClickListener(view -> slider.setProgress(slider.getProgress() + 1));
+        update.run();
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView cancel = createDialogAction(R.string.action_cancel);
+        cancel.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(cancel);
+        TextView save = createDialogAction(R.string.action_save);
+        save.setOnClickListener(view -> {
+            int percent = FontSizeController.MIN + slider.getProgress();
+            dialog.dismiss();
+            if (percent != selected) {
+                FontSizeController.save(this, percent);
+                recreate();
+            }
+        });
+        actions.addView(save);
+        content.addView(actions);
+        showCompactDialog(dialog, content);
+    }
+
     private void showFontDialog() {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
@@ -1200,28 +1278,43 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         hint.setPadding(0, dp(8), 0, dp(12));
         content.addView(hint);
         String selected = FontController.getSavedMode(this);
-        for (String mode : new String[]{FontController.MODE_DEFAULT, FontController.MODE_CONDENSED}) {
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        ScrollView list = new ScrollView(this);
+        list.addView(options);
+        int listHeight = Math.min(dp(320), (int) (getResources().getDisplayMetrics().heightPixels * 0.45f));
+        content.addView(list, new LinearLayout.LayoutParams(-1, listHeight));
+        for (String mode : FontController.MODES) {
             LinearLayout option = new LinearLayout(this);
-            option.setOrientation(LinearLayout.VERTICAL);
-            option.setPadding(0, dp(10), 0, dp(10));
+            option.setOrientation(LinearLayout.HORIZONTAL);
+            option.setGravity(Gravity.CENTER_VERTICAL);
+            option.setMinimumHeight(dp(48));
+            option.setPadding(0, dp(10), dp(8), dp(10));
             option.setBackgroundResource(R.drawable.bg_row_pressed);
             option.setFocusable(true);
-            TextView name = createThemeOption(FontController.summary(mode), mode.equals(selected));
-            name.setPadding(0, 0, 0, dp(6));
-            name.setTypeface(FontController.typeface(this, mode, android.graphics.Typeface.NORMAL));
-            option.addView(name);
             TextView preview = new TextView(this);
-            preview.setText(R.string.font_preview);
+            preview.setTag(FontController.PREVIEW_TAG);
+            preview.setText(R.string.font_choice_example);
+            preview.setSingleLine(true);
             preview.setTextSize(16);
-            preview.setTextColor(getColor(R.color.text_primary));
+            preview.setTextColor(mode.equals(selected) ? AccentColorController.getPrimaryColor(this)
+                    : getColor(R.color.text_primary));
             preview.setTypeface(FontController.typeface(this, mode, android.graphics.Typeface.NORMAL));
-            option.addView(preview);
+            option.addView(preview, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView name = createThemeOption(FontController.summary(mode), mode.equals(selected));
+            name.setSingleLine(true);
+            name.setTextSize(12);
+            name.setPadding(dp(10), 0, 0, 0);
+            name.setTag(FontController.PREVIEW_TAG);
+            name.setTypeface(FontController.typeface(this, FontController.MODE_DEFAULT,
+                    android.graphics.Typeface.NORMAL));
+            option.addView(name, new LinearLayout.LayoutParams(-2, -2));
             option.setOnClickListener(view -> {
                 FontController.save(this, mode);
                 dialog.dismiss();
                 if (!mode.equals(selected)) recreate();
             });
-            content.addView(option);
+            options.addView(option);
         }
         TextView close = createThemeOption(R.string.action_cancel, false);
         close.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);

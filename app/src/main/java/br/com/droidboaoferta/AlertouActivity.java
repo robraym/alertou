@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 abstract class AlertouActivity extends AppCompatActivity {
     private String appliedAccentMode;
     private String appliedFontMode;
+    private int appliedFontSize;
     private FontController.Binding fontBinding;
     private AppStatusIndicator appStatusIndicator;
 
@@ -25,14 +26,16 @@ abstract class AlertouActivity extends AppCompatActivity {
     private static Context createResponsiveContext(Context base) {
         Configuration configuration = base.getResources().getConfiguration();
         int smallestWidthDp = configuration.smallestScreenWidthDp;
-        if (smallestWidthDp < 600) return base;
+        int fontPercent = FontSizeController.getPercent(base);
+        if (smallestWidthDp < 600 && fontPercent == 100) return base;
 
         // 600dp (foldable/tablet) starts at 125%; the scale tops out at 140%.
         float scale = Math.min(1.40f, 1.25f + (smallestWidthDp - 600) * 0.00125f);
         Configuration scaledConfiguration = new Configuration(configuration);
         int densityDpi = configuration.densityDpi > 0
                 ? configuration.densityDpi : base.getResources().getDisplayMetrics().densityDpi;
-        scaledConfiguration.densityDpi = Math.round(densityDpi * scale);
+        if (smallestWidthDp >= 600) scaledConfiguration.densityDpi = Math.round(densityDpi * scale);
+        scaledConfiguration.fontScale = configuration.fontScale * fontPercent / 100f;
         return base.createConfigurationContext(scaledConfiguration);
     }
 
@@ -41,6 +44,7 @@ abstract class AlertouActivity extends AppCompatActivity {
         appliedAccentMode = AccentColorController.getSavedMode(this);
         AccentColorController.apply(this);
         appliedFontMode = FontController.getSavedMode(this);
+        appliedFontSize = FontSizeController.getPercent(this);
         FontController.applyTheme(this, appliedFontMode);
         super.onCreate(savedInstanceState);
         fontBinding = FontController.bind(getWindow().getDecorView(), appliedFontMode);
@@ -55,7 +59,8 @@ abstract class AlertouActivity extends AppCompatActivity {
         if (appStatusIndicator != null) appStatusIndicator.start();
         String savedAccentMode = AccentColorController.getSavedMode(this);
         if (!savedAccentMode.equals(appliedAccentMode)
-                || !FontController.getSavedMode(this).equals(appliedFontMode)) {
+                || !FontController.getSavedMode(this).equals(appliedFontMode)
+                || appliedFontSize != FontSizeController.getPercent(this)) {
             recreate();
         }
     }

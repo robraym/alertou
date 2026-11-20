@@ -104,8 +104,7 @@ final class MeliuzCashbackUi {
             row.addView(edit, new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36)));
             TextView rule = label(activity, activity.getString(R.string.meliuz_alert_rule,
                     number(MeliuzCashbackSettings.minimum(activity))), 13, false);
-            rule.setSingleLine(true);
-            rule.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            rule.setSingleLine(false);
             LinearLayout.LayoutParams ruleParams = new LinearLayout.LayoutParams(0, -2, 1);
             ruleParams.leftMargin = dp(activity, 8);
             row.addView(rule, ruleParams);
