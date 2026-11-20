@@ -36,8 +36,14 @@ final class PropertyPageParser {
             if (loftResult != null) {
                 return loftResult;
             }
-            JSONObject listings = findObjectContainingArray(root, "saleListings");
-            String condominiumName = findString(root, "nameFormatted");
+            JSONObject props = root.optJSONObject("props");
+            JSONObject pageProps = props == null ? null : props.optJSONObject("pageProps");
+            JSONObject condominium = pageProps == null ? null : pageProps.optJSONObject("condominium");
+            // Recommendations can carry their own saleListings/count. Read the
+            // requested condominium when the page identifies it explicitly.
+            JSONObject sourceRoot = condominium == null ? root : condominium;
+            JSONObject listings = findObjectContainingArray(sourceRoot, "saleListings");
+            String condominiumName = findString(sourceRoot, "nameFormatted");
             if (listings == null) {
                 List<PropertyPageListing> searchListings = parseSearchListings(root);
                 if (!searchListings.isEmpty()) {
@@ -83,6 +89,10 @@ final class PropertyPageParser {
             boolean hasOfficialSaleListingsCount = rawSaleListingsCount instanceof Number
                     || (rawSaleListingsCount instanceof String
                     && ((String) rawSaleListingsCount).trim().matches("\\d+"));
+            double officialCount = listings.optDouble("saleListingsCount", Double.NaN);
+            hasOfficialSaleListingsCount = hasOfficialSaleListingsCount && Double.isFinite(officialCount)
+                    && officialCount >= parsed.size() && officialCount >= 0
+                    && officialCount <= Integer.MAX_VALUE && officialCount == Math.rint(officialCount);
             return new PropertyPageResult(
                     condominiumName,
                     parsed,

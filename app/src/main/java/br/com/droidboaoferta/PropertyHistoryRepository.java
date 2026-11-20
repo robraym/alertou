@@ -40,6 +40,15 @@ final class PropertyHistoryRepository {
 
     private boolean recordMarketListingCount(long interestId, int count, long observedAt,
                                           int sourceVersion) {
+        return recordMarketListingCount(interestId, count, observedAt, sourceVersion, false);
+    }
+
+    synchronized void recordConfirmedMarketListingCount(long interestId, int count, long observedAt) {
+        recordMarketListingCount(interestId, count, observedAt, MARKET_LISTING_COUNT_SOURCE_VERSION, true);
+    }
+
+    private boolean recordMarketListingCount(long interestId, int count, long observedAt,
+                                           int sourceVersion, boolean confirmed) {
         if (interestId <= 0L || count < 0 || observedAt <= 0L) return false;
         JSONArray histories = readMarketListingCounts();
         JSONObject history = findMarketListingCountHistory(histories, interestId);
@@ -60,7 +69,8 @@ final class PropertyHistoryRepository {
         boolean removedLegacyPageLimit = condominiumCount && removeLegacyPageLimitedCount(points, count);
         boolean removedIsolatedDrop = condominiumCount && removeIsolatedUnconfirmedDrop(points);
         JSONObject latest = points.optJSONObject(points.length() - 1);
-        if (latest != null && latest.optInt("count", -1) == count) {
+        if (latest != null && latest.optInt("count", -1) == count
+                && (!confirmed || latest.optBoolean("confirmed", false))) {
             if (removedLegacyPageLimit || removedIsolatedDrop) {
                 try {
                     history.put("interest_id", interestId)
@@ -73,7 +83,8 @@ final class PropertyHistoryRepository {
             return false;
         }
         try {
-            points.put(new JSONObject().put("observed_at", observedAt).put("count", count));
+            points.put(new JSONObject().put("observed_at", observedAt).put("count", count)
+                    .put("confirmed", confirmed));
             while (points.length() > MAX_POINTS) points.remove(0);
             history.put("interest_id", interestId)
                     .put("points", points)
@@ -109,9 +120,26 @@ final class PropertyHistoryRepository {
             long observedAt = point.optLong("observed_at", 0L);
             int count = point.optInt("count", -1);
             if (observedAt > 0L && count >= 0) {
-                result.add(new PropertyMarketListingCountPoint(observedAt, count));
+                PropertyMarketListingCountPoint reading = new PropertyMarketListingCountPoint(observedAt, count,
+                        point.optBoolean("confirmed", false));
+                if (point.optBoolean("suspect", false)) reading.markSuspicious();
+                result.add(reading);
             }
         }
+        new PropertyMarketListingCountHistory(result);
+        boolean removed = false;
+        for (PropertyMarketListingCountPoint reading : result) {
+            if (!reading.isSuspicious()) continue;
+            for (int i = points == null ? -1 : points.length() - 1; i >= 0; i--) {
+                JSONObject stored = points.optJSONObject(i);
+                if (stored == null || stored.optLong("observed_at") != reading.getObservedAt()
+                        || stored.optInt("count", -1) != reading.getCount()) continue;
+                points.remove(i);
+                removed = true;
+            }
+        }
+        if (removed) preferences.edit().putString(KEY_MARKET_LISTING_COUNTS, histories.toString()).apply();
+        result.removeIf(PropertyMarketListingCountPoint::isSuspicious);
         return new PropertyMarketListingCountHistory(result);
     }
 

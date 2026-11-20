@@ -8,7 +8,57 @@ final class PropertyMarketListingCountHistory {
 
     PropertyMarketListingCountHistory(List<PropertyMarketListingCountPoint> points) {
         this.points = points == null ? Collections.emptyList() : Collections.unmodifiableList(points);
+        markRapidLegacyAlternation();
+        markRapidLegacyReturns();
     }
+
+    private void markRapidLegacyReturns() {
+        for (int i = 1; i + 1 < points.size(); i++) {
+            PropertyMarketListingCountPoint before = points.get(i - 1);
+            PropertyMarketListingCountPoint current = points.get(i);
+            PropertyMarketListingCountPoint after = points.get(i + 1);
+            long firstGap = current.getObservedAt() - before.getObservedAt();
+            long secondGap = after.getObservedAt() - current.getObservedAt();
+            if (!current.isConfirmed() && !before.isSuspicious() && !after.isSuspicious()
+                    && before.getCount() == after.getCount() && current.getCount() != before.getCount()
+                    && firstGap > 0 && secondGap > 0
+                    && Math.min(firstGap, secondGap) <= 15L * 60 * 1000) {
+                current.markSuspicious();
+            }
+        }
+    }
+
+    private void markRapidLegacyAlternation() {
+        // Alternating legacy samples with a rapid transition within 15 minutes
+        // form a suspect sequence. Independently confirmed readings are never reclassified.
+        for (int start = 0; start + 5 < points.size(); start++) {
+            PropertyMarketListingCountPoint first = points.get(start);
+            PropertyMarketListingCountPoint second = points.get(start + 1);
+            if (first.isConfirmed() || second.isConfirmed() || first.getCount() == second.getCount()) continue;
+            int end = start + 1;
+            int rapidGaps = 0;
+            for (int i = start + 1; i < points.size(); i++) {
+                PropertyMarketListingCountPoint current = points.get(i);
+                long gap = current.getObservedAt() - points.get(i - 1).getObservedAt();
+                if (current.isConfirmed() || gap <= 0 || gap > 36L * 60 * 60 * 1000
+                        || (i > start + 1 && current.getCount() != points.get(i - 2).getCount())) break;
+                if (gap <= 15L * 60 * 1000) rapidGaps++;
+                end = i;
+            }
+            if (end - start + 1 >= 6 && rapidGaps > 0) {
+                for (int i = start; i <= end; i++) points.get(i).markSuspicious();
+                start = end;
+            }
+        }
+    }
+
+    List<PropertyMarketListingCountPoint> getChartPoints() {
+        List<PropertyMarketListingCountPoint> result = new java.util.ArrayList<>();
+        for (PropertyMarketListingCountPoint point : points) if (!point.isSuspicious()) result.add(point);
+        return result;
+    }
+
+    int getSuspiciousCount() { return points.size() - getChartPoints().size(); }
 
     List<PropertyMarketListingCountPoint> getPoints() {
         return points;
@@ -31,8 +81,8 @@ final class PropertyMarketListingCountHistory {
         java.util.TreeMap<Long, List<int[]>> readings = new java.util.TreeMap<>();
         for (int component = 0; component < histories.size(); component++) {
             PropertyMarketListingCountHistory history = histories.get(component);
-            if (history == null || history.getPoints().isEmpty()) return new PropertyMarketListingCountHistory(totals);
-            for (PropertyMarketListingCountPoint point : history.getPoints()) {
+            if (history == null || history.getChartPoints().isEmpty()) return new PropertyMarketListingCountHistory(totals);
+            for (PropertyMarketListingCountPoint point : history.getChartPoints()) {
                 if (point.getObservedAt() <= 0L || point.getCount() < 0) continue;
                 readings.computeIfAbsent(point.getObservedAt(), ignored -> new java.util.ArrayList<>())
                         .add(new int[]{component, point.getCount()});

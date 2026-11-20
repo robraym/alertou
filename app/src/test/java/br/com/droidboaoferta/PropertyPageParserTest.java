@@ -11,6 +11,25 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class PropertyPageParserTest {
+    @Test public void rejectsInvalidOfficialCounts() {
+        for (String count : new String[]{"-1", "9.5", "2147483648"}) {
+            PropertyPageResult result = PropertyPageParser.parse("<script id=\"__NEXT_DATA__\">"
+                    + "{\"props\":{\"pageProps\":{\"condominium\":{\"nameFormatted\":\"Santos Dumont\","
+                    + "\"listings\":{\"saleListings\":[],\"saleListingsCount\":" + count + "}}}}}</script>");
+            assertFalse(result.hasReliableSaleListingsCount());
+        }
+    }
+
+    @Test public void readsTotalFromRequestedCondominiumRatherThanRecommendations() {
+        PropertyPageResult result = PropertyPageParser.parse("<script id=\"__NEXT_DATA__\">"
+                + "{\"props\":{\"pageProps\":{"
+                + "\"recommendations\":{\"saleListings\":[],\"saleListingsCount\":9},"
+                + "\"condominium\":{\"nameFormatted\":\"Santos Dumont\","
+                + "\"listings\":{\"saleListings\":[],\"saleListingsCount\":10}}}}}</script>");
+        assertEquals("Santos Dumont", result.getCondominiumName());
+        assertEquals(10, result.getSaleListingsCount());
+        assertTrue(result.hasReliableSaleListingsCount());
+    }
     @Test
     public void parsesOnlyCondominiumSaleListingsAndKeepsComingSoon() {
         String nextData = "{\"props\":{\"pageProps\":{\"condominium\":{"

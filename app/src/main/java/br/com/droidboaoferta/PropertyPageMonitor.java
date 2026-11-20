@@ -542,7 +542,7 @@ final class PropertyPageMonitor {
         // enquanto os anúncios individuais ainda estão sendo verificados.
         if (interest.isPropertyCondominium()
                 && isConfirmedMarketListingCount(context, interest, result, historyRepository)) {
-            historyRepository.recordMarketListingCount(interest.getId(),
+            historyRepository.recordConfirmedMarketListingCount(interest.getId(),
                     result.getSaleListingsCount(), observedAt);
             // Não passe pelo bloqueio de eventos de oferta: a contagem precisa chegar à
             // interface enquanto a consulta individual ainda está em andamento.
@@ -848,30 +848,19 @@ final class PropertyPageMonitor {
 
     /**
      * A missing or partially rendered page used to be interpreted as zero listings and was
-     * persisted in the market-count history. A sharp drop is now accepted only after a second
+     * persisted in the market-count history. Every changed total is accepted only after a second
      * independent read returns the exact same official total.
      */
     private boolean isConfirmedMarketListingCount(Context context, Interest interest,
                                                   PropertyPageResult result,
                                                   PropertyHistoryRepository historyRepository) {
-        if (!result.hasReliableSaleListingsCount()) {
-            return false;
-        }
-        int candidateCount = result.getSaleListingsCount();
         PropertyMarketListingCountHistory history =
                 historyRepository.getMarketListingCountHistory(interest.getId());
-        int previousCount = history.getLatestCount();
-        if (!PropertyHistoryRepository.isSuspiciousCountDrop(previousCount, candidateCount)) {
-            return true;
-        }
-        try {
-            PropertyPageResult confirmation = PropertyPageClient.fetch(interest.getTerm());
-            return confirmation.hasReliableSaleListingsCount()
-                    && confirmation.getSaleListingsCount() == candidateCount;
-        } catch (Exception ignored) {
-            // Keep the last confirmed value. The next scheduled check will try again.
-            return false;
-        }
+        int previousCount = history.getPoints().isEmpty()
+                || !history.getPoints().get(history.getPoints().size() - 1).isConfirmed()
+                ? -1 : history.getLatestCount();
+        return PropertyCountConfirmation.accept(previousCount, result,
+                () -> PropertyPageClient.fetchCountConfirmation(interest.getTerm()));
     }
 
     /**

@@ -12,6 +12,21 @@ import java.util.List;
 /** Only the readings scroll; the caller keeps its graph, heading and actions outside this view. */
 final class HistoryReadingsView {
     interface RowFactory<T> { View bind(T point, View previous); }
+    interface ValueFactory<T> { double value(T point); }
+    interface ColoredRowFactory<T> { View bind(T point, View previous, int color); }
+
+    static <T> ListView create(Activity activity, List<T> chronological, ValueFactory<T> values,
+                               ColoredRowFactory<T> factory) {
+        double[] readings = new double[chronological.size()];
+        for (int i = 0; i < readings.length; i++) readings[i] = values.value(chronological.get(i));
+        HistoryValueRange range = new HistoryValueRange(readings);
+        return create(activity, chronological, (point, previous) -> {
+            int position = range.position(values.value(point));
+            int color = activity.getColor(position < 0 ? R.color.danger
+                    : position > 0 ? R.color.action_green : R.color.text_primary);
+            return factory.bind(point, previous, color);
+        });
+    }
 
     static <T> ListView create(Activity activity, List<T> chronological, RowFactory<T> factory) {
         List<T> newestFirst = new ArrayList<>(chronological);

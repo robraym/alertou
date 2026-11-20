@@ -90,6 +90,15 @@ final class PropertyPageClient {
                 initialResult.hasReliableSaleListingsCount());
     }
 
+    /** Independent public total read; avoids paginating all listings just to confirm a count. */
+    static PropertyPageResult fetchCountConfirmation(String rawUrl) throws Exception {
+        String normalizedUrl = normalizeSupportedUrl(rawUrl);
+        if (normalizedUrl == null) throw new IllegalArgumentException("Unsupported property page");
+        String loftDataUrl = buildLoftDataUrl(normalizedUrl);
+        return loftDataUrl == null ? PropertyPageParser.parse(fetchHtml(normalizedUrl))
+                : PropertyPageParser.parseLoftApiResponse(fetchHtml(loftDataUrl));
+    }
+
     private static boolean isQuintoAndarCondominiumUrl(String normalizedUrl) {
         try {
             URI uri = URI.create(normalizedUrl);

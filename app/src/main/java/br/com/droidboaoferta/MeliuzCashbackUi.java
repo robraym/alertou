@@ -391,9 +391,28 @@ final class MeliuzCashbackUi {
             JSONObject point = points.optJSONObject(i);
             if (point != null) readings.add(point);
         }
+        java.util.Map<String, HistoryValueRange> ranges = new java.util.HashMap<>();
+        for (JSONObject point : readings) {
+            String type = point.optString("type");
+            if (ranges.containsKey(type) || "none".equals(type)) continue;
+            double[] amounts = new double[readings.size()];
+            for (int i = 0; i < readings.size(); i++) amounts[i] =
+                    type.equals(readings.get(i).optString("type"))
+                    ? readings.get(i).optDouble("amount", Double.NaN) : Double.NaN;
+            ranges.put(type, new HistoryValueRange(amounts));
+        }
         content.addView(HistoryReadingsView.create(activity, readings, (point, previous) -> {
             TextView item = previous instanceof TextView ? (TextView) previous : label(activity, "", 14, false);
-            item.setText(rate(activity, point) + "\n" + date(point.optLong("observed_at")));
+            String value = rate(activity, point);
+            android.text.SpannableString text = new android.text.SpannableString(
+                    value + "\n" + date(point.optLong("observed_at")));
+            HistoryValueRange range = ranges.get(point.optString("type"));
+            int position = range == null ? 0 : range.position(point.optDouble("amount", Double.NaN));
+            if (position != 0) text.setSpan(new android.text.style.ForegroundColorSpan(
+                    ContextCompat.getColor(activity, position < 0 ? R.color.danger : R.color.action_green)),
+                    0, text.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            item.setTextColor(ContextCompat.getColor(activity, R.color.text_primary));
+            item.setText(text);
             item.setPadding(0, dp(activity, 8), 0, dp(activity, 8));
             return item;
         }), new LinearLayout.LayoutParams(-1, 0, 1));

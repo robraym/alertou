@@ -10,6 +10,74 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class PropertyHistoryRepositoryTest {
+    @Test public void removesLegacyAlternationAndKeepsNewConfirmedReadings() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        for (int i = 0; i < 8; i++) repository.recordMarketListingCount(1, 9 + i % 2, 1 + i * 120000L);
+        PropertyMarketListingCountHistory history = repository.getMarketListingCountHistory(1);
+        assertTrue(history.getPoints().isEmpty());
+        assertEquals(0, history.getSuspiciousCount());
+        assertTrue(history.getChartPoints().isEmpty());
+        assertTrue(stored.get("market_listing_counts").contains("\"points\":[]"));
+        repository.recordConfirmedMarketListingCount(1, 10, 2_000_000);
+        history = repository.getMarketListingCountHistory(1);
+        assertEquals(1, history.getPoints().size());
+        assertEquals(0, history.getSuspiciousCount());
+        assertEquals(1, history.getChartPoints().size());
+        assertEquals(2_000_000L, history.getChartPoints().get(0).getObservedAt());
+        assertTrue(history.getChartPoints().get(0).isConfirmed());
+    }
+
+    @Test public void leavesNormalChangesAndConfirmedAlternationIntact() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        repository.recordMarketListingCount(1, 10, 1);
+        repository.recordMarketListingCount(1, 9, 3600001);
+        repository.recordMarketListingCount(1, 10, 7200001);
+        assertEquals(0, repository.getMarketListingCountHistory(1).getSuspiciousCount());
+        for (int i = 0; i < 8; i++) repository.recordConfirmedMarketListingCount(2, 9 + i % 2, 1 + i * 120000L);
+        assertEquals(0, repository.getMarketListingCountHistory(2).getSuspiciousCount());
+    }
+
+    @Test public void removesShortLegacyReturnWithoutWaitingForSixAlternations() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        repository.recordMarketListingCount(7, 59, 1);
+        repository.recordMarketListingCount(7, 58, 120001);
+        repository.recordMarketListingCount(7, 59, 240001);
+        PropertyMarketListingCountHistory history = repository.getMarketListingCountHistory(7);
+        assertEquals(2, history.getPoints().size());
+        assertEquals(59, history.getPoints().get(0).getCount());
+        assertEquals(59, history.getPoints().get(1).getCount());
+        assertFalse(stored.get("market_listing_counts").contains("\"count\":58"));
+    }
+
+    @Test public void cleansActualGoPortugalSequenceWithOneFastReturnAndKeepsConfirmedBaseline() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        long[] timestamps = {1795031078093L, 1795065695585L, 1795070095099L,
+                1795088847755L, 1795088893838L, 1795101887480L, 1795109035752L};
+        for (int i = 0; i < timestamps.length; i++) {
+            repository.recordMarketListingCount(7, i % 2 == 0 ? 61 : 60, timestamps[i]);
+        }
+        repository.recordConfirmedMarketListingCount(7, 61, 1795182977878L);
+        PropertyMarketListingCountHistory history = repository.getMarketListingCountHistory(7);
+        assertEquals(1, history.getPoints().size());
+        assertEquals(61, history.getLatestCount());
+        assertEquals(1795182977878L, history.getPoints().get(0).getObservedAt());
+        assertTrue(history.getPoints().get(0).isConfirmed());
+        assertFalse(stored.get("market_listing_counts").contains("\"count\":60"));
+        assertEquals(1, repository.getMarketListingCountHistory(7).getPoints().size());
+    }
+
+    @Test public void keepsFastChangeThatHasNotReturnedToTheEarlierCount() {
+        java.util.Map<String, String> stored = new java.util.HashMap<>();
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(memoryPreferences(stored));
+        repository.recordMarketListingCount(7, 59, 1);
+        repository.recordMarketListingCount(7, 58, 120001);
+        repository.recordMarketListingCount(7, 57, 240001);
+        assertEquals(3, repository.getMarketListingCountHistory(7).getPoints().size());
+    }
     @Test
     public void removesOnlyTheLegacyFirstPageLimitWhenAnOfficialHigherTotalExists() {
         java.util.Map<String, String> stored = new java.util.HashMap<>();

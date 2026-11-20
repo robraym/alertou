@@ -1121,7 +1121,7 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         SimpleDateFormat date = new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR"));
         android.widget.ListView readingsList = HistoryReadingsView.create(this, points,
-                (point, convertView) -> {
+                point -> point.getRate(), (point, convertView, color) -> {
                 LinearLayout row;
                 if (convertView instanceof LinearLayout) {
                     row = (LinearLayout) convertView;
@@ -1141,6 +1141,8 @@ public class MainActivity extends AlertouActivity {
                 }
                 ((TextView) row.getChildAt(0)).setText(date.format(point.getObservedAt()));
                 ((TextView) row.getChildAt(1)).setText(formatTreasuryRate(point.getRate()) + "% a.a.");
+                ((TextView) row.getChildAt(0)).setTextColor(color);
+                ((TextView) row.getChildAt(1)).setTextColor(color);
                 return row;
         });
         content.addView(readingsList, new LinearLayout.LayoutParams(
@@ -1344,11 +1346,9 @@ public class MainActivity extends AlertouActivity {
                 titleLine.setBaselineAligned(false);
                 title.setLayoutParams(new LinearLayout.LayoutParams(
                         0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-                PropertyMarketListingCountHistory totalHistory =
-                        PropertyMarketListingCountHistory.sumLatestKnown(marketListingHistories);
                 TextView totalBadge = createPropertyListingCountBadge(marketListingTotal,
                         view -> showPropertyMarketListingCountHistoryDialog(
-                                getString(R.string.property_alerts_list_title), totalHistory, true));
+                                getString(R.string.property_alerts_list_title), loadCurrentMarketCountHistory(), true));
                 totalBadge.setContentDescription(getString(
                         R.string.property_group_total_listing_count, marketListingTotal));
                 LinearLayout.LayoutParams totalParams = new LinearLayout.LayoutParams(
@@ -1742,7 +1742,8 @@ public class MainActivity extends AlertouActivity {
                 .getMarketListingCountHistory(interestId);
         if (!countHistory.getPoints().isEmpty()) {
             View countBadge = createPropertyListingCountBadge(countHistory.getLatestCount(),
-                    view -> showPropertyMarketListingCountHistoryDialog(title, countHistory));
+                    view -> showPropertyMarketListingCountHistoryDialog(title,
+                            new PropertyHistoryRepository(this).getMarketListingCountHistory(interestId)));
             LinearLayout.LayoutParams countBadgeParams = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -3207,6 +3208,17 @@ public class MainActivity extends AlertouActivity {
         showPropertyHistoryDialog(offer, false);
     }
 
+    private PropertyMarketListingCountHistory loadCurrentMarketCountHistory() {
+        PropertyHistoryRepository repository = new PropertyHistoryRepository(this);
+        List<PropertyMarketListingCountHistory> histories = new java.util.ArrayList<>();
+        for (Interest interest : new InterestRepository(this).getAll()) {
+            if (interest.isPropertyCondominium()) {
+                histories.add(repository.getMarketListingCountHistory(interest.getId()));
+            }
+        }
+        return PropertyMarketListingCountHistory.sumLatestKnown(histories);
+    }
+
     private void showPropertyMarketListingCountHistoryDialog(String condominiumName,
                                                               PropertyMarketListingCountHistory history) {
         showPropertyMarketListingCountHistoryDialog(condominiumName, history, false);
@@ -3246,8 +3258,8 @@ public class MainActivity extends AlertouActivity {
         content.addView(summary);
 
         PropertyListingCountTrendView trendView = new PropertyListingCountTrendView(this);
-        trendView.setPoints(history.getPoints());
-        trendView.setVisibility(history.getPoints().isEmpty() ? View.GONE : View.VISIBLE);
+        trendView.setPoints(history.getChartPoints());
+        trendView.setVisibility(history.getChartPoints().isEmpty() ? View.GONE : View.VISIBLE);
         content.addView(trendView, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 dp(history.getPoints().size() <= 2 ? 140 : 180)));
@@ -3260,7 +3272,12 @@ public class MainActivity extends AlertouActivity {
         readingsTitle.setPadding(0, dp(8), 0, dp(4));
         content.addView(readingsTitle);
         content.addView(HistoryReadingsView.create(this, history.getPoints(),
-                (point, previous) -> createPropertyMarketListingCountPointRow(point)),
+                point -> point.getCount(), (point, previous, color) -> {
+                    LinearLayout row = createPropertyMarketListingCountPointRow(point);
+                    ((TextView) row.getChildAt(0)).setTextColor(color);
+                    ((TextView) row.getChildAt(1)).setTextColor(color);
+                    return row;
+                }),
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
 
         LinearLayout actions = new LinearLayout(this);
@@ -3483,7 +3500,13 @@ public class MainActivity extends AlertouActivity {
             content.addView(readingsTitle);
 
             content.addView(HistoryReadingsView.create(this, visibleHistoryPoints,
-                    (point, previous) -> createPropertyHistoryPointRow(point, currency)),
+                    point -> point.getPrice() > 0 ? point.getPrice() : Double.NaN,
+                    (point, previous, color) -> {
+                        LinearLayout row = createPropertyHistoryPointRow(point, currency);
+                        ((TextView) row.getChildAt(0)).setTextColor(color);
+                        ((TextView) row.getChildAt(1)).setTextColor(color);
+                        return row;
+                    }),
                     new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1));
         } else {
             content.addView(createPropertyHistoryNotice(R.string.property_history_empty));
