@@ -104,7 +104,7 @@ final class NavigationContentCard extends Drawable {
 
     private boolean keepSideInsets() {
         // fitsSystemWindows can reapply zero horizontal padding after attachment.
-        int minimum = Math.round(dp(16));
+        int minimum = parent.getResources().getDimensionPixelSize(R.dimen.navigation_side_padding);
         int left = Math.max(minimum, parent.getPaddingLeft());
         int right = Math.max(minimum, parent.getPaddingRight());
         if (left != parent.getPaddingLeft() || right != parent.getPaddingRight()) {
