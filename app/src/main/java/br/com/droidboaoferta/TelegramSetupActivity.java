@@ -577,7 +577,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
     protected void onResume() {
         super.onResume();
         BottomNavigationController.resetInitialFocus(this);
-        MeliuzCashbackUi.mountSettings(this, findViewById(R.id.container_meliuz_source));
     }
 
     @Override
@@ -657,6 +656,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         // Never flash the Fontes/groups screen between login and the restored dashboard.
         groupsContentArea.setVisibility(connectionRequired ? View.GONE : View.VISIBLE);
         groupsScroll.setVisibility(connectionRequired ? View.GONE : View.VISIBLE);
+        updateSourcesRemainingSpace();
         groupsSearchBar.setVisibility(ready
                 && isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED)
                 ? View.VISIBLE : View.GONE);
@@ -1635,6 +1635,13 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         return getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(preferenceKey, true);
     }
 
+    private void updateSourcesRemainingSpace() {
+        boolean collapsed = !isSourceSectionExpanded(PREF_STORE_SOURCES_EXPANDED)
+                && !isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED);
+        findViewById(R.id.spacer_sources_bottom).setVisibility(collapsed && !connectionRequired
+                && statusSection.getVisibility() != View.VISIBLE ? View.VISIBLE : View.GONE);
+    }
+
     private void applySourceSectionState(ImageButton toggle, LinearLayout container,
                                          boolean expanded, boolean animate) {
         container.animate().cancel();
@@ -1643,8 +1650,9 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             LinearLayout.LayoutParams areaParams = (LinearLayout.LayoutParams)
                     groupsContentArea.getLayoutParams();
             boolean storesExpanded = isSourceSectionExpanded(PREF_STORE_SOURCES_EXPANDED);
-            areaParams.height = storesExpanded ? LinearLayout.LayoutParams.WRAP_CONTENT : 0;
-            areaParams.weight = storesExpanded ? 0f : 1f;
+            boolean groupsFillSpace = expanded && !storesExpanded;
+            areaParams.height = groupsFillSpace ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT;
+            areaParams.weight = groupsFillSpace ? 1f : 0f;
             groupsContentArea.setLayoutParams(areaParams);
             android.view.ViewGroup.LayoutParams params = groupsScroll.getLayoutParams();
             params.height = expanded ? android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -1665,11 +1673,13 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             if (expanded) storeSourcesScroll.scrollTo(0, 0);
             LinearLayout.LayoutParams areaParams = (LinearLayout.LayoutParams)
                     groupsContentArea.getLayoutParams();
-            areaParams.height = expanded ? LinearLayout.LayoutParams.WRAP_CONTENT : 0;
-            areaParams.weight = expanded ? 0f : 1f;
+            boolean groupsFillSpace = !expanded && isSourceSectionExpanded(PREF_TELEGRAM_GROUPS_EXPANDED);
+            areaParams.height = groupsFillSpace ? 0 : LinearLayout.LayoutParams.WRAP_CONTENT;
+            areaParams.weight = groupsFillSpace ? 1f : 0f;
             groupsContentArea.setLayoutParams(areaParams);
             groupsContentArea.setVisibility(View.VISIBLE);
         }
+        updateSourcesRemainingSpace();
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse
                 : R.string.alerts_section_expand));

@@ -203,6 +203,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         findViewById(R.id.row_alert_sound).setOnClickListener(view -> showAlertSoundDialog());
         findViewById(R.id.row_navigation_animation).setOnClickListener(
                 view -> showNavigationAnimationDialog());
+        findViewById(R.id.row_meliuz_interval).setOnClickListener(
+                view -> showCashbackIntervalDialog());
         findViewById(R.id.row_property_interval).setOnClickListener(
                 view -> showPropertyIntervalDialog());
         findViewById(R.id.row_treasury_interval).setOnClickListener(
@@ -263,6 +265,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.id.button_toggle_profile_external_sources,
                 R.id.container_profile_external_sources,
                 PREF_EXTERNAL_SOURCES_EXPANDED);
+        configureCollapsibleSection(
+                R.id.header_profile_cashback,
+                R.id.button_toggle_profile_cashback,
+                R.id.container_profile_cashback,
+                "cashback_expanded");
         configureCollapsibleSection(
                 R.id.header_profile_sync,
                 R.id.button_toggle_profile_sync,
@@ -413,6 +420,9 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         alertSoundSummary.setText(AlertSoundController.getProfileSummary(this));
         navigationAnimationSummary.setText(NavigationAnimationController.getSummaryResource(
                 NavigationAnimationController.getSavedMode(this)));
+        ((TextView) findViewById(R.id.text_meliuz_interval_summary)).setText(
+                MeliuzCashbackSettings.isPaused(this) ? getString(R.string.store_source_disabled)
+                        : formatCheckIntervalSeconds(MeliuzCashbackSettings.intervalSeconds(this)));
         propertyIntervalSummary.setText(getPropertyIntervalSummary());
         treasuryIntervalSummary.setText(formatCheckIntervalSeconds(
                 TreasuryDirectSettings.getCheckIntervalSeconds(this)));
@@ -568,6 +578,52 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         actions.addView(close);
         content.addView(actions);
 
+        showCompactDialog(dialog, content);
+    }
+
+    private void showCashbackIntervalDialog() {
+        Dialog dialog = new Dialog(this);
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setBackgroundResource(R.drawable.bg_dialog);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.meliuz_profile_interval_label);
+        title.setTextColor(getColor(R.color.text_primary));
+        title.setTextSize(21);
+        content.addView(title);
+
+        int savedInterval = MeliuzCashbackSettings.intervalSeconds(this);
+        LinearLayout options = new LinearLayout(this);
+        options.setOrientation(LinearLayout.VERTICAL);
+        options.setPadding(0, dp(10), 0, dp(10));
+        for (int interval : STANDARD_CHECK_INTERVAL_SECONDS) {
+            TextView option = createThemeOption(getCheckIntervalOptionLabel(interval),
+                    !MeliuzCashbackSettings.isPaused(this) && interval == savedInterval);
+            option.setOnClickListener(view -> {
+                MeliuzCashbackSettings.saveSchedule(this, interval, false);
+                refreshSettingsControls();
+                dialog.dismiss();
+            });
+            options.addView(option);
+        }
+        TextView paused = createThemeOption(R.string.store_source_never_consult,
+                MeliuzCashbackSettings.isPaused(this));
+        paused.setOnClickListener(view -> {
+            MeliuzCashbackSettings.saveSchedule(this, savedInterval, true);
+            refreshSettingsControls();
+            dialog.dismiss();
+        });
+        options.addView(paused);
+        content.addView(options);
+
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.END);
+        TextView close = createDialogAction(R.string.action_close);
+        close.setOnClickListener(view -> dialog.dismiss());
+        actions.addView(close);
+        content.addView(actions);
         showCompactDialog(dialog, content);
     }
 

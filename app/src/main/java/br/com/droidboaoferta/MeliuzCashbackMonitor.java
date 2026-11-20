@@ -22,7 +22,7 @@ final class MeliuzCashbackMonitor {
 
     synchronized void start(Context context) {
         appContext = context.getApplicationContext();
-        if (!MonitorRunPolicy.canRun(appContext) || !MeliuzCashbackSettings.isEnabled(appContext)) return;
+        if (!MonitorRunPolicy.canRun(appContext) || !MeliuzCashbackSettings.canConsult(appContext)) return;
         long interval = TimeUnit.SECONDS.toMillis(MeliuzCashbackSettings.intervalSeconds(appContext));
         long elapsed = Math.max(0, System.currentTimeMillis() - new MeliuzCashbackStore(appContext).lastSuccess());
         scheduler.startDelayed(this::check, interval, Math.max(0, interval - elapsed));
@@ -38,14 +38,14 @@ final class MeliuzCashbackMonitor {
 
     synchronized void rescheduleIfRunning(Context context) {
         if (scheduler.isStarted()) {
-            if (!MeliuzCashbackSettings.isEnabled(context)) stop();
+            if (!MeliuzCashbackSettings.canConsult(context)) stop();
             else scheduler.updateInterval(TimeUnit.SECONDS.toMillis(MeliuzCashbackSettings.intervalSeconds(context)));
         }
     }
 
     private void check() {
         Context context = appContext;
-        if (!MonitorRunPolicy.canRun(context) || !MeliuzCashbackSettings.isEnabled(context)) return;
+        if (!MonitorRunPolicy.canRun(context) || !MeliuzCashbackSettings.canConsult(context)) return;
         String configuration = MeliuzCashbackSettings.signature(context);
         checking = true;
         broadcast(context);

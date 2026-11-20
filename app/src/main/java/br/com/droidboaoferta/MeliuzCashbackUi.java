@@ -17,7 +17,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
-import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.ContextCompat;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -48,28 +47,73 @@ final class MeliuzCashbackUi {
     }
 
     static void mountSettings(Activity activity, LinearLayout slot) {
+        mountAlertSettings(activity, slot);
+    }
+
+    private static void mountAlertSettings(Activity activity, LinearLayout slot) {
         slot.removeAllViews();
+        boolean registered = MeliuzCashbackSettings.isEnabled(activity);
+        Runnable changed = () -> mountAlertSettings(activity, slot);
         LinearLayout card = card(activity);
-        LinearLayout row = horizontal(activity);
-        int iconResource = slot.getId() == R.id.container_meliuz_settings
-                ? R.drawable.ic_add_cashback_alert : R.drawable.ic_cashback;
-        ImageButton sourceIcon = icon(activity, iconResource, R.string.meliuz_settings,
-                () -> showSettings(activity, () -> mountSettings(activity, slot)));
-        sourceIcon.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
-        sourceIcon.setScaleType(ImageView.ScaleType.CENTER);
-        LinearLayout.LayoutParams sourceIconParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
-        sourceIconParams.rightMargin = dp(activity, 8);
-        row.addView(sourceIcon, sourceIconParams);
-        LinearLayout text = vertical(activity);
-        text.addView(label(activity, activity.getString(R.string.meliuz_title), 16, false));
-        text.addView(label(activity, activity.getString(MeliuzCashbackSettings.isEnabled(activity)
-                ? R.string.meliuz_enabled_summary : R.string.meliuz_disabled_summary,
-                number(MeliuzCashbackSettings.minimum(activity))), 13, true));
-        row.addView(text, new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(icon(activity, R.drawable.ic_edit, R.string.meliuz_settings,
-                () -> showSettings(activity, () -> mountSettings(activity, slot))));
-        card.addView(row);
-        card.setOnClickListener(v -> showSettings(activity, () -> mountSettings(activity, slot)));
+        LinearLayout header = horizontal(activity);
+        header.setPadding(dp(activity, 4), dp(activity, 2), 0, dp(activity, 3));
+        ImageButton add = icon(activity, R.drawable.ic_add_cashback_alert, R.string.meliuz_add_alert,
+                () -> showSettings(activity, changed));
+        add.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
+        add.setScaleType(ImageView.ScaleType.CENTER);
+        LinearLayout.LayoutParams addParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
+        addParams.rightMargin = dp(activity, 8);
+        header.addView(add, addParams);
+        LinearLayout titles = vertical(activity);
+        titles.addView(label(activity, activity.getString(R.string.meliuz_alerts_title), 16, false));
+        titles.addView(label(activity, activity.getString(registered
+                ? R.string.coupon_alerts_registered_count_one
+                : R.string.coupon_alerts_registered_count_empty), 13, true));
+        header.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
+        LinearLayout details = vertical(activity);
+        boolean expanded = registered && MeliuzCashbackSettings.preferences(activity)
+                .getBoolean("alerts_expanded", true);
+        details.setVisibility(expanded ? View.VISIBLE : View.GONE);
+        ImageButton toggle = icon(activity, R.drawable.ic_chevron_right,
+                expanded ? R.string.alerts_section_collapse : R.string.alerts_section_expand, () -> { });
+        toggle.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
+        toggle.setScaleType(ImageView.ScaleType.CENTER);
+        toggle.setRotation(expanded ? 90 : 0);
+        header.addView(toggle, new LinearLayout.LayoutParams(dp(activity, 32), dp(activity, 32)));
+        View.OnClickListener expand = view -> {
+            if (!registered) { showSettings(activity, changed); return; }
+            boolean show = details.getVisibility() != View.VISIBLE;
+            details.setVisibility(show ? View.VISIBLE : View.GONE);
+            toggle.setRotation(show ? 90 : 0);
+            toggle.setContentDescription(activity.getString(show
+                    ? R.string.alerts_section_collapse : R.string.alerts_section_expand));
+            MeliuzCashbackSettings.preferences(activity).edit().putBoolean("alerts_expanded", show).apply();
+        };
+        header.setBackgroundResource(R.drawable.bg_row_pressed);
+        header.setOnClickListener(expand);
+        toggle.setOnClickListener(expand);
+        card.addView(header);
+        if (registered) {
+            LinearLayout row = horizontal(activity);
+            row.setMinimumHeight(dp(activity, 48));
+            row.setPadding(dp(activity, 4), dp(activity, 4), dp(activity, 4), dp(activity, 4));
+            ImageButton edit = icon(activity, R.drawable.ic_edit, R.string.meliuz_edit_alert,
+                    () -> showSettings(activity, changed));
+            edit.setBackgroundResource(R.drawable.bg_row_pressed);
+            edit.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
+            row.addView(edit, new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36)));
+            TextView rule = label(activity, activity.getString(R.string.meliuz_alert_rule,
+                    number(MeliuzCashbackSettings.minimum(activity))), 13, false);
+            rule.setSingleLine(true);
+            rule.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            LinearLayout.LayoutParams ruleParams = new LinearLayout.LayoutParams(0, -2, 1);
+            ruleParams.leftMargin = dp(activity, 8);
+            row.addView(rule, ruleParams);
+            row.setBackgroundResource(R.drawable.bg_row_pressed);
+            row.setOnClickListener(view -> showSettings(activity, changed));
+            details.addView(row);
+        }
+        card.addView(details);
         slot.addView(card);
     }
 
@@ -82,7 +126,7 @@ final class MeliuzCashbackUi {
         card.setClipToOutline(true);
         card.setPadding(0, dp(activity, 2), 0, dp(activity, 2));
         LinearLayout header = horizontal(activity);
-        header.setPadding(dp(activity, 6), dp(activity, 2), 0, dp(activity, 3));
+        header.setPadding(dp(activity, 6), dp(activity, 2), dp(activity, 6), dp(activity, 3));
         ImageButton refresh = icon(activity, R.drawable.ic_refresh_cashback, R.string.meliuz_refresh,
                 () -> MeliuzCashbackMonitor.getInstance().checkNow(activity));
         refresh.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
@@ -102,13 +146,13 @@ final class MeliuzCashbackUi {
         titles.addView(count, countParams);
         boolean checking = MeliuzCashbackMonitor.getInstance().isChecking();
         String status = checking ? activity.getString(R.string.meliuz_checking)
-                : !MonitorServiceController.isEnabled(activity) ? activity.getString(R.string.meliuz_paused)
+                : (!MonitorServiceController.isEnabled(activity) || MeliuzCashbackSettings.isPaused(activity)) ? activity.getString(R.string.meliuz_paused)
                 : repository.failed() ? activity.getString(R.string.meliuz_failed)
-                : snapshot.optLong("observed_at") > 0 ? date(snapshot.optLong("observed_at"))
+                : snapshot.optLong("observed_at") > 0 ? checkDate(activity, snapshot.optLong("observed_at"))
                 : activity.getString(R.string.meliuz_waiting);
         addDashboardMetadata(activity, titles, status);
         if ((checking || repository.failed()) && snapshot.optLong("observed_at") > 0) {
-            addDashboardMetadata(activity, titles, date(snapshot.optLong("observed_at")));
+            addDashboardMetadata(activity, titles, checkDate(activity, snapshot.optLong("observed_at")));
         }
         header.addView(titles, new LinearLayout.LayoutParams(0, -2, 1));
         // Keep the rows attached, as in the other dashboard cards. A tap only changes
@@ -191,55 +235,94 @@ final class MeliuzCashbackUi {
     }
 
     static void showSettings(Activity activity, Runnable changed) {
+        boolean editing = MeliuzCashbackSettings.isEnabled(activity);
         LinearLayout content = dialogContent(activity);
-        content.addView(label(activity, activity.getString(R.string.meliuz_settings), 21, false));
-        TextView description = label(activity, activity.getString(R.string.meliuz_description), 14, true);
-        description.setPadding(0, dp(activity, 8), 0, dp(activity, 12));
+        content.addView(label(activity, activity.getString(editing
+                ? R.string.meliuz_edit_alert : R.string.meliuz_add_alert), 22, false));
+        TextView description = label(activity, activity.getString(R.string.meliuz_alert_description), 15, true);
+        description.setPadding(0, dp(activity, 6), 0, dp(activity, 16));
         content.addView(description);
-        SwitchCompat enabled = new SwitchCompat(activity);
-        enabled.setText(R.string.meliuz_monitor_enabled);
-        enabled.setTextColor(ContextCompat.getColor(activity, R.color.text_primary));
-        enabled.setChecked(MeliuzCashbackSettings.isEnabled(activity));
-        enabled.setMinHeight(dp(activity, 48));
-        content.addView(enabled);
         content.addView(label(activity, activity.getString(R.string.meliuz_minimum), 13, true));
         EditText minimum = input(activity, number(MeliuzCashbackSettings.minimum(activity)), true);
+        minimum.setHint(R.string.meliuz_minimum);
         content.addView(minimum);
-        content.addView(label(activity, activity.getString(R.string.meliuz_interval), 13, true));
-        EditText interval = input(activity, Integer.toString(MeliuzCashbackSettings.intervalSeconds(activity) / 60), false);
-        content.addView(interval);
         Dialog dialog = dialog(activity, content);
         LinearLayout actions = horizontal(activity);
         actions.setGravity(Gravity.END);
-        actions.addView(action(activity, R.string.action_cancel, dialog::dismiss));
-        actions.addView(action(activity, R.string.action_save, () -> {
+        actions.setPadding(0, dp(activity, 14), 0, 0);
+        if (editing) {
+            ImageButton remove = icon(activity, R.drawable.ic_trash_outline, R.string.action_remove_interest,
+                    () -> { dialog.dismiss(); confirmRemoveAlert(activity, changed); });
+            remove.setColorFilter(ContextCompat.getColor(activity, R.color.danger));
+            remove.setBackgroundResource(R.drawable.bg_icon_danger);
+            remove.setPadding(dp(activity, 12), dp(activity, 12), dp(activity, 12), dp(activity, 12));
+            actions.addView(remove, new LinearLayout.LayoutParams(dp(activity, 48), dp(activity, 48)));
+            actions.addView(new View(activity), new LinearLayout.LayoutParams(0, 1, 1));
+        }
+        actions.addView(editorAction(activity, R.string.action_cancel, dialog::dismiss));
+        addPrimaryAction(activity, actions, R.string.action_save, () -> {
             double value;
-            int minutes;
             try { value = Double.parseDouble(minimum.getText().toString().trim().replace(',', '.')); }
             catch (Exception invalid) { value = -1; }
             if (!Double.isFinite(value) || value < 0 || value > 100) {
                 minimum.setError(activity.getString(R.string.meliuz_invalid_minimum)); return;
             }
-            try { minutes = Integer.parseInt(interval.getText().toString().trim()); }
-            catch (Exception invalid) { minutes = -1; }
-            if (minutes < 5 || minutes > 1440) {
-                interval.setError(activity.getString(R.string.meliuz_invalid_interval)); return;
-            }
-            MeliuzCashbackSettings.save(activity, enabled.isChecked(), value, minutes * 60);
+            MeliuzCashbackSettings.save(activity, true, value, MeliuzCashbackSettings.intervalSeconds(activity));
             dialog.dismiss();
             changed.run();
-            if (enabled.isChecked()) {
-                if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(activity,
-                        android.Manifest.permission.POST_NOTIFICATIONS)
-                        != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    androidx.core.app.ActivityCompat.requestPermissions(activity,
-                            new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1203);
-                }
-                MeliuzCashbackMonitor.getInstance().checkNow(activity);
+            if (android.os.Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(activity,
+                    android.Manifest.permission.POST_NOTIFICATIONS)
+                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                androidx.core.app.ActivityCompat.requestPermissions(activity,
+                        new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 1203);
             }
-        }));
+            MeliuzCashbackMonitor.getInstance().checkNow(activity);
+        });
         content.addView(actions);
         show(activity, dialog);
+    }
+
+    private static void confirmRemoveAlert(Activity activity, Runnable changed) {
+        LinearLayout content = dialogContent(activity);
+        content.addView(label(activity, activity.getString(R.string.meliuz_remove_alert_title), 22, false));
+        TextView summary = label(activity, activity.getString(R.string.meliuz_remove_alert_message), 15, true);
+        summary.setPadding(0, dp(activity, 6), 0, dp(activity, 16));
+        content.addView(summary);
+        Dialog dialog = dialog(activity, content);
+        LinearLayout actions = horizontal(activity);
+        actions.setGravity(Gravity.END);
+        actions.addView(editorAction(activity, R.string.action_cancel, dialog::dismiss));
+        TextView confirm = addPrimaryAction(activity, actions, R.string.action_remove_interest, () -> {
+            MeliuzCashbackSettings.save(activity, false, MeliuzCashbackSettings.minimum(activity),
+                    MeliuzCashbackSettings.intervalSeconds(activity));
+            dialog.dismiss();
+            changed.run();
+        });
+        confirm.setBackgroundResource(R.drawable.bg_button_danger);
+        content.addView(actions);
+        show(activity, dialog);
+    }
+
+    private static TextView editorAction(Activity activity, int resource, Runnable click) {
+        TextView action = label(activity, activity.getString(resource), 15, false);
+        action.setTextColor(AccentColorController.getPrimaryColor(activity));
+        action.setGravity(Gravity.CENTER);
+        action.setSingleLine(true);
+        action.setPadding(dp(activity, 10), dp(activity, 8), dp(activity, 10), dp(activity, 8));
+        action.setOnClickListener(view -> click.run());
+        return action;
+    }
+
+    private static TextView addPrimaryAction(Activity activity, LinearLayout actions, int resource, Runnable click) {
+        TextView save = editorAction(activity, resource, click);
+        save.setTextColor(ContextCompat.getColor(activity, R.color.button_text));
+        save.setBackgroundResource(R.drawable.bg_button_primary);
+        save.setMinWidth(dp(activity, 96));
+        save.setPadding(dp(activity, 20), 0, dp(activity, 20), 0);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-2, dp(activity, 42));
+        params.leftMargin = dp(activity, 10);
+        actions.addView(save, params);
+        return save;
     }
 
     private static void showStore(Activity activity, JSONObject store) {
@@ -288,6 +371,10 @@ final class MeliuzCashbackUi {
                 activity.getResources().getDisplayMetrics().heightPixels - dp(activity, 72));
     }
 
+    private static String checkDate(android.content.Context context, long at) {
+        return OfferDateFormatter.formatGroupLabel(context, at) + ", " + OfferDateFormatter.formatTime(at);
+    }
+
     private static String date(long at) {
         return new SimpleDateFormat("dd/MM/yyyy HH:mm", new Locale("pt", "BR")).format(new Date(at));
     }
@@ -305,7 +392,7 @@ final class MeliuzCashbackUi {
     private static LinearLayout dialogContent(Activity activity) {
         LinearLayout layout = vertical(activity);
         int padding = dp(activity, 24);
-        layout.setPadding(padding, padding, padding, dp(activity, 12));
+        layout.setPadding(padding, dp(activity, 22), padding, dp(activity, 16));
         return layout;
     }
 
@@ -324,7 +411,7 @@ final class MeliuzCashbackUi {
         Window window = dialog.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-            window.setLayout(activity.getResources().getDisplayMetrics().widthPixels - dp(activity, 32),
+            window.setLayout(activity.getResources().getDisplayMetrics().widthPixels - dp(activity, 44),
                     WindowManager.LayoutParams.WRAP_CONTENT);
             window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
@@ -336,11 +423,11 @@ final class MeliuzCashbackUi {
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_NUMBER | (decimal ? InputType.TYPE_NUMBER_FLAG_DECIMAL : 0));
         input.setTextColor(ContextCompat.getColor(activity, R.color.text_primary));
-        input.setTextSize(17);
+        input.setTextSize(16);
         input.setMinHeight(dp(activity, 52));
         input.setBackgroundResource(R.drawable.bg_input);
-        input.setPadding(dp(activity, 14), dp(activity, 10), dp(activity, 14), dp(activity, 10));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, -2);
+        input.setPadding(dp(activity, 16), 0, dp(activity, 16), 0);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(activity, 52));
         params.topMargin = dp(activity, 6);
         params.bottomMargin = dp(activity, 14);
         input.setLayoutParams(params);

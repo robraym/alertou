@@ -39,6 +39,14 @@ final class BottomNavigationController {
         setupItem(activity, currentItem, ITEM_TRASH, R.id.nav_trash,
                 R.id.nav_trash_indicator, R.id.nav_trash_icon, R.id.nav_trash_label,
                 TrashedOffersActivity.class);
+        View navigation = activity.findViewById(R.id.bottom_navigation);
+        int selectedId = currentItem == ITEM_HOME ? R.id.nav_home
+                : currentItem == ITEM_SOURCES ? R.id.nav_sources
+                : currentItem == ITEM_ALERTS ? R.id.nav_alerts
+                : currentItem == ITEM_ARCHIVED ? R.id.nav_archived
+                : currentItem == ITEM_TRASH ? R.id.nav_trash : 0;
+        View selected = selectedId == 0 ? null : activity.findViewById(selectedId);
+        if (navigation != null && selected != null) NavigationContentCard.attach(navigation, selected);
         hideNavigationWhileKeyboardIsOpen(activity);
         resetInitialFocus(activity);
         NavigationAnimationController.bind(activity, animatedContentViewIds);

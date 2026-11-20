@@ -22,12 +22,14 @@ public class SettingsBackupTest {
     @Test public void cashbackSettingsRoundTripAndInvalidBackupValues() throws Exception {
         SettingsBackup.Preferences source = files();
         source.get("meliuz_cashback_settings").edit().putBoolean("enabled", true)
-                .putString("minimum", "12.5").putInt("interval_seconds", 600).apply();
+                .putString("minimum", "12.5").putInt("interval_seconds", 30).putBoolean("paused", true).putBoolean("alerts_expanded", false).apply();
         SettingsBackup.Preferences destination = files();
         assertTrue(SettingsBackup.restore(destination, SettingsBackup.export(source), true));
         assertTrue(destination.get("meliuz_cashback_settings").getBoolean("enabled", false));
         assertEquals("12.5", destination.get("meliuz_cashback_settings").getString("minimum", ""));
-        assertEquals(600, destination.get("meliuz_cashback_settings").getInt("interval_seconds", 0));
+        assertEquals(30, destination.get("meliuz_cashback_settings").getInt("interval_seconds", 0));
+        assertTrue(destination.get("meliuz_cashback_settings").getBoolean("paused", false));
+        assertFalse(destination.get("meliuz_cashback_settings").getBoolean("alerts_expanded", true));
         JSONObject invalid = new JSONObject().put("meliuz_cashback_settings/minimum", value("NaN"))
                 .put("meliuz_cashback_settings/interval_seconds", value(1));
         assertFalse(SettingsBackup.restore(destination, invalid, true));

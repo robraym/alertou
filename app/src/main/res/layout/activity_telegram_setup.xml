@@ -193,14 +193,6 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-    <LinearLayout
-        android:id="@+id/container_meliuz_source"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/screen_card_inset"
-        android:layout_marginEnd="@dimen/screen_card_inset"
-        android:layout_marginTop="@dimen/screen_header_content_gap"
-        android:orientation="vertical" />
 
     <LinearLayout
         android:id="@+id/section_vivo_outlet"
@@ -1211,6 +1203,13 @@
                 android:src="@drawable/ic_search" />
         </FrameLayout>
     </FrameLayout>
+
+    <View
+        android:id="@+id/spacer_sources_bottom"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:visibility="gone" />
 
     <include layout="@layout/view_bottom_navigation" />
 </LinearLayout>

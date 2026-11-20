@@ -83,11 +83,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-        <LinearLayout
-            android:id="@+id/container_meliuz_settings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -423,6 +418,13 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
         </LinearLayout>
+        <LinearLayout
+            android:id="@+id/container_meliuz_settings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/screen_card_gap"
+            android:orientation="vertical" />
+
         </LinearLayout>
     </ScrollView>
 

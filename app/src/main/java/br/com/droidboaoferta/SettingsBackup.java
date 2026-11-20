@@ -19,7 +19,7 @@ final class SettingsBackup {
             "samsung_discount_offer_check_interval_seconds", StoreSourceControl.KEY_DISABLED_SOURCES_MASK};
     private static final String[] PROPERTY_KEYS = {"enabled", "show_condominium", "check_interval_minutes", "check_interval_seconds"};
     private static final String[] TREASURY_KEYS = {"interval_seconds"};
-    private static final String[] MELIUZ_KEYS = {"enabled", "minimum", "interval_seconds", "expanded"};
+    private static final String[] MELIUZ_KEYS = {"enabled", "minimum", "interval_seconds", "expanded", "alerts_expanded", "paused"};
     private static final String[] TELEGRAM_KEYS = {"groups_sort_order"};
     private static final String[] ALERT_KEYS = {"alerts_sort_order", "home_sort_order",
             "alerts_section_coupons_expanded", "alerts_section_properties_expanded",
@@ -158,7 +158,7 @@ final class SettingsBackup {
                 && !(display && java.util.Arrays.asList(STORE_DISPLAY_KEYS).contains(key))) return false;
         if (value == JSONObject.NULL) return true;
         if (meliuz) {
-            if (key.equals("enabled") || key.equals("expanded")) return value instanceof Boolean;
+            if (key.equals("enabled") || key.equals("expanded") || key.equals("alerts_expanded") || key.equals("paused")) return value instanceof Boolean;
             if (key.equals("minimum")) {
                 if (!(value instanceof String)) return false;
                 try {
@@ -166,7 +166,7 @@ final class SettingsBackup {
                     return Double.isFinite(minimum) && minimum >= 0 && minimum <= 100;
                 } catch (RuntimeException invalid) { return false; }
             }
-            return value instanceof Number && ((Number) value).intValue() >= 300
+            return value instanceof Number && ((Number) value).intValue() >= 30
                     && ((Number) value).intValue() <= 86400
                     && ((Number) value).intValue() == ((Number) value).doubleValue();
         }

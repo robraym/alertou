@@ -796,7 +796,8 @@ public class MainActivity extends AlertouActivity {
                 + MeliuzCashbackSettings.signature(this)
                 + MeliuzCashbackSettings.preferences(this).getBoolean("expanded", true)
                 + MeliuzCashbackMonitor.getInstance().isChecking()
-                + MonitorServiceController.isEnabled(this) + query;
+                + MonitorServiceController.isEnabled(this)
+                + OfferDateFormatter.getGroupKey(System.currentTimeMillis()) + query;
         View card = offerSectionCache.find(key, fingerprint);
         if (card == null) card = MeliuzCashbackUi.dashboard(this, query);
         offerSectionCache.attach(offersContainer, key, fingerprint, card);
@@ -860,7 +861,7 @@ public class MainActivity extends AlertouActivity {
         header.setBackgroundResource(R.drawable.bg_row_pressed);
         header.setClickable(true);
         header.setFocusable(true);
-        header.setPadding(dp(6), dp(2), 0, dp(3));
+        header.setPadding(dp(6), dp(2), dp(6), dp(3));
 
         ImageButton icon = new ImageButton(this);
         icon.setTag(TREASURY_ACTION_TAG);
@@ -1255,7 +1256,7 @@ public class MainActivity extends AlertouActivity {
         header.setClickable(true);
         header.setFocusable(true);
         // Match the 6dp inset of the cashback source card in Fontes.
-        header.setPadding(dp(6), dp(2), 0, dp(3));
+        header.setPadding(dp(6), dp(2), dp(6), dp(3));
 
         boolean propertySection = propertyMarketSection
                 || SECTION_PROPERTIES_EXPANDED.equals(preferenceKey);
