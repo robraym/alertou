@@ -31,7 +31,7 @@ final class SettingsBackup {
     private static final String[] APPEARANCE_KEYS = {"theme_mode", "accent_color", "font_family", "font_size_percent",
             "navigation_animation"};
     private static final String[] PROFILE_KEYS = {"appearance_expanded", "properties_expanded",
-            "treasury_expanded", "external_sources_expanded", "sync_expanded", "info_expanded"};
+            "treasury_expanded", "external_sources_expanded", "sync_expanded", "backup_restore_expanded", "info_expanded"};
     private static final String[] CLOUD_SYNC_KEYS = {"automatic_sync_enabled"};
     private static final String[] STORE_DISPLAY_KEYS = {
             "title_" + R.string.vivo_outlet_source_title,

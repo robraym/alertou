@@ -93,7 +93,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView restoreSizeSummary;
     private ImageView backupIcon;
     private ImageView restoreIcon;
-    private TextView cancelBackupButton;
+    private ImageButton cancelBackupButton;
     private View backupChevron;
     private TextView themeSummary;
     private TextView accentColorSummary;
@@ -228,16 +228,10 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 view -> showSamsungOfferIntervalDialog());
         findViewById(R.id.row_samsung_discount_offer_interval).setOnClickListener(
                 view -> showSamsungDiscountOfferIntervalDialog());
-        findViewById(R.id.row_backup).setOnClickListener(view -> clientManager.backupCloudNow());
+        findViewById(R.id.row_backup).setOnClickListener(view -> showBackupConfirmation());
         findViewById(R.id.row_automatic_sync).setOnClickListener(
                 view -> showAutomaticSyncDialog());
-        findViewById(R.id.row_restore_backup).setOnClickListener(view -> {
-            restoreSummary.setText(R.string.profile_manual_restore_pending);
-            restoreSizeSummary.setText(formatCalculatingSizeSummary(
-                    R.string.profile_restore_size_preparing));
-            updateActionIconAnimation(restoreIcon, true, dp(4));
-            clientManager.restoreCloudBackupNow();
-        });
+        findViewById(R.id.row_restore_backup).setOnClickListener(view -> showRestoreConfirmation());
         cancelBackupButton.setOnClickListener(view -> {
             clientManager.cancelCloudBackup();
             refreshSyncSummary();
@@ -276,6 +270,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.id.button_toggle_profile_sync,
                 R.id.container_profile_sync,
                 PREF_SYNC_EXPANDED);
+        configureCollapsibleSection(
+                R.id.header_profile_backup_restore,
+                R.id.button_toggle_profile_backup_restore,
+                R.id.container_profile_backup_restore,
+                "backup_restore_expanded");
         configureCollapsibleSection(
                 R.id.header_profile_info,
                 R.id.button_toggle_profile_info,
@@ -2496,7 +2495,8 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
      */
     private void tintProfileActionIcons(View view) {
         if (view instanceof ImageView && ((ImageView) view).getDrawable() != null) {
-            ((ImageView) view).setColorFilter(AccentColorController.getPrimaryColor(this));
+            ((ImageView) view).setColorFilter(view.getId() == R.id.button_cancel_backup
+                    ? getColor(R.color.danger) : AccentColorController.getPrimaryColor(this));
         }
         if (!(view instanceof ViewGroup)) return;
         ViewGroup group = (ViewGroup) view;
@@ -2644,6 +2644,50 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.string.profile_action_disconnect,
                 true,
                 this::disconnectTelegram);
+    }
+
+    private String previousBackupDetails() {
+        long date = CloudSyncStore.getLastAccountBackupAt(this);
+        long size = CloudSyncStore.getLastBackupSizeBytes(this);
+        String dateText = date > 0 ? new SimpleDateFormat("dd/MM/yyyy · HH:mm", new Locale("pt", "BR"))
+                .format(new Date(date)) : getString(R.string.backup_detail_unavailable);
+        String sizeText = size > 0 ? formatBackupSize(size) : getString(R.string.backup_detail_unavailable);
+        return getString(R.string.backup_confirmation_details, dateText, sizeText);
+    }
+
+    private void showBackupConfirmation() {
+        if (clientManager.isCloudBackupInProgress() || clientManager.isManualRestoreInProgress()) return;
+        boolean hasPreviousBackup = CloudSyncStore.getLastAccountBackupAt(this) > 0L;
+        String message = hasPreviousBackup
+                ? getString(R.string.backup_confirmation_message) + "\n\n" + previousBackupDetails()
+                : getString(R.string.backup_confirmation_create_message);
+        showConfirmationDialog(R.string.backup_confirmation_title,
+                message,
+                R.string.backup_confirmation_action, false, () -> {
+                    if (!clientManager.isCloudBackupInProgress() && !clientManager.isManualRestoreInProgress()) {
+                        clientManager.backupCloudNow();
+                    }
+                });
+    }
+
+    private void showRestoreConfirmation() {
+        if (clientManager.isCloudBackupInProgress() || clientManager.isManualRestoreInProgress()) return;
+        long backupAt = CloudSyncStore.getLastAccountBackupAt(this);
+        long backupSize = CloudSyncStore.getLastBackupSizeBytes(this);
+        showConfirmationDialog(R.string.restore_confirmation_title,
+                getString(R.string.restore_confirmation_message) + "\n\n" + previousBackupDetails(),
+                R.string.action_restore_backup, false, () -> {
+                    if (clientManager.isCloudBackupInProgress() || clientManager.isManualRestoreInProgress()) return;
+                    if (backupAt != CloudSyncStore.getLastAccountBackupAt(this)
+                            || backupSize != CloudSyncStore.getLastBackupSizeBytes(this)) {
+                        showRestoreConfirmation();
+                        return;
+                    }
+                    restoreSummary.setText(R.string.profile_manual_restore_pending);
+                    restoreSizeSummary.setText(formatCalculatingSizeSummary(R.string.profile_restore_size_preparing));
+                    updateActionIconAnimation(restoreIcon, true, dp(4));
+                    clientManager.restoreCloudBackupNow();
+                });
     }
 
     private void refreshSyncSummary() {

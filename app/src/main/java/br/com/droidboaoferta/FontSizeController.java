@@ -4,8 +4,8 @@ import android.content.Context;
 
 final class FontSizeController {
     static final String KEY = "font_size_percent";
-    static final int MIN = 80;
-    static final int MAX = 130;
+    static final int MIN = 70;
+    static final int MAX = 150;
 
     static boolean isSupported(int percent) {
         return percent >= MIN && percent <= MAX;

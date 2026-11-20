@@ -24,7 +24,7 @@ public class SettingsBackupTest {
         assertFalse(FontSizeController.isSupported(500));
         assertFalse(SettingsBackup.restore(destination, new JSONObject()
                 .put("app_preferences/font_size_percent", value(500)), true));
-        assertEquals(130, destination.get("app_preferences").getInt(FontSizeController.KEY, 0));
+        assertEquals(FontSizeController.MAX, destination.get("app_preferences").getInt(FontSizeController.KEY, 0));
     }
     @Test public void fontChoiceRoundTripsAndRejectsUnsupportedFamilies() throws Exception {
         SettingsBackup.Preferences source = files();

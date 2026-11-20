@@ -716,25 +716,92 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical">
-
             <include layout="@layout/row_profile_automatic_sync" />
+        </LinearLayout>
+        </LinearLayout>
 
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginStart="60dp"
-                android:layout_marginEnd="8dp"
-                android:background="@color/divider" />
+        <LinearLayout
+            android:id="@+id/card_profile_backup_restore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/screen_card_gap"
+            android:background="@drawable/bg_card_compact"
+            android:orientation="vertical"
+            android:padding="6dp">
 
+            <LinearLayout
+            android:id="@+id/header_profile_backup_restore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="60dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="0dp">
+
+            <ImageView
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/bg_icon_circle"
+                android:contentDescription="@null"
+                android:padding="8dp"
+                android:src="@drawable/ic_restore"
+                app:tint="?attr/colorAccent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:text="@string/profile_section_backup_restore"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/text_backup_restore_summary"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:maxLines="2"
+                    android:text="@string/profile_section_backup_restore_summary"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <ImageButton
+                android:id="@+id/button_toggle_profile_backup_restore"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_icon_circle"
+                android:contentDescription="@string/alerts_section_collapse"
+                android:padding="7dp"
+                android:rotation="90"
+                android:scaleType="center"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="?attr/colorAccent" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/container_profile_backup_restore"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
             <include layout="@layout/row_profile_backup" />
-
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginStart="60dp"
                 android:layout_marginEnd="8dp"
                 android:background="@color/divider" />
-
             <include layout="@layout/row_profile_restore" />
         </LinearLayout>
         </LinearLayout>
