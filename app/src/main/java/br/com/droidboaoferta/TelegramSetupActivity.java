@@ -1361,7 +1361,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             TextView label = new TextView(this);
             label.setText(group.getTitle());
             label.setTextColor(getColor(R.color.text_primary));
-            label.setTextSize(14);
+            label.setTextSize(13);
             label.setSingleLine(true);
             label.setEllipsize(TextUtils.TruncateAt.END);
 
@@ -1405,7 +1405,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 TextView awardCount = new TextView(this);
                 awardCount.setText("★ " + groupAwards.getChampionships());
                 awardCount.setTextColor(getColor(R.color.award_gold));
-                awardCount.setTextSize(11);
+                awardCount.setTextSize(10.5f);
                 awardCount.setTypeface(null, android.graphics.Typeface.BOLD);
                 awardCount.setBackgroundResource(R.drawable.bg_award_badge);
                 LinearLayout.LayoutParams awardParams = new LinearLayout.LayoutParams(
@@ -2247,7 +2247,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                 ? getString(R.string.source_status_dot_online_progress, online, onlineTotal)
                 : getString(R.string.source_status_dot_online, online));
         storeSourcesOnlineText.setTextColor(getColor(R.color.text_secondary));
-        storeSourcesOnlineText.setTextSize(11.5f);
+        storeSourcesOnlineText.setTextSize(13);
         storeSourcesOnlineText.setVisibility(View.VISIBLE);
         int paused = countPausedStoreSources();
         if (offline > 0 || paused > 0) {
@@ -2265,7 +2265,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                         : getResources().getQuantityString(R.plurals.source_status_dot_paused, paused, paused));
             }
             storeSourcesOfflineText.setTextColor(getColor(offline > 0 ? R.color.danger : R.color.text_secondary));
-            storeSourcesOfflineText.setTextSize(11.5f);
+            storeSourcesOfflineText.setTextSize(13);
             storeSourcesOfflineText.setVisibility(View.VISIBLE);
         } else {
             storeSourcesOfflineText.setVisibility(View.GONE);

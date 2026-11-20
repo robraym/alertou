@@ -53,10 +53,13 @@ final class NavigationContentCard extends Drawable {
         parent.setBackground(original == null ? card : new LayerDrawable(new Drawable[]{original, card}));
         parent.setPadding(left, top, right, bottom);
         navigation.setBackgroundColor(Color.TRANSPARENT);
-        parent.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
-            card.keepSideInsets();
-            card.alignNavigationWidth();
-            card.invalidateSelf();
+        parent.getViewTreeObserver().addOnPreDrawListener(() -> {
+            // Insets can reset the XML padding when an existing Activity comes
+            // back to the foreground. Never draw the intermediate measurement:
+            // changing padding/margins needs a new layout before the card is shown.
+            boolean changed = card.keepSideInsets();
+            changed |= card.alignNavigationWidth();
+            return !changed;
         });
         card.keepSideInsets();
         card.alignNavigationWidth();
@@ -99,20 +102,22 @@ final class NavigationContentCard extends Drawable {
         }
     }
 
-    private void keepSideInsets() {
+    private boolean keepSideInsets() {
         // fitsSystemWindows can reapply zero horizontal padding after attachment.
         int minimum = Math.round(dp(16));
         int left = Math.max(minimum, parent.getPaddingLeft());
         int right = Math.max(minimum, parent.getPaddingRight());
         if (left != parent.getPaddingLeft() || right != parent.getPaddingRight()) {
             parent.setPadding(left, parent.getPaddingTop(), right, parent.getPaddingBottom());
+            return true;
         }
+        return false;
     }
 
     private int sideInset() { return Math.round(dp(10) + outline.getStrokeWidth() / 2); }
 
-    private void alignNavigationWidth() {
-        if (!(navigation.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return;
+    private boolean alignNavigationWidth() {
+        if (!(navigation.getLayoutParams() instanceof ViewGroup.MarginLayoutParams)) return false;
         ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) navigation.getLayoutParams();
         int left = sideInset() - parent.getPaddingLeft();
         int right = sideInset() - parent.getPaddingRight();
@@ -123,7 +128,9 @@ final class NavigationContentCard extends Drawable {
             params.leftMargin = left;
             params.rightMargin = right;
             navigation.setLayoutParams(params);
+            return true;
         }
+        return false;
     }
 
     private void buildContour(float left, float top, float right, float bottom,

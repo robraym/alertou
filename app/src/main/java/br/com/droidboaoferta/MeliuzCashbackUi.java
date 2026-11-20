@@ -128,7 +128,14 @@ final class MeliuzCashbackUi {
         LinearLayout header = horizontal(activity);
         header.setPadding(dp(activity, 6), dp(activity, 2), dp(activity, 6), dp(activity, 3));
         ImageButton refresh = icon(activity, R.drawable.ic_refresh_cashback, R.string.meliuz_refresh,
-                () -> MeliuzCashbackMonitor.getInstance().checkNow(activity));
+                () -> { });
+        refresh.setOnClickListener(view -> {
+            MonitorServiceController.update(activity);
+            MeliuzCashbackMonitor.getInstance().checkNow(activity);
+            if (MonitorRunPolicy.canRun(activity) && MeliuzCashbackSettings.canConsult(activity)) {
+                updateRefreshIcon(activity, refresh, true);
+            }
+        });
         refresh.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
         refresh.setScaleType(ImageView.ScaleType.CENTER);
         LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
@@ -145,6 +152,7 @@ final class MeliuzCashbackUi {
         countParams.topMargin = dp(activity, 3);
         titles.addView(count, countParams);
         boolean checking = MeliuzCashbackMonitor.getInstance().isChecking();
+        updateRefreshIcon(activity, refresh, checking);
         String status = checking ? activity.getString(R.string.meliuz_checking)
                 : (!MonitorServiceController.isEnabled(activity) || MeliuzCashbackSettings.isPaused(activity)) ? activity.getString(R.string.meliuz_paused)
                 : repository.failed() ? activity.getString(R.string.meliuz_failed)
@@ -232,6 +240,35 @@ final class MeliuzCashbackUi {
             return comparison == 0 ? a.optString("name").compareToIgnoreCase(b.optString("name")) : comparison;
         });
         return result;
+    }
+
+    private static void updateRefreshIcon(Activity activity, ImageButton icon, boolean checking) {
+        // A card can be detached and reused by the dashboard cache. Stop its animator
+        // while detached and restart only when the checking card is attached again.
+        Object previous = icon.getTag();
+        if (previous instanceof View.OnAttachStateChangeListener) {
+            View.OnAttachStateChangeListener previousListener = (View.OnAttachStateChangeListener) previous;
+            previousListener.onViewDetachedFromWindow(icon);
+            icon.removeOnAttachStateChangeListener(previousListener);
+        }
+        icon.animate().cancel();
+        icon.setRotation(0f);
+        icon.setImageResource(checking ? R.drawable.ic_sync : R.drawable.ic_refresh_cashback);
+        icon.setContentDescription(activity.getString(checking
+                ? R.string.meliuz_checking : R.string.meliuz_refresh));
+        if (!checking) { icon.setTag(null); return; }
+        android.animation.ObjectAnimator spin = android.animation.ObjectAnimator.ofFloat(
+                icon, View.ROTATION, 0f, 360f);
+        spin.setDuration(900L);
+        spin.setInterpolator(new android.view.animation.LinearInterpolator());
+        spin.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+        View.OnAttachStateChangeListener listener = new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View view) { spin.start(); }
+            @Override public void onViewDetachedFromWindow(View view) { spin.cancel(); }
+        };
+        icon.setTag(listener);
+        icon.addOnAttachStateChangeListener(listener);
+        if (icon.isAttachedToWindow()) spin.start();
     }
 
     static void showSettings(Activity activity, Runnable changed) {
