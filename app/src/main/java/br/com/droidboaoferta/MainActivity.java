@@ -916,7 +916,10 @@ public class MainActivity extends AlertouActivity {
         titleLine.addView(statusBadge, badgeParams);
         text.addView(titleLine);
         TextView count = new TextView(this);
-        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size()));
+        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size())
+                + " · " + stripCountBullet(getResources().getQuantityString(
+                R.plurals.dashboard_offer_section_count,
+                qualifyingTreasuryCount, qualifyingTreasuryCount)));
         count.setTextColor(getColor(R.color.text_secondary));
         count.setTextSize(13);
         count.setSingleLine(true);
@@ -924,8 +927,6 @@ public class MainActivity extends AlertouActivity {
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         countParams.topMargin = dp(3);
         text.addView(count, countParams);
-        OfferCountBadge.appendTo(count, stripCountBullet(getResources().getQuantityString(
-                R.plurals.dashboard_offer_section_count, qualifyingTreasuryCount, qualifyingTreasuryCount)));
 
         // Match the condominium header: each metadata row has 11.5sp text, no font
         // padding, and a 3dp top margin, rather than different multiline spacing.
@@ -1483,18 +1484,18 @@ public class MainActivity extends AlertouActivity {
         String countText = getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
                 sectionOfferCount, sectionOfferCount);
         if (productSection && sectionOfferCount == 0) countText = getString(R.string.product_no_offers_count);
-        String offerBadgeText = stripCountBullet(countText);
         if (productSection) {
             countText = getResources().getQuantityString(R.plurals.dashboard_registered_product_count,
-                    registeredProductCount, registeredProductCount);
+                    registeredProductCount, registeredProductCount)
+                    + " · " + stripCountBullet(countText);
         }
         if (propertyMarketSection) {
             countText = getResources().getQuantityString(
                     R.plurals.property_registered_condominium_count,
-                    registeredCondominiumCount, registeredCondominiumCount);
+                    registeredCondominiumCount, registeredCondominiumCount)
+                    + " · " + stripCountBullet(countText);
         }
         count.setText(countBelowTitle ? stripCountBullet(countText) : countText);
-        if (productSection || propertyMarketSection) OfferCountBadge.appendTo(count, offerBadgeText);
         String previousGroup = null;
         String activePropertyCardKey = null;
         LinearLayout propertyCardOffers = null;
