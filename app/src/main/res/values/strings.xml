@@ -564,6 +564,14 @@
         <item quantity="one">• %d oferta</item>
         <item quantity="other">• %d ofertas</item>
     </plurals>
+    <plurals name="property_registered_condominium_count">
+        <item quantity="one">%1$d condomínio</item>
+        <item quantity="other">%1$d condomínios</item>
+    </plurals>
+    <plurals name="dashboard_registered_product_count">
+        <item quantity="one">%1$d produto</item>
+        <item quantity="other">%1$d produtos</item>
+    </plurals>
     <plurals name="property_unavailable_offer_count">
         <item quantity="one">%d indisponível</item>
         <item quantity="other">%d indisponíveis</item>
@@ -848,6 +856,10 @@
     <string name="meliuz_invalid_minimum">Informe um percentual de 0 a 100.</string>
     <string name="meliuz_invalid_interval">Informe de 5 a 1.440 minutos.</string>
     <string name="meliuz_matches">%1$d lojas · mínimo %2$s%%</string>
+    <plurals name="meliuz_dashboard_store_count">
+        <item quantity="one">%1$d loja</item>
+        <item quantity="other">%1$d lojas</item>
+    </plurals>
     <string name="meliuz_rate">%1$s%% de volta</string>
     <string name="meliuz_rate_up_to">Até %1$s%% de volta</string>
     <string name="meliuz_fixed_cashback">%1$s de volta</string>

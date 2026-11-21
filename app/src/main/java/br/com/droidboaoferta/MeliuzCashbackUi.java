@@ -144,8 +144,14 @@ final class MeliuzCashbackUi {
         TextView title = label(activity, activity.getString(R.string.meliuz_title), 16, false);
         title.setPadding(0, 0, 0, 0);
         titles.addView(title);
-        TextView count = label(activity, activity.getString(R.string.meliuz_matches, matches.size(),
-                number(MeliuzCashbackSettings.minimum(activity))), 13, true);
+        JSONArray stores = snapshot.optJSONArray("stores");
+        int storeCount = stores == null ? 0 : stores.length();
+        String storeCountText = activity.getResources().getQuantityString(
+                R.plurals.meliuz_dashboard_store_count, storeCount, storeCount);
+        String offerCountText = activity.getResources().getQuantityString(
+                R.plurals.dashboard_offer_section_count, matches.size(), matches.size())
+                .replaceFirst("^•\\s*", "");
+        TextView count = label(activity, storeCountText + " · " + offerCountText, 13, true);
         count.setPadding(0, 0, 0, 0);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(-1, -2);
         countParams.topMargin = dp(activity, 3);

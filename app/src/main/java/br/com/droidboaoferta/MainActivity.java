@@ -823,6 +823,7 @@ public class MainActivity extends AlertouActivity {
 
         boolean expanded = isOfferSectionExpanded(SECTION_TREASURY_EXPANDED);
         TreasuryRateHistoryRepository historyRepository = new TreasuryRateHistoryRepository(this);
+        int qualifyingTreasuryCount = 0;
         StringBuilder fingerprint = new StringBuilder().append(expanded).append('|')
                 .append(TreasuryDirectMonitor.getOfficialUpdatedAt(this)).append('|')
                 .append(TreasuryDirectMonitor.getLastAttemptAt(this)).append('|')
@@ -835,6 +836,9 @@ public class MainActivity extends AlertouActivity {
                     .append(interest.getTerm()).append('|').append(interest.getMinimumTreasuryRate());
             if (!points.isEmpty()) {
                 TreasuryRatePoint point = points.get(points.size() - 1);
+                if (point.getRate() >= interest.getMinimumTreasuryRate()) {
+                    qualifyingTreasuryCount++;
+                }
                 fingerprint.append('|').append(point.getObservedAt()).append('|').append(point.getRate())
                         .append('|').append(points.size());
             }
@@ -912,7 +916,10 @@ public class MainActivity extends AlertouActivity {
         titleLine.addView(statusBadge, badgeParams);
         text.addView(titleLine);
         TextView count = new TextView(this);
-        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size()));
+        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size())
+                + " · " + stripCountBullet(getResources().getQuantityString(
+                R.plurals.dashboard_offer_section_count,
+                qualifyingTreasuryCount, qualifyingTreasuryCount)));
         count.setTextColor(getColor(R.color.text_secondary));
         count.setTextSize(13);
         count.setSingleLine(true);
@@ -1185,11 +1192,13 @@ public class MainActivity extends AlertouActivity {
         boolean propertyMarketSection = SECTION_PROPERTY_MARKET_EXPANDED.equals(preferenceKey);
         boolean productSection = SECTION_PRODUCTS_EXPANDED.equals(preferenceKey);
         boolean hasProductAlert = false;
+        int registeredProductCount = 0;
         if (productSection) {
             sectionSummary = OfferMonitor.getInstance().getRevalidationStatus(this);
             for (Interest interest : interestRepository.getAll()) {
-                if (interest.isPrice()) { hasProductAlert = true; break; }
+                if (interest.isPrice()) registeredProductCount++;
             }
+            hasProductAlert = registeredProductCount > 0;
         }
         // Imóveis configurados nunca somem da tela por uma consulta vazia, incompleta
         // ou em andamento. A visibilidade é decidida somente no Perfil.
@@ -1201,7 +1210,9 @@ public class MainActivity extends AlertouActivity {
         renderingSectionFingerprint = OfferSectionCache.fingerprint(this, offers,
                 displayedPropertyHistory, expanded,
                 propertyMarketSection ? "" : sectionSummary);
+        if (productSection) renderingSectionFingerprint += "|products:" + registeredProductCount;
         int marketListingTotal = 0;
+        int registeredCondominiumCount = 0;
         boolean hasMarketListingCounts = false;
         List<PropertyMarketListingCountHistory> marketListingHistories = new java.util.ArrayList<>();
         if (propertyMarketSection) {
@@ -1209,6 +1220,7 @@ public class MainActivity extends AlertouActivity {
             PropertyHistoryRepository listingHistory = new PropertyHistoryRepository(this);
             for (Interest interest : getInterestsById().values()) {
                 if (interest.isPropertyCondominium()) {
+                    registeredCondominiumCount++;
                     PropertyMarketListingCountHistory counts = listingHistory
                             .getMarketListingCountHistory(interest.getId());
                     marketListingHistories.add(counts);
@@ -1472,6 +1484,17 @@ public class MainActivity extends AlertouActivity {
         String countText = getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
                 sectionOfferCount, sectionOfferCount);
         if (productSection && sectionOfferCount == 0) countText = getString(R.string.product_no_offers_count);
+        if (productSection) {
+            countText = getResources().getQuantityString(R.plurals.dashboard_registered_product_count,
+                    registeredProductCount, registeredProductCount)
+                    + " · " + stripCountBullet(countText);
+        }
+        if (propertyMarketSection) {
+            countText = getResources().getQuantityString(
+                    R.plurals.property_registered_condominium_count,
+                    registeredCondominiumCount, registeredCondominiumCount)
+                    + " · " + stripCountBullet(countText);
+        }
         count.setText(countBelowTitle ? stripCountBullet(countText) : countText);
         String previousGroup = null;
         String activePropertyCardKey = null;
