@@ -151,11 +151,12 @@ final class MeliuzCashbackUi {
         String offerCountText = activity.getResources().getQuantityString(
                 R.plurals.dashboard_offer_section_count, matches.size(), matches.size())
                 .replaceFirst("^•\\s*", "");
-        TextView count = label(activity, storeCountText + " · " + offerCountText, 13, true);
+        TextView count = label(activity, storeCountText, 13, true);
         count.setPadding(0, 0, 0, 0);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(-1, -2);
         countParams.topMargin = dp(activity, 3);
         titles.addView(count, countParams);
+        OfferCountBadge.appendTo(count, offerCountText);
         boolean checking = MeliuzCashbackMonitor.getInstance().isChecking();
         updateRefreshIcon(activity, refresh, checking);
         String status = checking ? activity.getString(R.string.meliuz_checking)
