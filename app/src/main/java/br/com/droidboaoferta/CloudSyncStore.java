@@ -1917,6 +1917,9 @@ final class CloudSyncStore {
             JSONObject local = file.optJSONObject("local");
             String path = local != null && local.optBoolean("is_downloading_completed", false)
                     ? local.optString("path", "") : "";
+            // The upload cache is removed after confirmation; TDLib may still
+            // report its old path as downloaded. Download again before restoring.
+            if (!path.isEmpty() && !new File(path).isFile()) path = "";
             return new BackupFileDescriptor(message.optLong("id", 0L), updatedAt, backupAt,
                     file.optInt("id", 0), path);
         } catch (Exception ignored) {

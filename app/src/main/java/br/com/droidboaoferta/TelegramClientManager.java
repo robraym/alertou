@@ -2203,7 +2203,8 @@ final class TelegramClientManager {
                         : R.string.profile_cloud_restore_done);
             }
         } else if (forcedRestore) {
-            notifyCloudSyncStatus(R.string.profile_manual_restore_empty);
+            notifyCloudSyncStatus(remoteBackup != null || fileBackup != null
+                    ? R.string.profile_manual_restore_failed : R.string.profile_manual_restore_empty);
         }
         if (forcedRestore) {
             // Keep the restore state (and its UI animation) active until the

@@ -531,6 +531,7 @@
     <string name="profile_manual_restore_searching">Restaurando backup...</string>
     <string name="profile_manual_restore_done">Backup restaurado.</string>
     <string name="profile_manual_restore_empty">Nenhum backup foi encontrado.</string>
+    <string name="profile_manual_restore_failed">Não foi possível concluir a restauração do backup. A data da última restauração não foi atualizada. Tente novamente.</string>
     <string name="navigation_animation_title">Animação entre telas</string>
     <string name="navigation_animation_dialog_title">Animação entre telas</string>
     <string name="navigation_animation_preview_hint">Prévia • toque para repetir</string>

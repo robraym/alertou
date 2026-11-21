@@ -9,6 +9,23 @@ import org.junit.Test;
 
 public class CloudSyncStoreTest {
     @Test
+    public void missingUploadedBackupCacheRequiresDownload() throws Exception {
+        JSONObject header = new JSONObject().put("updated_at", 123L).put("backup_at", 456L);
+        JSONObject file = new JSONObject().put("id", 7).put("local", new JSONObject()
+                .put("is_downloading_completed", true)
+                .put("path", new java.io.File(System.getProperty("java.io.tmpdir"),
+                        "missing-alertou-" + java.util.UUID.randomUUID() + ".gz").getAbsolutePath()));
+        JSONObject message = new JSONObject().put("id", 9L).put("content", new JSONObject()
+                .put("@type", "messageDocument")
+                .put("caption", new JSONObject().put("text", CloudSyncStore.FILE_MARKER + "\n" + header))
+                .put("document", new JSONObject().put("document", file)));
+        CloudSyncStore.BackupFileDescriptor descriptor = CloudSyncStore.findNewestBackupFile(
+                new JSONArray().put(message));
+        org.junit.Assert.assertNotNull(descriptor);
+        assertEquals("", descriptor.localPath);
+        assertEquals(7, descriptor.fileId);
+    }
+    @Test
     public void eighteenBackupPartsTriggerOneRefreshNotEighteen() throws Exception {
         int refreshes = 0;
         for (int index = 1; index <= 18; index++) {

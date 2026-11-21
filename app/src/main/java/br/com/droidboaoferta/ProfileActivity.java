@@ -378,6 +378,17 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     public void onCloudSyncStatus(int messageResource) {
         runOnUiThread(() -> {
             refreshSyncSummary();
+            if (isFinishing() || isDestroyed()) return;
+            if (messageResource == R.string.profile_manual_restore_empty
+                    || messageResource == R.string.profile_manual_restore_failed
+                    || messageResource == R.string.profile_manual_restore_login_required
+                    || messageResource == R.string.profile_manual_backup_failed) {
+                showInformationDialog(R.string.profile_section_backup_restore, messageResource);
+            } else if (messageResource == R.string.profile_manual_restore_done
+                    || messageResource == R.string.profile_manual_backup_done) {
+                android.widget.Toast.makeText(this, messageResource,
+                        android.widget.Toast.LENGTH_LONG).show();
+            }
         });
     }
 
