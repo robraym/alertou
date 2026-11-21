@@ -19,6 +19,12 @@ final class AccentColorController {
     static final String MODE_INDIGO = "indigo";
     static final String MODE_MAGENTA = "magenta";
 
+    static final String MODE_SKY = "sky";
+    static final String MODE_CYAN = "cyan";
+    static final String MODE_LIME = "lime";
+    static final String MODE_CORAL = "coral";
+    static final String MODE_BRONZE = "bronze";
+    static final String MODE_SILVER = "silver";
     private static final String PREFS = "app_preferences";
     private static final String ACCENT_COLOR = "accent_color";
 
@@ -69,6 +75,18 @@ final class AccentColorController {
                 return R.string.accent_color_indigo;
             case MODE_MAGENTA:
                 return R.string.accent_color_magenta;
+            case MODE_SILVER:
+                return R.string.accent_color_silver;
+            case MODE_BRONZE:
+                return R.string.accent_color_bronze;
+            case MODE_CORAL:
+                return R.string.accent_color_coral;
+            case MODE_LIME:
+                return R.string.accent_color_lime;
+            case MODE_CYAN:
+                return R.string.accent_color_cyan;
+            case MODE_SKY:
+                return R.string.accent_color_sky;
             case MODE_BLUE:
             default:
                 return R.string.accent_color_blue;
@@ -96,7 +114,14 @@ final class AccentColorController {
         if (LEGACY_MODE_ELECTRIC.equals(mode)) {
             return MODE_WHITE;
         }
-        if (MODE_GREEN.equals(mode)
+        if (MODE_SKY.equals(mode)
+                || MODE_CYAN.equals(mode)
+                || MODE_LIME.equals(mode)
+                || MODE_CORAL.equals(mode)
+                || MODE_BRONZE.equals(mode)
+                || MODE_SILVER.equals(mode)
+                || MODE_BLUE.equals(mode)
+                || MODE_GREEN.equals(mode)
                 || MODE_YELLOW.equals(mode)
                 || MODE_PURPLE.equals(mode)
                 || MODE_ORANGE.equals(mode)
@@ -136,6 +161,18 @@ final class AccentColorController {
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Indigo;
             case MODE_MAGENTA:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Magenta;
+            case MODE_SILVER:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Silver;
+            case MODE_BRONZE:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Bronze;
+            case MODE_CORAL:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Coral;
+            case MODE_LIME:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Lime;
+            case MODE_CYAN:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Cyan;
+            case MODE_SKY:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Sky;
             case MODE_BLUE:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Blue;
             default:
@@ -167,6 +204,18 @@ final class AccentColorController {
                 return R.color.action_indigo;
             case MODE_MAGENTA:
                 return R.color.action_magenta;
+            case MODE_SILVER:
+                return R.color.action_silver;
+            case MODE_BRONZE:
+                return R.color.action_bronze;
+            case MODE_CORAL:
+                return R.color.action_coral;
+            case MODE_LIME:
+                return R.color.action_lime;
+            case MODE_CYAN:
+                return R.color.action_cyan;
+            case MODE_SKY:
+                return R.color.action_sky;
             case MODE_BLUE:
                 return R.color.action_blue;
             default:
@@ -198,6 +247,18 @@ final class AccentColorController {
                 return R.color.action_indigo_soft;
             case MODE_MAGENTA:
                 return R.color.action_magenta_soft;
+            case MODE_SILVER:
+                return R.color.action_silver_soft;
+            case MODE_BRONZE:
+                return R.color.action_bronze_soft;
+            case MODE_CORAL:
+                return R.color.action_coral_soft;
+            case MODE_LIME:
+                return R.color.action_lime_soft;
+            case MODE_CYAN:
+                return R.color.action_cyan_soft;
+            case MODE_SKY:
+                return R.color.action_sky_soft;
             case MODE_BLUE:
                 return R.color.action_blue_soft;
             default:

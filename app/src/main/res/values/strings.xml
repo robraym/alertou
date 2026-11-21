@@ -913,4 +913,10 @@
     <string name="font_description">Escolha a fonte. O tamanho dos textos será mantido.</string>
     <string name="font_choice_example">Alertou</string>
     <string name="font_preview">Imóveis · Tesouro Direto</string>
+    <string name="accent_color_sky">Azul-céu</string>
+    <string name="accent_color_cyan">Ciano</string>
+    <string name="accent_color_lime">Lima</string>
+    <string name="accent_color_coral">Coral</string>
+    <string name="accent_color_bronze">Bronze</string>
+    <string name="accent_color_silver">Prata</string>
 </resources>

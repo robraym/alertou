@@ -1457,9 +1457,12 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         options.setAlignmentMode(GridLayout.ALIGN_BOUNDS);
         options.setUseDefaultMargins(false);
         options.setPadding(0, dp(6), 0, dp(3));
-        content.addView(options, new LinearLayout.LayoutParams(
+        ScrollView colorOptionsScroll = new ScrollView(this);
+        colorOptionsScroll.setFillViewport(false);
+        colorOptionsScroll.addView(options);
+        content.addView(colorOptionsScroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT));
+                Math.min(dp(320), getResources().getDisplayMetrics().heightPixels * 2 / 5)));
 
         String[] modes = new String[]{
                 AccentColorController.MODE_BLUE,
@@ -1473,7 +1476,13 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 AccentColorController.MODE_MATRIX,
                 AccentColorController.MODE_WHITE,
                 AccentColorController.MODE_INDIGO,
-                AccentColorController.MODE_MAGENTA
+                AccentColorController.MODE_MAGENTA,
+                AccentColorController.MODE_SKY,
+                AccentColorController.MODE_CYAN,
+                AccentColorController.MODE_LIME,
+                AccentColorController.MODE_CORAL,
+                AccentColorController.MODE_BRONZE,
+                AccentColorController.MODE_SILVER
         };
         int[] labels = new int[]{
                 R.string.accent_color_blue,
@@ -1489,7 +1498,13 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                         ? R.string.accent_color_graphite
                         : R.string.accent_color_white,
                 R.string.accent_color_indigo,
-                R.string.accent_color_magenta
+                R.string.accent_color_magenta,
+                R.string.accent_color_sky,
+                R.string.accent_color_cyan,
+                R.string.accent_color_lime,
+                R.string.accent_color_coral,
+                R.string.accent_color_bronze,
+                R.string.accent_color_silver
         };
         String initialMode = AccentColorController.getSavedMode(this);
         String[] selectedMode = new String[]{initialMode};
