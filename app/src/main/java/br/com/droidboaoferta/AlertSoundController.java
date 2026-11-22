@@ -333,7 +333,8 @@ final class AlertSoundController {
         }
         Context appContext = context.getApplicationContext();
         AudioAttributes attributes = new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                // Keep the selected alert audible in silent/vibrate mode, at alarm volume.
+                .setUsage(AudioAttributes.USAGE_ALARM)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build();
         try {
