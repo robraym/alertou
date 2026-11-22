@@ -1389,8 +1389,8 @@ public class MainActivity extends AlertouActivity {
             boolean propertyStatusActive = propertyMarketSection
                     ? PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
                     : false;
-            summary.setTextColor(getColor(propertyStatusActive || productSection
-                    ? R.color.action_green : R.color.text_secondary));
+            summary.setTextColor(propertyStatusActive || productSection
+                    ? AccentColorController.getPrimaryColor(this) : getColor(R.color.text_secondary));
             summary.setTextSize(11.5f);
             summary.setIncludeFontPadding(false);
             summary.setSingleLine(!propertyMarketSection && !productSection);
@@ -1419,7 +1419,7 @@ public class MainActivity extends AlertouActivity {
                 duration.setVisibility(View.GONE);
                 ProgressBar progress = new ProgressBar(this);
                 progress.setIndeterminateTintList(android.content.res.ColorStateList.valueOf(
-                        getColor(R.color.action_green)));
+                        AccentColorController.getPrimaryColor(this)));
                 LinearLayout.LayoutParams progressParams = new LinearLayout.LayoutParams(dp(18), dp(18));
                 progressParams.leftMargin = dp(8);
                 summaryLine.addView(progress, progressParams);
@@ -1484,6 +1484,7 @@ public class MainActivity extends AlertouActivity {
         String countText = getResources().getQuantityString(R.plurals.dashboard_offer_section_count,
                 sectionOfferCount, sectionOfferCount);
         if (productSection && sectionOfferCount == 0) countText = getString(R.string.product_no_offers_count);
+        int offerCountTextLength = stripCountBullet(countText).length();
         if (productSection) {
             countText = getResources().getQuantityString(R.plurals.dashboard_registered_product_count,
                     registeredProductCount, registeredProductCount)
@@ -1495,7 +1496,16 @@ public class MainActivity extends AlertouActivity {
                     registeredCondominiumCount, registeredCondominiumCount)
                     + " · " + stripCountBullet(countText);
         }
-        count.setText(countBelowTitle ? stripCountBullet(countText) : countText);
+        android.text.SpannableString styledCount = new android.text.SpannableString(
+                countBelowTitle ? stripCountBullet(countText) : countText);
+        if (sectionOfferCount > 0) {
+            styledCount.setSpan(new android.text.style.ForegroundColorSpan(
+                            AccentColorController.getPrimaryColor(this)),
+                    styledCount.length() - offerCountTextLength, styledCount.length(),
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        count.setTextColor(getColor(R.color.text_secondary));
+        count.setText(styledCount);
         String previousGroup = null;
         String activePropertyCardKey = null;
         LinearLayout propertyCardOffers = null;
@@ -1745,13 +1755,20 @@ public class MainActivity extends AlertouActivity {
                 R.plurals.dashboard_offer_section_count,
                 returnedOfferCount, returnedOfferCount));
         if (returnedOfferCount == 0) offerCountText = getString(R.string.property_group_no_offers);
+        int offerCountTextLength = offerCountText.length();
         Interest configuredInterest = getInterestsById().get(interestId);
         if (configuredInterest != null) {
             offerCountText = getString(R.string.property_group_offer_filters, offerCountText,
                     formatPropertyAreaRange(configuredInterest),
                     CurrencyTextFormatter.displayFormatter().format(configuredInterest.getMaximumPrice()));
         }
-        returnedOffers.setText(offerCountText);
+        android.text.SpannableString styledOfferCount = new android.text.SpannableString(offerCountText);
+        if (returnedOfferCount > 0) {
+            styledOfferCount.setSpan(new android.text.style.ForegroundColorSpan(
+                            AccentColorController.getPrimaryColor(this)),
+                    0, offerCountTextLength, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        returnedOffers.setText(styledOfferCount);
         returnedOffers.setTextColor(getColor(R.color.text_secondary));
         returnedOffers.setTextSize(12);
         returnedOffers.setIncludeFontPadding(false);
@@ -2067,10 +2084,9 @@ public class MainActivity extends AlertouActivity {
         }
         applyPropertyStatusLine(propertyMarketSummaryView, propertyMarketDurationView,
                 getPropertySectionStatus(getInterestsById()));
-        int marketStatusColor = getColor(
-                PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
-                        ? R.color.action_green : hasPropertySectionFailure()
-                        ? R.color.danger : R.color.text_secondary);
+        int marketStatusColor = PropertyPageMonitor.getInstance().isCheckingPropertyCondominium()
+                ? AccentColorController.getPrimaryColor(this)
+                : getColor(hasPropertySectionFailure() ? R.color.danger : R.color.text_secondary);
         propertyMarketSummaryView.setTextColor(marketStatusColor);
         if (propertyMarketDurationView != null) {
             propertyMarketDurationView.setTextColor(marketStatusColor);
@@ -2126,7 +2142,7 @@ public class MainActivity extends AlertouActivity {
             TextView text = (TextView) view;
             if (checking) {
                 propertyMarketRowOriginalTextColors.putIfAbsent(text, text.getCurrentTextColor());
-                text.setTextColor(getColor(R.color.action_green));
+                text.setTextColor(AccentColorController.getPrimaryColor(this));
             } else {
                 Integer original = propertyMarketRowOriginalTextColors.remove(text);
                 if (original != null) text.setTextColor(original);
