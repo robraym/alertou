@@ -26,6 +26,10 @@ final class AccentColorController {
     static final String MODE_PEACH = "peach";
     static final String MODE_EMERALD = "emerald";
     static final String MODE_RUBY = "ruby";
+    static final String MODE_OLIVE = "olive";
+    static final String MODE_MOSS = "moss";
+    static final String MODE_JADE = "jade";
+    static final String MODE_PISTACHIO = "pistachio";
     static final String MODE_CYAN = "cyan";
     static final String MODE_LIME = "lime";
     static final String MODE_CORAL = "coral";
@@ -101,6 +105,14 @@ final class AccentColorController {
                 return R.string.accent_color_peach;
             case MODE_EMERALD:
                 return R.string.accent_color_emerald;
+            case MODE_OLIVE:
+                return R.string.accent_color_olive;
+            case MODE_MOSS:
+                return R.string.accent_color_moss;
+            case MODE_JADE:
+                return R.string.accent_color_jade;
+            case MODE_PISTACHIO:
+                return R.string.accent_color_pistachio;
             case MODE_RUBY:
                 return R.string.accent_color_ruby;
             case MODE_SKY:
@@ -132,7 +144,11 @@ final class AccentColorController {
         if (LEGACY_MODE_ELECTRIC.equals(mode)) {
             return MODE_WHITE;
         }
-        if (MODE_AMBER.equals(mode)
+        if (MODE_OLIVE.equals(mode)
+                || MODE_MOSS.equals(mode)
+                || MODE_JADE.equals(mode)
+                || MODE_PISTACHIO.equals(mode)
+                || MODE_AMBER.equals(mode)
                 || MODE_MINT.equals(mode)
                 || MODE_LAVENDER.equals(mode)
                 || MODE_PEACH.equals(mode)
@@ -205,6 +221,14 @@ final class AccentColorController {
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Peach;
             case MODE_EMERALD:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Emerald;
+            case MODE_OLIVE:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Olive;
+            case MODE_MOSS:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Moss;
+            case MODE_JADE:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Jade;
+            case MODE_PISTACHIO:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Pistachio;
             case MODE_RUBY:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Ruby;
             case MODE_SKY:
@@ -260,6 +284,14 @@ final class AccentColorController {
                 return R.color.action_peach;
             case MODE_EMERALD:
                 return R.color.action_emerald;
+            case MODE_OLIVE:
+                return R.color.action_olive;
+            case MODE_MOSS:
+                return R.color.action_moss;
+            case MODE_JADE:
+                return R.color.action_jade;
+            case MODE_PISTACHIO:
+                return R.color.action_pistachio;
             case MODE_RUBY:
                 return R.color.action_ruby;
             case MODE_SKY:
@@ -315,6 +347,14 @@ final class AccentColorController {
                 return R.color.action_peach_soft;
             case MODE_EMERALD:
                 return R.color.action_emerald_soft;
+            case MODE_OLIVE:
+                return R.color.action_olive_soft;
+            case MODE_MOSS:
+                return R.color.action_moss_soft;
+            case MODE_JADE:
+                return R.color.action_jade_soft;
+            case MODE_PISTACHIO:
+                return R.color.action_pistachio_soft;
             case MODE_RUBY:
                 return R.color.action_ruby_soft;
             case MODE_SKY:

@@ -256,4 +256,28 @@
         <item name="colorActionSoft">@color/action_ruby_soft</item>
         <item name="colorActionSoftPressed">@color/action_ruby_soft_pressed</item>
     </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Olive" parent="">
+        <item name="colorAccent">@color/action_olive</item>
+        <item name="colorActionPressed">@color/action_olive_pressed</item>
+        <item name="colorActionSoft">@color/action_olive_soft</item>
+        <item name="colorActionSoftPressed">@color/action_olive_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Moss" parent="">
+        <item name="colorAccent">@color/action_moss</item>
+        <item name="colorActionPressed">@color/action_moss_pressed</item>
+        <item name="colorActionSoft">@color/action_moss_soft</item>
+        <item name="colorActionSoftPressed">@color/action_moss_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Jade" parent="">
+        <item name="colorAccent">@color/action_jade</item>
+        <item name="colorActionPressed">@color/action_jade_pressed</item>
+        <item name="colorActionSoft">@color/action_jade_soft</item>
+        <item name="colorActionSoftPressed">@color/action_jade_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Pistachio" parent="">
+        <item name="colorAccent">@color/action_pistachio</item>
+        <item name="colorActionPressed">@color/action_pistachio_pressed</item>
+        <item name="colorActionSoft">@color/action_pistachio_soft</item>
+        <item name="colorActionSoftPressed">@color/action_pistachio_soft_pressed</item>
+    </style>
 </resources>

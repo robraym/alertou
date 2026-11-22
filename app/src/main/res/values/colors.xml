@@ -115,4 +115,20 @@
     <color name="action_ruby_pressed">#912346</color>
     <color name="action_ruby_soft">#FCE4EC</color>
     <color name="action_ruby_soft_pressed">#F3CAD9</color>
+    <color name="action_olive">#687529</color>
+    <color name="action_olive_pressed">#505A1D</color>
+    <color name="action_olive_soft">#F0F3DD</color>
+    <color name="action_olive_soft_pressed">#E0E7BD</color>
+    <color name="action_moss">#547440</color>
+    <color name="action_moss_pressed">#405A30</color>
+    <color name="action_moss_soft">#EAF2E4</color>
+    <color name="action_moss_soft_pressed">#D7E6CB</color>
+    <color name="action_jade">#16844A</color>
+    <color name="action_jade_pressed">#116A3B</color>
+    <color name="action_jade_soft">#E0F5E8</color>
+    <color name="action_jade_soft_pressed">#C5EBD4</color>
+    <color name="action_pistachio">#597D35</color>
+    <color name="action_pistachio_pressed">#436027</color>
+    <color name="action_pistachio_soft">#EEF5E3</color>
+    <color name="action_pistachio_soft_pressed">#DCEAC6</color>
 </resources>

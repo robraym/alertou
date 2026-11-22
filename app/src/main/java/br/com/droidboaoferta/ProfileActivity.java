@@ -1503,7 +1503,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 AccentColorController.MODE_LAVENDER,
                 AccentColorController.MODE_PEACH,
                 AccentColorController.MODE_EMERALD,
-                AccentColorController.MODE_RUBY
+                AccentColorController.MODE_RUBY,
+                AccentColorController.MODE_OLIVE,
+                AccentColorController.MODE_MOSS,
+                AccentColorController.MODE_JADE,
+                AccentColorController.MODE_PISTACHIO
         };
         int[] labels = new int[]{
                 R.string.accent_color_blue,
@@ -1531,7 +1535,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.string.accent_color_lavender,
                 R.string.accent_color_peach,
                 R.string.accent_color_emerald,
-                R.string.accent_color_ruby
+                R.string.accent_color_ruby,
+                R.string.accent_color_olive,
+                R.string.accent_color_moss,
+                R.string.accent_color_jade,
+                R.string.accent_color_pistachio
         };
         String initialMode = AccentColorController.getSavedMode(this);
         String[] selectedMode = new String[]{initialMode};
@@ -1570,7 +1578,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             optionParams.height = GridLayout.LayoutParams.WRAP_CONTENT;
             optionParams.columnSpec = GridLayout.spec(index % 2, 1, 1f);
             optionParams.rowSpec = GridLayout.spec(index / 2);
-            optionParams.setMargins(dp(2), dp(2), dp(2), dp(2));
+            optionParams.setMargins(dp(2), dp(1), dp(2), dp(1));
             option.setLayoutParams(optionParams);
             options.addView(option);
         }
@@ -1611,7 +1619,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         TextView option = new TextView(this);
         option.setTextSize(13);
         option.setGravity(Gravity.CENTER_VERTICAL);
-        option.setMinHeight(dp(36));
+        option.setMinHeight(dp(32));
         option.setMaxLines(2);
         option.setCompoundDrawablePadding(dp(6));
         option.setPadding(dp(4), dp(3), dp(4), dp(3));

@@ -925,4 +925,8 @@
     <string name="accent_color_peach">Pêssego</string>
     <string name="accent_color_emerald">Esmeralda</string>
     <string name="accent_color_ruby">Rubi</string>
+    <string name="accent_color_olive">Oliva</string>
+    <string name="accent_color_moss">Musgo</string>
+    <string name="accent_color_jade">Jade</string>
+    <string name="accent_color_pistachio">Pistache</string>
 </resources>
