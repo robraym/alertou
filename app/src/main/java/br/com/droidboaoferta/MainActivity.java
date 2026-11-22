@@ -916,10 +916,19 @@ public class MainActivity extends AlertouActivity {
         titleLine.addView(statusBadge, badgeParams);
         text.addView(titleLine);
         TextView count = new TextView(this);
-        count.setText(getString(R.string.treasury_direct_alerts_count, treasuryInterests.size())
-                + " · " + stripCountBullet(getResources().getQuantityString(
+        String treasuryOfferCountText = stripCountBullet(getResources().getQuantityString(
                 R.plurals.dashboard_offer_section_count,
-                qualifyingTreasuryCount, qualifyingTreasuryCount)));
+                qualifyingTreasuryCount, qualifyingTreasuryCount));
+        android.text.SpannableString styledTreasuryCount = new android.text.SpannableString(
+                getString(R.string.treasury_direct_alerts_count, treasuryInterests.size())
+                        + " · " + treasuryOfferCountText);
+        if (qualifyingTreasuryCount > 0) {
+            styledTreasuryCount.setSpan(new android.text.style.ForegroundColorSpan(
+                            AccentColorController.getPrimaryColor(this)),
+                    styledTreasuryCount.length() - treasuryOfferCountText.length(),
+                    styledTreasuryCount.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }
+        count.setText(styledTreasuryCount);
         count.setTextColor(getColor(R.color.text_secondary));
         count.setTextSize(13);
         count.setSingleLine(true);

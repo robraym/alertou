@@ -152,6 +152,14 @@ final class MeliuzCashbackUi {
                 R.plurals.dashboard_offer_section_count, matches.size(), matches.size())
                 .replaceFirst("^•\\s*", "");
         TextView count = label(activity, storeCountText + " · " + offerCountText, 13, true);
+        if (!matches.isEmpty()) {
+            android.text.SpannableString styledCount = new android.text.SpannableString(count.getText());
+            styledCount.setSpan(new android.text.style.ForegroundColorSpan(
+                            AccentColorController.getPrimaryColor(activity)),
+                    styledCount.length() - offerCountText.length(), styledCount.length(),
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            count.setText(styledCount);
+        }
         count.setPadding(0, 0, 0, 0);
         LinearLayout.LayoutParams countParams = new LinearLayout.LayoutParams(-1, -2);
         countParams.topMargin = dp(activity, 3);
