@@ -20,6 +20,12 @@ final class AccentColorController {
     static final String MODE_MAGENTA = "magenta";
 
     static final String MODE_SKY = "sky";
+    static final String MODE_AMBER = "amber";
+    static final String MODE_MINT = "mint";
+    static final String MODE_LAVENDER = "lavender";
+    static final String MODE_PEACH = "peach";
+    static final String MODE_EMERALD = "emerald";
+    static final String MODE_RUBY = "ruby";
     static final String MODE_CYAN = "cyan";
     static final String MODE_LIME = "lime";
     static final String MODE_CORAL = "coral";
@@ -85,6 +91,18 @@ final class AccentColorController {
                 return R.string.accent_color_lime;
             case MODE_CYAN:
                 return R.string.accent_color_cyan;
+            case MODE_AMBER:
+                return R.string.accent_color_amber;
+            case MODE_MINT:
+                return R.string.accent_color_mint;
+            case MODE_LAVENDER:
+                return R.string.accent_color_lavender;
+            case MODE_PEACH:
+                return R.string.accent_color_peach;
+            case MODE_EMERALD:
+                return R.string.accent_color_emerald;
+            case MODE_RUBY:
+                return R.string.accent_color_ruby;
             case MODE_SKY:
                 return R.string.accent_color_sky;
             case MODE_BLUE:
@@ -114,7 +132,13 @@ final class AccentColorController {
         if (LEGACY_MODE_ELECTRIC.equals(mode)) {
             return MODE_WHITE;
         }
-        if (MODE_SKY.equals(mode)
+        if (MODE_AMBER.equals(mode)
+                || MODE_MINT.equals(mode)
+                || MODE_LAVENDER.equals(mode)
+                || MODE_PEACH.equals(mode)
+                || MODE_EMERALD.equals(mode)
+                || MODE_RUBY.equals(mode)
+                || MODE_SKY.equals(mode)
                 || MODE_CYAN.equals(mode)
                 || MODE_LIME.equals(mode)
                 || MODE_CORAL.equals(mode)
@@ -171,6 +195,18 @@ final class AccentColorController {
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Lime;
             case MODE_CYAN:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Cyan;
+            case MODE_AMBER:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Amber;
+            case MODE_MINT:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Mint;
+            case MODE_LAVENDER:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Lavender;
+            case MODE_PEACH:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Peach;
+            case MODE_EMERALD:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Emerald;
+            case MODE_RUBY:
+                return R.style.ThemeOverlay_DroidBoaOferta_Accent_Ruby;
             case MODE_SKY:
                 return R.style.ThemeOverlay_DroidBoaOferta_Accent_Sky;
             case MODE_BLUE:
@@ -214,6 +250,18 @@ final class AccentColorController {
                 return R.color.action_lime;
             case MODE_CYAN:
                 return R.color.action_cyan;
+            case MODE_AMBER:
+                return R.color.action_amber;
+            case MODE_MINT:
+                return R.color.action_mint;
+            case MODE_LAVENDER:
+                return R.color.action_lavender;
+            case MODE_PEACH:
+                return R.color.action_peach;
+            case MODE_EMERALD:
+                return R.color.action_emerald;
+            case MODE_RUBY:
+                return R.color.action_ruby;
             case MODE_SKY:
                 return R.color.action_sky;
             case MODE_BLUE:
@@ -257,6 +305,18 @@ final class AccentColorController {
                 return R.color.action_lime_soft;
             case MODE_CYAN:
                 return R.color.action_cyan_soft;
+            case MODE_AMBER:
+                return R.color.action_amber_soft;
+            case MODE_MINT:
+                return R.color.action_mint_soft;
+            case MODE_LAVENDER:
+                return R.color.action_lavender_soft;
+            case MODE_PEACH:
+                return R.color.action_peach_soft;
+            case MODE_EMERALD:
+                return R.color.action_emerald_soft;
+            case MODE_RUBY:
+                return R.color.action_ruby_soft;
             case MODE_SKY:
                 return R.color.action_sky_soft;
             case MODE_BLUE:

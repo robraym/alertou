@@ -1441,27 +1441,39 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         preview.setBackgroundResource(R.drawable.bg_input);
         content.addView(preview, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(112)));
+                LinearLayout.LayoutParams.WRAP_CONTENT));
+
+        LinearLayout previewRow = new LinearLayout(this);
+        previewRow.setOrientation(LinearLayout.HORIZONTAL);
+        previewRow.setGravity(Gravity.CENTER_VERTICAL);
+        preview.addView(previewRow, new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
 
         TextView previewTitle = new TextView(this);
         previewTitle.setText(R.string.accent_color_preview_title);
         previewTitle.setTextColor(getColor(R.color.text_primary));
         previewTitle.setTextSize(18);
         previewTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        preview.addView(previewTitle);
-
-        View previewIndicator = new View(this);
-        LinearLayout.LayoutParams indicatorParams = new LinearLayout.LayoutParams(dp(92), dp(7));
-        indicatorParams.topMargin = dp(9);
-        preview.addView(previewIndicator, indicatorParams);
+        previewTitle.setSingleLine(true);
+        previewTitle.setEllipsize(TextUtils.TruncateAt.END);
+        previewRow.addView(previewTitle, new LinearLayout.LayoutParams(
+                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
 
         TextView previewAction = new TextView(this);
         previewAction.setText(R.string.accent_color_preview_action);
         previewAction.setTextSize(13);
         previewAction.setGravity(Gravity.CENTER);
-        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(dp(148), dp(34));
-        actionParams.topMargin = dp(9);
-        preview.addView(previewAction, actionParams);
+        previewAction.setPadding(dp(10), dp(6), dp(10), dp(6));
+        LinearLayout.LayoutParams actionParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        actionParams.leftMargin = dp(8);
+        previewRow.addView(previewAction, actionParams);
+
+        View previewIndicator = new View(this);
+        LinearLayout.LayoutParams indicatorParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, dp(7));
+        indicatorParams.topMargin = dp(12);
+        preview.addView(previewIndicator, indicatorParams);
 
         GridLayout options = new GridLayout(this);
         options.setColumnCount(2);
@@ -1473,7 +1485,7 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         colorOptionsScroll.addView(options);
         content.addView(colorOptionsScroll, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                Math.min(dp(320), getResources().getDisplayMetrics().heightPixels * 2 / 5)));
+                LinearLayout.LayoutParams.WRAP_CONTENT));
 
         String[] modes = new String[]{
                 AccentColorController.MODE_BLUE,
@@ -1493,7 +1505,13 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 AccentColorController.MODE_LIME,
                 AccentColorController.MODE_CORAL,
                 AccentColorController.MODE_BRONZE,
-                AccentColorController.MODE_SILVER
+                AccentColorController.MODE_SILVER,
+                AccentColorController.MODE_AMBER,
+                AccentColorController.MODE_MINT,
+                AccentColorController.MODE_LAVENDER,
+                AccentColorController.MODE_PEACH,
+                AccentColorController.MODE_EMERALD,
+                AccentColorController.MODE_RUBY
         };
         int[] labels = new int[]{
                 R.string.accent_color_blue,
@@ -1515,7 +1533,13 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 R.string.accent_color_lime,
                 R.string.accent_color_coral,
                 R.string.accent_color_bronze,
-                R.string.accent_color_silver
+                R.string.accent_color_silver,
+                R.string.accent_color_amber,
+                R.string.accent_color_mint,
+                R.string.accent_color_lavender,
+                R.string.accent_color_peach,
+                R.string.accent_color_emerald,
+                R.string.accent_color_ruby
         };
         String initialMode = AccentColorController.getSavedMode(this);
         String[] selectedMode = new String[]{initialMode};
@@ -1584,6 +1608,18 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
             shownWindow.addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
             shownWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         }
+        android.graphics.Rect visibleFrame = new android.graphics.Rect();
+        getWindow().getDecorView().getWindowVisibleDisplayFrame(visibleFrame);
+        int availableHeight = (visibleFrame.isEmpty()
+                ? getResources().getDisplayMetrics().heightPixels : visibleFrame.height()) - dp(24);
+        int dialogWidth = getResources().getDisplayMetrics().widthPixels - dp(24);
+        content.measure(View.MeasureSpec.makeMeasureSpec(dialogWidth, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        int fixedContentHeight = content.getMeasuredHeight() - colorOptionsScroll.getMeasuredHeight();
+        LinearLayout.LayoutParams scrollParams = (LinearLayout.LayoutParams) colorOptionsScroll.getLayoutParams();
+        scrollParams.height = Math.min(options.getMeasuredHeight(),
+                Math.max(0, availableHeight - fixedContentHeight));
+        colorOptionsScroll.setLayoutParams(scrollParams);
         updateAccentColorPreview(previewTitle, previewIndicator, previewAction, selectedMode[0]);
     }
 

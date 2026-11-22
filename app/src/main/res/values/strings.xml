@@ -920,4 +920,10 @@
     <string name="accent_color_coral">Coral</string>
     <string name="accent_color_bronze">Bronze</string>
     <string name="accent_color_silver">Prata</string>
+    <string name="accent_color_amber">Âmbar</string>
+    <string name="accent_color_mint">Menta</string>
+    <string name="accent_color_lavender">Lavanda</string>
+    <string name="accent_color_peach">Pêssego</string>
+    <string name="accent_color_emerald">Esmeralda</string>
+    <string name="accent_color_ruby">Rubi</string>
 </resources>

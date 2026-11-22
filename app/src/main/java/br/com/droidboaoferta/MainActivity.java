@@ -2925,12 +2925,17 @@ public class MainActivity extends AlertouActivity {
         String label = getResources().getQuantityString(
                 R.plurals.property_market_listing_count, count, count);
         badge.setText(label);
-        badge.setTextColor(getColor(R.color.action_green));
+        int color = AccentColorController.getPrimaryColor(this);
+        badge.setTextColor(color);
         badge.setTextSize(10.5f);
         badge.setTypeface(null, android.graphics.Typeface.BOLD);
         badge.setSingleLine(true);
         badge.setGravity(Gravity.CENTER);
-        badge.setBackgroundResource(R.drawable.bg_property_new_badge);
+        android.graphics.drawable.GradientDrawable background = new android.graphics.drawable.GradientDrawable();
+        background.setColor(AccentColorController.getSoftColor(this, AccentColorController.getSavedMode(this)));
+        background.setCornerRadius(dp(8));
+        background.setStroke(dp(1), androidx.core.graphics.ColorUtils.setAlphaComponent(color, 80));
+        badge.setBackground(background);
         badge.setPadding(dp(6), dp(1), dp(6), dp(1));
         badge.setClickable(true);
         badge.setFocusable(true);

@@ -220,4 +220,40 @@
         <item name="colorActionSoft">@color/action_silver_soft</item>
         <item name="colorActionSoftPressed">@color/action_silver_soft_pressed</item>
     </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Amber" parent="">
+        <item name="colorAccent">@color/action_amber</item>
+        <item name="colorActionPressed">@color/action_amber_pressed</item>
+        <item name="colorActionSoft">@color/action_amber_soft</item>
+        <item name="colorActionSoftPressed">@color/action_amber_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Mint" parent="">
+        <item name="colorAccent">@color/action_mint</item>
+        <item name="colorActionPressed">@color/action_mint_pressed</item>
+        <item name="colorActionSoft">@color/action_mint_soft</item>
+        <item name="colorActionSoftPressed">@color/action_mint_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Lavender" parent="">
+        <item name="colorAccent">@color/action_lavender</item>
+        <item name="colorActionPressed">@color/action_lavender_pressed</item>
+        <item name="colorActionSoft">@color/action_lavender_soft</item>
+        <item name="colorActionSoftPressed">@color/action_lavender_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Peach" parent="">
+        <item name="colorAccent">@color/action_peach</item>
+        <item name="colorActionPressed">@color/action_peach_pressed</item>
+        <item name="colorActionSoft">@color/action_peach_soft</item>
+        <item name="colorActionSoftPressed">@color/action_peach_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Emerald" parent="">
+        <item name="colorAccent">@color/action_emerald</item>
+        <item name="colorActionPressed">@color/action_emerald_pressed</item>
+        <item name="colorActionSoft">@color/action_emerald_soft</item>
+        <item name="colorActionSoftPressed">@color/action_emerald_soft_pressed</item>
+    </style>
+    <style name="ThemeOverlay.DroidBoaOferta.Accent.Ruby" parent="">
+        <item name="colorAccent">@color/action_ruby</item>
+        <item name="colorActionPressed">@color/action_ruby_pressed</item>
+        <item name="colorActionSoft">@color/action_ruby_soft</item>
+        <item name="colorActionSoftPressed">@color/action_ruby_soft_pressed</item>
+    </style>
 </resources>
