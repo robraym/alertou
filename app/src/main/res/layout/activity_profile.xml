@@ -101,17 +101,6 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
-                <TextView
-                    android:id="@+id/text_profile_status"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:gravity="center"
-                    android:maxLines="2"
-                    android:ellipsize="end"
-                    android:text="@string/dashboard_telegram_starting"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="13sp" />
             </LinearLayout>
 
         </LinearLayout>

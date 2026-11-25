@@ -84,7 +84,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView avatarText;
     private TextView profileName;
     private TextView profileSummary;
-    private TextView profileStatus;
     private TextView syncSummary;
     private TextView automaticSyncSummary;
     private TextView backupSummary;
@@ -127,7 +126,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         avatarText = findViewById(R.id.text_profile_avatar);
         profileName = findViewById(R.id.text_profile_name);
         profileSummary = findViewById(R.id.text_profile_summary);
-        profileStatus = findViewById(R.id.text_profile_status);
         syncSummary = findViewById(R.id.text_sync_summary);
         automaticSyncSummary = findViewById(R.id.text_automatic_sync_summary);
         backupSummary = findViewById(R.id.text_backup_summary);
@@ -401,15 +399,11 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                     ? getString(R.string.profile_telegram_connected)
                     : accountName;
             profileName.setText(displayName);
-            profileSummary.setText(TextUtils.isEmpty(accountPhone)
-                    ? getString(R.string.profile_telegram_account_summary)
-                    : getString(R.string.profile_telegram_phone, accountPhone));
-            profileStatus.setText(getString(R.string.profile_telegram_status_connected));
+            profileSummary.setText(R.string.profile_telegram_account_summary);
             avatarText.setText(getAvatarLetter(displayName));
         } else {
             profileName.setText(R.string.profile_telegram_disconnected);
             profileSummary.setText(R.string.profile_telegram_disconnected_summary);
-            profileStatus.setText(getTelegramStateText(state));
             avatarText.setText(R.string.icon_telegram_letter);
         }
         accountCard.setClickable(true);

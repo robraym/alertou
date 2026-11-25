@@ -346,12 +346,14 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         telegramGroupsIcon = findViewById(R.id.image_telegram_groups);
         storeSourcesContainer = findViewById(R.id.container_store_sources);
         storeSourcesToggle = findViewById(R.id.button_toggle_store_sources);
+        storeSourcesToggle.setColorFilter(AccentColorController.getPrimaryColor(this));
         storeSourcesOnlineText = findViewById(R.id.text_store_sources_online);
         storeSourcesOfflineText = findViewById(R.id.text_store_sources_offline);
         storeSourcesSummaryText = findViewById(R.id.text_store_sources_summary);
         storeSourcesDurationText = findViewById(R.id.text_store_sources_duration);
         storeSourcesIcon = findViewById(R.id.image_store_sources);
         telegramGroupsToggle = findViewById(R.id.button_toggle_telegram_groups);
+        telegramGroupsToggle.setColorFilter(AccentColorController.getPrimaryColor(this));
         vivoOutletSourceRow = findViewById(R.id.text_vivo_outlet_source_row);
         vivoOutletSourceState = findViewById(R.id.text_vivo_outlet_source_state);
         vivoOutletEditButton = findViewById(R.id.button_vivo_outlet_edit);

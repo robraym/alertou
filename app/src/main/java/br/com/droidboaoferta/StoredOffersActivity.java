@@ -319,6 +319,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         if (hasSectionAction()) {
             ImageButton action = new ImageButton(this);
             action.setImageResource(getSectionActionIcon());
+            action.setColorFilter(getColor(getSectionActionColor()));
             action.setBackgroundResource(getSectionActionBackground());
             action.setContentDescription(getString(getSectionActionDescription()));
             action.setPadding(dp(8), dp(8), dp(8), dp(8));
