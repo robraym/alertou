@@ -47,6 +47,7 @@ abstract class AlertouActivity extends AppCompatActivity {
         appliedFontSize = FontSizeController.getPercent(this);
         FontController.applyTheme(this, appliedFontMode);
         super.onCreate(savedInstanceState);
+        getWindow().setBackgroundDrawable(new SoftGlowBackground(this));
         fontBinding = FontController.bind(getWindow().getDecorView(), appliedFontMode);
     }
 

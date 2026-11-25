@@ -111,7 +111,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
     private TextView samsungOfferIntervalSummary;
     private TextView samsungDiscountOfferIntervalSummary;
     private LinearLayout accountCard;
-    private View accountChevron;
     private MediaPlayer alertSoundPreview;
     private Dialog alertSoundDialog;
     private ActivityResultLauncher<Intent> alertSoundPickerLauncher;
@@ -155,7 +154,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         samsungOfferIntervalSummary = findViewById(R.id.text_samsung_offer_interval_summary);
         samsungDiscountOfferIntervalSummary = findViewById(R.id.text_samsung_discount_offer_interval_summary);
         accountCard = findViewById(R.id.card_telegram_account);
-        accountChevron = findViewById(R.id.image_account_chevron);
         alertSoundPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -416,7 +414,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         }
         accountCard.setClickable(true);
         accountCard.setFocusable(true);
-        accountChevron.setVisibility(View.VISIBLE);
         refreshSyncSummary();
         refreshSettingsControls();
     }
@@ -2403,14 +2400,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         label.setTypeface(Typeface.DEFAULT_BOLD);
         header.addView(label);
 
-        View line = new View(this);
-        line.setBackgroundResource(R.drawable.bg_alert_sound_section_line);
-        LinearLayout.LayoutParams lineParams = new LinearLayout.LayoutParams(
-                0,
-                dp(1),
-                1f);
-        lineParams.setMargins(dp(10), 0, 0, 0);
-        header.addView(line, lineParams);
         return header;
     }
 
@@ -2596,21 +2585,17 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
                 TextUtils.isEmpty(accountName)
                         ? getString(R.string.profile_telegram_details_unavailable)
                         : accountName));
-        details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_phone,
                 TextUtils.isEmpty(accountPhone)
                         ? getString(R.string.profile_telegram_details_unavailable)
                         : getString(R.string.profile_telegram_phone, accountPhone)));
-        details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_status,
                 getString(R.string.profile_telegram_status_connected)));
-        details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_compiled_at,
                 BuildConfig.BUILD_TIMESTAMP));
-        details.addView(createTelegramDetailDivider());
         details.addView(createTelegramDetailRow(
                 R.string.profile_telegram_details_app_size,
                 getInstalledAppSize()));
@@ -2622,13 +2607,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         TextView close = createDialogAction(R.string.action_close);
         close.setOnClickListener(view -> dialog.dismiss());
         actions.addView(close);
-        TextView disconnect = createDialogAction(R.string.profile_action_disconnect);
-        disconnect.setTextColor(getColor(R.color.danger));
-        disconnect.setOnClickListener(view -> {
-            dialog.dismiss();
-            showLogoutConfirmation();
-        });
-        actions.addView(disconnect);
         content.addView(actions);
 
         dialog.setContentView(content);
@@ -2681,15 +2659,6 @@ public class ProfileActivity extends AlertouActivity implements TelegramClientMa
         valueText.setPadding(0, dp(2), 0, 0);
         row.addView(valueText);
         return row;
-    }
-
-    private View createTelegramDetailDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.divider));
-        divider.setLayoutParams(new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1)));
-        return divider;
     }
 
     private void showLogoutConfirmation() {

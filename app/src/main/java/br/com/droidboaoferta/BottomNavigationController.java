@@ -40,13 +40,18 @@ final class BottomNavigationController {
                 R.id.nav_trash_indicator, R.id.nav_trash_icon, R.id.nav_trash_label,
                 TrashedOffersActivity.class);
         View navigation = activity.findViewById(R.id.bottom_navigation);
-        int selectedId = currentItem == ITEM_HOME ? R.id.nav_home
-                : currentItem == ITEM_SOURCES ? R.id.nav_sources
-                : currentItem == ITEM_ALERTS ? R.id.nav_alerts
-                : currentItem == ITEM_ARCHIVED ? R.id.nav_archived
-                : currentItem == ITEM_TRASH ? R.id.nav_trash : 0;
-        View selected = selectedId == 0 ? null : activity.findViewById(selectedId);
-        if (navigation != null && selected != null) NavigationContentCard.attach(navigation, selected);
+        if (navigation != null && navigation.getParent() instanceof View) {
+            View page = (View) navigation.getParent();
+            int side = activity.getResources().getDimensionPixelSize(R.dimen.navigation_side_padding);
+            // fitsSystemWindows can reset horizontal padding when returning to a page.
+            page.getViewTreeObserver().addOnPreDrawListener(() -> {
+                int left = Math.max(side, page.getPaddingLeft());
+                int right = Math.max(side, page.getPaddingRight());
+                if (left == page.getPaddingLeft() && right == page.getPaddingRight()) return true;
+                page.setPadding(left, page.getPaddingTop(), right, page.getPaddingBottom());
+                return false;
+            });
+        }
         hideNavigationWhileKeyboardIsOpen(activity);
         resetInitialFocus(activity);
         NavigationAnimationController.bind(activity, animatedContentViewIds);
@@ -110,10 +115,31 @@ final class BottomNavigationController {
                 : activity.getColor(R.color.text_secondary);
         ImageView icon = activity.findViewById(iconId);
         icon.setColorFilter(color);
+        if (icon.getParent() instanceof android.widget.LinearLayout) {
+            android.widget.LinearLayout itemLayout = (android.widget.LinearLayout) icon.getParent();
+            int iconIndex = itemLayout.indexOfChild(icon);
+            itemLayout.removeView(icon);
+            android.widget.FrameLayout iconArea = new android.widget.FrameLayout(activity);
+            float density = activity.getResources().getDisplayMetrics().density;
+            int iconSize = Math.round(29 * density);
+            iconArea.addView(icon, new android.widget.FrameLayout.LayoutParams(
+                    iconSize, iconSize, android.view.Gravity.CENTER));
+            itemLayout.addView(iconArea, iconIndex, new android.widget.LinearLayout.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, Math.round(42 * density)));
+            if (selected) {
+                android.graphics.drawable.GradientDrawable highlight = new android.graphics.drawable.GradientDrawable();
+                highlight.setCornerRadius(12 * density);
+                highlight.setColor(androidx.core.graphics.ColorUtils.setAlphaComponent(color, 40));
+                int side = Math.round(2 * density);
+                iconArea.setBackground(new android.graphics.drawable.InsetDrawable(highlight, side, 0, side, 0));
+            }
+        }
 
         TextView label = activity.findViewById(labelId);
         label.setTextColor(color);
         label.setSelected(selected);
+        label.setTypeface(null, selected ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+        label.setIncludeFontPadding(false);
 
         root.setSelected(selected);
         root.setOnClickListener(view -> {

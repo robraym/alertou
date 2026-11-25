@@ -398,12 +398,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -473,28 +467,10 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="60dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -557,12 +533,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -632,12 +602,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -707,12 +671,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -782,12 +740,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -857,12 +809,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -932,12 +878,6 @@
             </LinearLayout>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginStart="44dp"
-            android:layout_marginEnd="8dp"
-            android:background="@color/divider" />
 
         <LinearLayout
             android:layout_width="match_parent"

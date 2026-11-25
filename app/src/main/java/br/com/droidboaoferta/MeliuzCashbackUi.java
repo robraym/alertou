@@ -122,7 +122,7 @@ final class MeliuzCashbackUi {
         List<JSONObject> matches = matches(snapshot.optJSONArray("stores"),
                 MeliuzCashbackSettings.minimum(activity), search);
         LinearLayout card = card(activity);
-        card.setClipToOutline(true);
+        card.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         card.setPadding(0, dp(activity, 2), 0, dp(activity, 2));
         LinearLayout header = horizontal(activity);
         header.setPadding(dp(activity, 6), dp(activity, 2), dp(activity, 6), dp(activity, 3));
@@ -137,6 +137,7 @@ final class MeliuzCashbackUi {
         });
         refresh.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
         refresh.setScaleType(ImageView.ScaleType.CENTER);
+        refresh.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         LinearLayout.LayoutParams refreshParams = new LinearLayout.LayoutParams(dp(activity, 36), dp(activity, 36));
         refreshParams.rightMargin = dp(activity, 8);
         header.addView(refresh, refreshParams);
@@ -183,6 +184,7 @@ final class MeliuzCashbackUi {
         boolean expanded = MeliuzCashbackSettings.preferences(activity).getBoolean("expanded", true);
         ImageButton toggle = icon(activity, R.drawable.ic_chevron_right,
                 expanded ? R.string.meliuz_collapse : R.string.meliuz_expand, () -> { });
+        toggle.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         toggle.setRotation(expanded ? 90 : 0);
         toggle.setPadding(dp(activity, 7), dp(activity, 7), dp(activity, 7), dp(activity, 7));
         toggle.setScaleType(ImageView.ScaleType.CENTER);
@@ -203,7 +205,6 @@ final class MeliuzCashbackUi {
         content.setVisibility(expanded ? View.VISIBLE : View.GONE);
         JSONObject histories = repository.history();
         for (JSONObject store : matches) {
-            if (content.getChildCount() > 0) divider(activity, content, 0);
             LinearLayout row = horizontal(activity);
             row.setMinimumHeight(dp(activity, 36));
             row.setPadding(0, dp(activity, 5), 0, dp(activity, 5));
@@ -608,18 +609,6 @@ final class MeliuzCashbackUi {
         layout.setGravity(Gravity.CENTER_VERTICAL);
         layout.setOrientation(LinearLayout.HORIZONTAL);
         return layout;
-    }
-
-    private static void divider(Activity activity, LinearLayout parent) {
-        divider(activity, parent, 5);
-    }
-
-    private static void divider(Activity activity, LinearLayout parent, int topMargin) {
-        View divider = new View(activity);
-        divider.setBackgroundColor(ContextCompat.getColor(activity, R.color.divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(-1, dp(activity, 1));
-        params.topMargin = dp(activity, topMargin);
-        parent.addView(divider, params);
     }
 
     private static int dp(Activity activity, int value) {

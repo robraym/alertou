@@ -421,16 +421,11 @@ abstract class StoredOffersActivity extends AlertouActivity {
             ObservedOffer offer = offers.get(index);
             String group = OfferDateFormatter.getGroupKey(offer.getObservedAt());
             if (!group.equals(previousGroup)) {
-                if (previousGroup != null) {
-                    container.addView(createDateGroupDivider());
-                }
                 container.addView(createOfferGroupHeader(
                         OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt()),
                         previousGroup != null
                 ));
                 previousGroup = group;
-            } else {
-                container.addView(createOfferDivider());
             }
             LinearLayout row = createOfferRow(
                     offer,
@@ -648,7 +643,7 @@ abstract class StoredOffersActivity extends AlertouActivity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundColor(getColor(R.color.card));
+        row.setBackgroundResource(R.drawable.bg_row_pressed);
         row.setMinimumHeight(dp(52));
         boolean secondaryAtEnd = hasSecondaryAction() && !hasDeleteAction();
         row.setPadding(0, dp(7), 0, dp(7));
@@ -832,13 +827,6 @@ abstract class StoredOffersActivity extends AlertouActivity {
                     showLongPressPrimaryConfirmationDialog(offer);
                 });
 
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.divider));
-        LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, dp(1));
-        dividerParams.setMargins(dp(48), 0, dp(8), 0);
-        content.addView(divider, dividerParams);
-
         addLongPressMenuAction(content,
                 R.drawable.ic_delete,
                 R.drawable.bg_icon_danger,
@@ -912,31 +900,6 @@ abstract class StoredOffersActivity extends AlertouActivity {
                     runLongPressPrimaryAction(offerRepository, offer.getId());
                     renderOffers();
                 });
-    }
-
-    private View createOfferDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1)
-        );
-        params.leftMargin = dp(10);
-        params.rightMargin = dp(6);
-        divider.setLayoutParams(params);
-        return divider;
-    }
-
-    private View createDateGroupDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.section_divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(2)
-        );
-        params.setMargins(dp(6), dp(12), dp(6), dp(4));
-        divider.setLayoutParams(params);
-        return divider;
     }
 
     private void showDeleteConfirmationDialog(ObservedOffer offer) {

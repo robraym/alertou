@@ -327,9 +327,6 @@ public class AlertsActivity extends AlertouActivity {
             });
             row.addView(edit, 0);
             container.addView(row);
-            if (index < interests.size() - 1) {
-                container.addView(createDivider());
-            }
         }
     }
 
@@ -473,7 +470,7 @@ public class AlertsActivity extends AlertouActivity {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundColor(getColor(R.color.card));
+        row.setBackgroundResource(R.drawable.bg_row_pressed);
         row.setMinimumHeight(dp(48));
         row.setPadding(dp(4), dp(4), dp(4), dp(4));
 
@@ -579,18 +576,6 @@ public class AlertsActivity extends AlertouActivity {
         NumberFormat format = NumberFormat.getNumberInstance(new Locale("pt", "BR"));
         format.setMaximumFractionDigits(1);
         return format.format(area);
-    }
-
-    private View createDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1));
-        params.leftMargin = dp(4);
-        params.rightMargin = dp(4);
-        divider.setLayoutParams(params);
-        return divider;
     }
 
     private TextView createEmptyText(int textResource) {

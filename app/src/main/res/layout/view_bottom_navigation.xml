@@ -3,7 +3,7 @@
     android:id="@+id/bottom_navigation"
     android:layout_width="match_parent"
     android:layout_height="78dp"
-    android:background="@color/background"
+    android:background="@android:color/transparent"
     android:orientation="vertical">
 
     <LinearLayout

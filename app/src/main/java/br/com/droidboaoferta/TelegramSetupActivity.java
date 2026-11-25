@@ -1342,7 +1342,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
 
         if (showingCachedGroups) {
             groupsContainer.addView(createInfoText(R.string.telegram_groups_refreshing));
-            groupsContainer.addView(createDivider());
         }
 
         for (int index = 0; index < visibleGroups.size(); index++) {
@@ -1368,7 +1367,7 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
             LinearLayout row = new LinearLayout(this);
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(android.view.Gravity.TOP);
-            row.setBackgroundColor(getColor(R.color.card));
+            row.setBackgroundResource(R.drawable.bg_row_pressed);
             row.setMinimumHeight(dp(56));
             row.setPadding(dp(4), dp(4), dp(4), dp(4));
             checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -1449,9 +1448,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
                     LinearLayout.LayoutParams.MATCH_PARENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
             ));
-            if (index < visibleGroups.size() - 1) {
-                groupsContainer.addView(createDivider());
-            }
         }
     }
 
@@ -1510,7 +1506,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         storeSourcesContainer.removeAllViews();
         for (int index = 0; index < sources.size(); index++) {
             storeSourcesContainer.addView(sources.get(index).row);
-            if (index < sources.size() - 1) storeSourcesContainer.addView(createDivider());
         }
     }
 
@@ -2745,19 +2740,6 @@ public class TelegramSetupActivity extends AlertouActivity implements TelegramCl
         infoText.setTextSize(13);
         infoText.setPadding(dp(6), 0, dp(6), dp(10));
         return infoText;
-    }
-
-    private View createDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1)
-        );
-        params.leftMargin = dp(42);
-        params.rightMargin = dp(4);
-        divider.setLayoutParams(params);
-        return divider;
     }
 
     private void submitAuthenticationValue() {

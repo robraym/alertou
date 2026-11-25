@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <dimen name="screen_card_inset">8dp</dimen>
-    <dimen name="navigation_side_padding">12dp</dimen>
+    <dimen name="navigation_side_padding">8dp</dimen>
     <dimen name="navigation_content_inset">4dp</dimen>
     <dimen name="screen_header_content_gap">6dp</dimen>
     <dimen name="screen_card_gap">9dp</dimen>

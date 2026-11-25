@@ -855,8 +855,6 @@ public class MainActivity extends AlertouActivity {
         }
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_card_compact);
-        card.setClipToOutline(true);
         card.setPadding(0, dp(2), 0, dp(2));
 
         LinearLayout header = new LinearLayout(this);
@@ -869,7 +867,7 @@ public class MainActivity extends AlertouActivity {
 
         ImageButton icon = new ImageButton(this);
         icon.setTag(TREASURY_ACTION_TAG);
-        icon.setBackgroundResource(R.drawable.bg_icon_circle);
+        icon.setBackgroundColor(Color.TRANSPARENT);
         icon.setPadding(dp(7), dp(7), dp(7), dp(7));
         icon.setScaleType(ImageView.ScaleType.CENTER);
         treasuryActionView = icon;
@@ -956,7 +954,7 @@ public class MainActivity extends AlertouActivity {
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
         toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
-        toggle.setBackgroundResource(R.drawable.bg_icon_circle);
+        toggle.setBackgroundColor(Color.TRANSPARENT);
         toggle.setPadding(dp(7), dp(7), dp(7), dp(7));
         toggle.setRotation(expanded ? 90f : 0f);
         toggle.setContentDescription(getString(expanded ? R.string.alerts_section_collapse
@@ -980,9 +978,6 @@ public class MainActivity extends AlertouActivity {
         // alternar apenas a visibilidade, sem reconstruir toda a tela Alertou.
         for (int index = 0; index < treasuryInterests.size(); index++) {
             Interest interest = treasuryInterests.get(index);
-            if (index > 0) {
-                content.addView(createOfferDivider());
-            }
             content.addView(createTreasuryRateRow(interest,
                     historyRepository.get(interest.getId())));
         }
@@ -995,7 +990,7 @@ public class MainActivity extends AlertouActivity {
         row.setOrientation(LinearLayout.VERTICAL);
         row.setMinimumHeight(dp(52));
         row.setPadding(0, dp(7), 0, dp(7));
-        row.setBackgroundColor(getColor(R.color.card));
+        row.setBackgroundResource(R.drawable.bg_row_pressed);
         row.setClickable(true);
         row.setFocusable(true);
 
@@ -1263,11 +1258,6 @@ public class MainActivity extends AlertouActivity {
 
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_card_compact);
-        // The offer rows have their own solid background for swipe feedback. Keep that
-        // background inside the section's rounded outline instead of letting it visually
-        // reach past the card edges.
-        card.setClipToOutline(true);
         card.setClipChildren(true);
         card.setClipToPadding(true);
         card.setPadding(0, dp(2), 0, dp(2));
@@ -1301,7 +1291,7 @@ public class MainActivity extends AlertouActivity {
                     .isCheckingPropertyCondominium();
             sectionAction.setImageResource(updatingPropertyMarket
                     ? R.drawable.ic_sync : R.drawable.ic_refresh_property);
-            sectionAction.setBackgroundResource(R.drawable.bg_icon_circle);
+            sectionAction.setBackgroundColor(Color.TRANSPARENT);
             sectionAction.setContentDescription(getString(updatingPropertyMarket
                     ? R.string.action_stop_property_check
                     : R.string.action_refresh_property_market_prices));
@@ -1312,8 +1302,7 @@ public class MainActivity extends AlertouActivity {
         } else {
             sectionAction.setImageResource(sectionIconResource != 0
                     ? sectionIconResource : R.drawable.ic_trash_outline);
-            sectionAction.setBackgroundResource(sectionIconResource != 0
-                    ? R.drawable.bg_icon_circle : R.drawable.bg_icon_danger);
+            sectionAction.setBackgroundColor(Color.TRANSPARENT);
             sectionAction.setContentDescription(sectionIconResource != 0
                     ? getString(titleResource)
                     : getString(R.string.action_trash_offer_section));
@@ -1449,7 +1438,7 @@ public class MainActivity extends AlertouActivity {
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
         toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
-        toggle.setBackgroundResource(R.drawable.bg_icon_circle);
+        toggle.setBackgroundColor(Color.TRANSPARENT);
         toggle.setContentDescription(getString(expanded
                 ? R.string.alerts_section_collapse
                 : R.string.alerts_section_expand));
@@ -1532,9 +1521,6 @@ public class MainActivity extends AlertouActivity {
                     : OfferDateFormatter.formatGroupLabel(this, offer.getObservedAt());
             if (propertyInterestCards) {
                 if (!group.equals(activePropertyCardKey)) {
-                    if (activePropertyCardKey != null) {
-                        content.addView(createOfferDivider());
-                    }
                     activePropertyCardKey = group;
                     propertyCardOfferCount = 0;
                     propertyCardOffers = addPropertyInterestCard(content, group,
@@ -1542,17 +1528,10 @@ public class MainActivity extends AlertouActivity {
                            propertyInterestOfferCounts.containsKey(offer.getInterestId())
                                     ? propertyInterestOfferCounts.get(offer.getInterestId()) : 0);
                     renderedPropertyInterestIds.add(offer.getInterestId());
-                } else if (propertyCardOffers != null && propertyCardOfferCount > 0) {
-                    propertyCardOffers.addView(createOfferDivider());
                 }
             } else if (!propertyMarketSection && !group.equals(previousGroup)) {
-                if (previousGroup != null) {
-                    content.addView(createDateGroupDivider());
-                }
                 content.addView(createOfferGroupHeader(groupLabel, previousGroup != null));
                 previousGroup = group;
-            } else if (index > 0) {
-                content.addView(createOfferDivider());
             }
             String displayedTime = OfferDateFormatter.formatTime(offer.getObservedAt());
             PropertyHistoryEntry propertyHistory = displayedPropertyHistory.get(offer.getId());
@@ -1618,9 +1597,6 @@ public class MainActivity extends AlertouActivity {
                 boolean belongsToSection = interest.isPropertyCondominium();
                 if (!belongsToSection || renderedPropertyInterestIds.contains(interest.getId())) {
                     continue;
-                }
-                if (activePropertyCardKey != null) {
-                    content.addView(createOfferDivider());
                 }
                 activePropertyCardKey = getPropertyCondominiumCardKey(interest.getId());
                 addPropertyInterestCard(content, activePropertyCardKey, interest.getId(),
@@ -1720,7 +1696,6 @@ public class MainActivity extends AlertouActivity {
                                                 int returnedOfferCount) {
         LinearLayout card = new LinearLayout(this);
         card.setOrientation(LinearLayout.VERTICAL);
-        card.setBackgroundResource(R.drawable.bg_card_compact);
         card.setPadding(dp(6), dp(4), dp(6), dp(6));
 
         LinearLayout header = new LinearLayout(this);
@@ -1736,7 +1711,7 @@ public class MainActivity extends AlertouActivity {
         ImageView icon = new ImageView(this);
         icon.setImageResource(R.drawable.ic_property_alert);
         icon.setColorFilter(AccentColorController.getPrimaryColor(this));
-        icon.setBackgroundResource(R.drawable.bg_icon_circle);
+        icon.setBackgroundColor(Color.TRANSPARENT);
         icon.setPadding(dp(4), dp(4), dp(4), dp(4));
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(30), dp(30));
         iconParams.rightMargin = dp(7);
@@ -1805,7 +1780,7 @@ public class MainActivity extends AlertouActivity {
         ImageButton toggle = new ImageButton(this);
         toggle.setImageResource(R.drawable.ic_chevron_right);
         toggle.setColorFilter(AccentColorController.getPrimaryColor(this));
-        toggle.setBackgroundResource(R.drawable.bg_icon_circle);
+        toggle.setBackgroundColor(Color.TRANSPARENT);
         toggle.setPadding(dp(7), dp(7), dp(7), dp(7));
         toggle.setScaleType(ImageView.ScaleType.CENTER);
         toggle.setRotation(expanded ? 90f : 0f);
@@ -2524,7 +2499,20 @@ public class MainActivity extends AlertouActivity {
     }
 
     private FrameLayout createSwipeContainer(View foreground) {
-        FrameLayout container = new FrameLayout(this);
+        FrameLayout container = new FrameLayout(this) {
+            @Override protected boolean drawChild(android.graphics.Canvas canvas, View child, long drawingTime) {
+                if (child == foreground) return super.drawChild(canvas, child, drawingTime);
+                float offset = foreground.getTranslationX();
+                if (offset == 0f) return false;
+                // Draw swipe actions only in the revealed strip, behind the transparent row.
+                int save = canvas.save();
+                canvas.clipRect(offset > 0 ? 0 : getWidth() + offset, 0,
+                        offset > 0 ? offset : getWidth(), getHeight());
+                boolean drawn = super.drawChild(canvas, child, drawingTime);
+                canvas.restoreToCount(save);
+                return drawn;
+            }
+        };
         container.setClipChildren(false);
 
         LinearLayout background = new LinearLayout(this);
@@ -2572,7 +2560,7 @@ public class MainActivity extends AlertouActivity {
                                         View.OnClickListener propertyHistoryClick) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.VERTICAL);
-        row.setBackgroundColor(getColor(R.color.card));
+        row.setBackgroundResource(R.drawable.bg_row_pressed);
         row.setClickable(true);
         row.setFocusable(true);
         row.setMinimumHeight(dp(52));
@@ -2965,29 +2953,6 @@ public class MainActivity extends AlertouActivity {
                         : R.string.property_price_drop_badge_reais,
                 number.format(absoluteChange),
                 percentageNumber.format(absolutePercentage));
-    }
-
-    private View createOfferDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(1));
-        params.leftMargin = dp(6);
-        params.rightMargin = dp(6);
-        divider.setLayoutParams(params);
-        return divider;
-    }
-
-    private View createDateGroupDivider() {
-        View divider = new View(this);
-        divider.setBackgroundColor(getColor(R.color.section_divider));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                dp(2));
-        params.setMargins(dp(6), dp(12), dp(6), dp(4));
-        divider.setLayoutParams(params);
-        return divider;
     }
 
     private void attachSwipeActions(View row, ObservedOffer offer, boolean expired) {
