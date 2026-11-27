@@ -1010,6 +1010,20 @@ public class AlertsActivity extends AlertouActivity {
         content.addView(rateInput, new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, dp(52)));
 
+        if (editing) {
+            LinearLayout secondaryActions = new LinearLayout(this);
+            secondaryActions.setGravity(Gravity.CENTER_VERTICAL);
+            secondaryActions.setPadding(0, dp(12), 0, 0);
+            TextView remove = createDialogAction(R.string.action_remove_interest);
+            remove.setTextColor(getColor(R.color.danger));
+            remove.setOnClickListener(view -> {
+                dialog.dismiss();
+                showRemoveInterestConfirmation(interestToEdit);
+            });
+            secondaryActions.addView(remove);
+            content.addView(secondaryActions);
+        }
+
         LinearLayout actions = new LinearLayout(this);
         actions.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         actions.setPadding(0, dp(14), 0, 0);
