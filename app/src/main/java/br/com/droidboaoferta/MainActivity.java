@@ -3721,6 +3721,7 @@ public class MainActivity extends AlertouActivity {
         endedAction.setOnClickListener(view -> {
             expiry.markExpired(OfferTextParser.normalize(product), roundStartedAt,
                     offer.getObservedAt());
+            ProductNotificationLimiter.cancelForProduct(this, product);
             CloudSyncStore.syncPromotionExpiryChanged(this);
             dialog.dismiss();
             refreshDashboard();
@@ -3740,6 +3741,7 @@ public class MainActivity extends AlertouActivity {
         invalidAction.setOnClickListener(view -> {
             speed.invalidateOffer(offer);
             new OfferInvalidationRepository(this).markInvalid(offer);
+            ProductNotificationLimiter.cancelForOffer(this, offer);
             offerRepository.trash(offer.getId());
             dialog.dismiss();
             refreshDashboard();
