@@ -1092,12 +1092,12 @@ public class MainActivity extends AlertouActivity {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setPadding(dp(24), dp(0), dp(24), dp(16));
         content.setBackgroundResource(R.drawable.bg_dialog);
         LinearLayout historyHeader = new LinearLayout(this);
         historyHeader.setOrientation(LinearLayout.VERTICAL);
         TextView title = new TextView(this);
-        title.setText(R.string.treasury_direct_history_title);
+
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(21);
         historyHeader.addView(title);
@@ -3249,12 +3249,11 @@ public class MainActivity extends AlertouActivity {
         Dialog dialog = new Dialog(this);
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
-        content.setPadding(dp(24), dp(22), dp(24), dp(16));
+        content.setPadding(dp(24), dp(0), dp(24), dp(16));
         content.setBackgroundResource(R.drawable.bg_dialog);
 
         TextView title = new TextView(this);
-        title.setText(total ? R.string.property_market_total_history_title
-                : R.string.property_market_listing_count_history_title);
+
         title.setTextColor(getColor(R.color.text_primary));
         title.setTextSize(21);
         content.addView(title);
@@ -3498,7 +3497,6 @@ public class MainActivity extends AlertouActivity {
         }
         if (!visibleHistoryPoints.isEmpty()) {
             TextView chartTitle = new TextView(this);
-            chartTitle.setText(R.string.property_history_chart_title);
             chartTitle.setTextColor(getColor(R.color.text_primary));
             chartTitle.setTextSize(16);
             chartTitle.setPadding(0, dp(14), 0, dp(4));

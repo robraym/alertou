@@ -418,7 +418,7 @@ final class MeliuzCashbackUi {
     private static void showHistory(Activity activity, JSONObject store, MeliuzCashbackStore repository) {
         LinearLayout content = dialogContent(activity);
         content.setBackgroundResource(R.drawable.bg_dialog);
-        content.addView(label(activity, activity.getString(R.string.meliuz_history_title), 21, false));
+
         TextView storeName = label(activity, store.optString("name"), 15, false);
         storeName.setPadding(0, dp(activity, 6), 0, 0);
         content.addView(storeName);
